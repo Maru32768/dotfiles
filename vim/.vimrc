@@ -29,6 +29,7 @@ Plug 'iamcco/markdown-preview.nvim', { 'do': { -> mkdp#util#install() }, 'for': 
 Plug 'thinca/vim-quickrun', {'on': 'QuickRun'}
 Plug 'Shougo/vimproc.vim', {'do': 'make'}
 Plug 'vim-denops/denops.vim'    " DenoでVimプラグインを開発するためのプラグイン
+Plug 'simeji/winresizer'
 
 Plug 'kana/vim-textobj-user'
 Plug 'osyo-manga/vim-textobj-multiblock'
@@ -156,6 +157,10 @@ let g:quickrun_config.cpp = {
     \ 'input': 'input', 
     \ 'runner': 'system'
     \ }
+
+" winresizer settings
+let g:winresizer_vert_resize = 3
+let g:winresizer_horiz_resize = 1
 
 " 補完表示時のEnter選択で改行しない
 call lexima#init()
