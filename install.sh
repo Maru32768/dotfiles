@@ -32,6 +32,10 @@ sudo apt install tmux
 
 sudo apt remove vim
 sudo apt autoremove vim
+
+sudo apt install python-is-python3
+sudo apt install python3-dev
+
 ghq get https://github.com/vim/vim
 cd ~/ghq/github.com/vim/vim/src
 git checkout v8.2.4503

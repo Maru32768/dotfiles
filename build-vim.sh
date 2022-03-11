@@ -6,7 +6,8 @@
     --enable-xsmp-interact \
     --disable-xsmp \
     --disable-xsmp-interact \
-    --enable-python3interp=yes \
+    --enable-python3interp=dynamic \
+    --with-python3-config-dir=$(python3-config --configdir) \
     --enable-multibyte \
     --enable-terminal \
     --with-tlib=ncurses \
