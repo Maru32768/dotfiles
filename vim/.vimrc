@@ -133,8 +133,8 @@ if !empty(globpath(&rtp, 'autoload/lsp.vim'))
 
     silent! stty start undef
     silent! stty stop undef
-    nnoremap <c-q> :LspHover<cr>
 
+    nnoremap <c-q> :LspHover<cr>
     nnoremap <f4> :LspDefinition<cr>
     nnoremap <s-f6> :LspRename<cr>
     nnoremap <f7> :LspReferences<cr>
@@ -262,14 +262,10 @@ if has('persistent_undo')
     let &undodir=undoPath
 endif
 
-set t_ku=OA
-set <down>=OB
-set <right>=OC
-set <left>=OD
-
 noremap <c-j> <c-w><c-j>
 noremap <c-k> <c-w><c-k>
 noremap <c-l> <c-w><c-l>
+noremap <c-h> <c-w><c-h>
 noremap <c-w><c-h> <c-w>H
 noremap <c-w><c-j> <c-w>J
 noremap <c-w><c-k> <c-w>K
@@ -295,22 +291,22 @@ noremap : ;
 noremap ; :
 tnoremap <c-w>: <c-w>;
 tnoremap <c-w>; <c-w>:
-
-" カーソル下の単語をハイライトしてから置換
-nnoremap # "zyiw:let @/ = '\<' . @z . '\>'<cr>:set hlsearch<cr>:%s/<c-r>///g<Left><Left>
-
-" 検索ハイライトを消す
 nnoremap <silent> <Esc><Esc> :noh<cr>
-
-" 行頭,行末の移動
 nnoremap H ^
 nnoremap L $
 vnoremap H ^
 vnoremap L $
 
-" Ctrl-p Ctrl-nの挙動をUp Downと同一に
+" カーソル下の単語をハイライトしてから置換
+nnoremap # "zyiw:let @/ = '\<' . @z . '\>'<cr>:set hlsearch<cr>:%s/<c-r>///g<Left><Left>
+
 cnoremap <c-p> <Up>
 cnoremap <c-n> <Down>
+cnoremap <C-a> <Home>
+cnoremap <C-e> <End>
+cnoremap <C-b> <Left>
+cnoremap <C-f> <Right>
+cnoremap <C-y> <C-r>"
 
 " アクティブなファイルが含まれているディレクトリを%%で展開
 cnoremap <expr> %% getcmdtype() == ':' ? expand('%:h').'/' : '%%'
