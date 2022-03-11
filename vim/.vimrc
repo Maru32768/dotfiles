@@ -50,7 +50,6 @@ Plug 'mattn/vim-lsp-settings'
 Plug 'mattn/vim-lsp-icons'
 Plug 'hrsh7th/vim-vsnip'
 Plug 'hrsh7th/vim-vsnip-integ'
-Plug 'mattn/vim-goimports'
 call plug#end()
 
 call ddc#custom#patch_global('sources', [
@@ -144,6 +143,8 @@ if !empty(globpath(&rtp, 'autoload/lsp.vim'))
         autocmd User lsp_buffer_enabled call s:on_lsp_buffer_enabled()
     augroup END
     command! LspDebug let lsp_log_verbose=1 | let lsp_log_file = expand('~/lsp.log')
+
+    autocmd BufWritePre * silent! :LspDocumentFormatSync<cr>
 
     let g:lsp_log_verbose = 0
     let g:lsp_log_file = ""
