@@ -43,6 +43,7 @@ Plug 'Shougo/ddc-sorter_rank'
 Plug 'shun/ddc-vim-lsp'
 Plug 'matsui54/denops-popup-preview.vim'
 Plug 'matsui54/denops-signature_help'
+Plug 'LumaKernel/ddc-file'
 
 Plug 'prabirshrestha/vim-lsp'
 Plug 'mattn/vim-lsp-settings'
@@ -54,7 +55,8 @@ call plug#end()
 
 call ddc#custom#patch_global('sources', [
             \ 'around',
-            \ 'vim-lsp'
+            \ 'vim-lsp',
+            \ 'file'
          \ ])
 call ddc#custom#patch_global('sourceOptions', {
             \ 'around': {'mark': 'A'},
@@ -63,6 +65,11 @@ call ddc#custom#patch_global('sourceOptions', {
                 \ 'dup': v:true,
                 \ 'forceCompletionPattern': "\\.|://s*|->",
                 \ 'minAutoCompleteLength': 1,
+            \},
+            \ 'file': {
+                \ 'mark': 'file',
+                \ 'isVolatile': v:true,
+                \ 'forceCompletionPattern': '\S/\S*',
             \},
             \ '_': {
                 \ 'matchers': ['matcher_head'],
@@ -73,6 +80,21 @@ call ddc#custom#patch_global('sourceOptions', {
 call ddc#custom#patch_global('sourceParams', {
             \ 'around': {'maxSize': 500},
         \ })
+call ddc#custom#patch_filetype(
+            \ ['ps1', 'dosbatch', 'autohotkey', 'registry'], 
+            \ {
+                \ 'sourceOptions': {
+                    \ 'file': {
+                        \ 'forceCompletionPattern': '\S\\\S*',
+                    \ },
+                \ },
+                \ 'sourceParams': {
+                    \ 'file': {
+                        \ 'mode': 'win32',
+                    \ }
+                \ }
+            \ }
+        \ )
 call ddc#enable()
 
 "ctrl-pの設定
