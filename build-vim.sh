@@ -6,6 +6,7 @@
     --enable-xsmp-interact \
     --disable-xsmp \
     --disable-xsmp-interact \
+    --enable-python3interp=yes \
     --enable-multibyte \
     --enable-terminal \
     --with-tlib=ncurses \
