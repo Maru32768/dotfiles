@@ -41,3 +41,5 @@ cd ~/ghq/github.com/vim/vim/src
 git checkout v8.2.4503
 ~/dotfiles/build-vim.sh && make && sudo make install && cd -
 
+source ~/.bashrc
+source ~/.bash_profile
