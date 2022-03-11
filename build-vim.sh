@@ -1,0 +1,12 @@
+./configure \
+    --with-features=huge \
+    --with-compiledby="Maru32768" \
+    --without-x \
+    --enable-gui=no \
+    --enable-xsmp-interact \
+    --disable-xsmp \
+    --disable-xsmp-interact \
+    --enable-multibyte \
+    --enable-terminal \
+    --with-tlib=ncurses \
+    --enable-fail-if-missing
