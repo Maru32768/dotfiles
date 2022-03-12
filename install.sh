@@ -9,7 +9,7 @@ ln -s ~/dotfiles/.bashrc ~/.bashrc
 rm ~/.bash_profile
 ln -s ~/dotfiles/.bash_profile ~/.bash_profile
 
-source ~/.bash_profile
+source ~/.bash_profile 2> /dev/null
 
 sudo apt install build-essential curl git
 
@@ -26,17 +26,22 @@ sh /tmp/rustup.rs -y
 
 curl -fsSL https://deno.land/install.sh | sh
 
-sudo apt install tmux
-
+# -----build vim-----
 sudo apt remove vim
 sudo apt autoremove vim
 
-sudo apt install python-is-python3
-sudo apt install python3-dev
+sudo apt install python-is-python3 libncurses5-dev python3-dev
 
 ghq get https://github.com/vim/vim
 cd ~/ghq/github.com/vim/vim/src
 git checkout v8.2.4503
+
 ~/dotfiles/build-vim.sh && make && sudo make install && cd -
+
+curl -fLo ~/.vim/autoload/plug.vim --create-dirs \
+    https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+# -------------------
+
+sudo apt install tmux
 
 source ~/.bash_profile
