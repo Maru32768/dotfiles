@@ -30,6 +30,7 @@ Plug 'thinca/vim-quickrun', {'on': 'QuickRun'}
 Plug 'Shougo/vimproc.vim', {'do': 'make'}
 Plug 'vim-denops/denops.vim'    " DenoでVimプラグインを開発するためのプラグイン
 Plug 'simeji/winresizer'
+Plug 'mattn/vim-goimports'
 
 Plug 'kana/vim-textobj-user'
 Plug 'osyo-manga/vim-textobj-multiblock'
