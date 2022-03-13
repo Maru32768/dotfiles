@@ -31,6 +31,7 @@ Plug 'Shougo/vimproc.vim', {'do': 'make'}
 Plug 'vim-denops/denops.vim'    " DenoでVimプラグインを開発するためのプラグイン
 Plug 'simeji/winresizer'
 Plug 'mattn/vim-goimports'
+Plug 'doums/darcula'
 
 Plug 'kana/vim-textobj-user'
 Plug 'osyo-manga/vim-textobj-multiblock'
@@ -112,8 +113,8 @@ nmap ga <Plug>(EasyAlign)
 " spelunker.vimの設定
 set nospell
 autocmd ColorScheme *
-    \ highlight SpelunkerSpellBad cterm=underline ctermfg=203 gui=underline guifg=#9e9e9e |
-    \ highlight SpelunkerComplexOrCompoundWord cterm=underline ctermfg=203 gui=underline guifg=NONE
+    \ highlight SpelunkerSpellBad cterm=underline ctermfg=247 gui=underline guifg=#9e9e9e |
+    \ highlight SpelunkerComplexOrCompoundWord cterm=underline ctermfg=NONE gui=underline guifg=NONE
 
 " vim-textobj-from-regexpの設定
 omap <expr> <Plug>(textobj-if-then)
@@ -267,7 +268,9 @@ set listchars=tab:»-,trail:-,eol:↲,extends:»,precedes:«,nbsp:%
 autocmd ColorScheme * highlight NonText    ctermbg=NONE ctermfg=59 guibg=NONE guifg=NONE
 autocmd ColorScheme * highlight SpecialKey ctermbg=NONE ctermfg=59 guibg=NONE guifg=NONE
 
-colorscheme murphy
+colorscheme darcula
+set termguicolors
+highlight Constant cterm=NONE
 
 let swapPath = expand("$HOME/.vim/swap//")
 if !isdirectory(swapPath)
