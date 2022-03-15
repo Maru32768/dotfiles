@@ -13,7 +13,7 @@ source ~/.bash_profile 2> /dev/null
 
 sudo apt install build-essential curl git
 
-curl -L https://go.dev/dl/go1.17.8.linux-amd64.tar.gz -o go.tar.gz
+curl -L https://go.dev/dl/go1.18.linux-amd64.tar.gz -o go.tar.gz
 sudo rm -rf /usr/local/go
 sudo tar -C /usr/local -xzf go.tar.gz
 rm -rf go.tar.gz
