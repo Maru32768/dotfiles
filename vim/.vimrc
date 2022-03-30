@@ -55,18 +55,18 @@ Plug 'hrsh7th/vim-vsnip-integ'
 call plug#end()
 
 call ddc#custom#patch_global('sources', [
-            \ 'around',
             \ 'vim-lsp',
-            \ 'file'
+            \ 'file',
+            \ 'around'
          \ ])
 call ddc#custom#patch_global('sourceOptions', {
-            \ 'around': {'mark': 'A'},
             \ 'vim-lsp': {
                 \ 'mark': 'lsp',
                 \ 'dup': v:true,
                 \ 'forceCompletionPattern': "\\.|://s*|->",
                 \ 'minAutoCompleteLength': 1,
             \},
+            \ 'around': {'mark': 'A'},
             \ 'file': {
                 \ 'mark': 'file',
                 \ 'isVolatile': v:true,
@@ -96,6 +96,12 @@ call ddc#custom#patch_filetype(
                 \ }
             \ }
         \ )
+
+inoremap <silent><expr> <tab>
+            \ ddc#map#pum_visible() ? '<down>' :
+            \ (col('.') <= 1 <Bar><Bar> getline('.')[col('.') - 2] =~# '\s') ?
+            \ '<tab>' : ddc#map#manual_complete()
+inoremap <expr><s-tab> ddc#map#pum_visible() ? '<up>' : '<c-h>'
 call ddc#enable()
 
 "ctrl-pの設定
@@ -186,16 +192,6 @@ let g:quickrun_config.cpp = {
 " winresizer settings
 let g:winresizer_vert_resize = 3
 let g:winresizer_horiz_resize = 1
-
-" 補完表示時のEnter選択で改行しない
-call lexima#init()
-inoremap <expr><cr>  pumvisible() ? "<c-y>" : lexima#expand('<lt>cr>', 'i')
-
-" 補完選択時に挿入を行わない
-inoremap <expr><tab> pumvisible() ? "<Down>" : "<tab>"
-inoremap <expr><s-tab> pumvisible() ? "<Up>" : "<s-tab>"
-inoremap <expr><c-n> pumvisible() ? "<Down>" : "<c-n>"
-inoremap <expr><c-p> pumvisible() ? "<Up>" : "<c-p>"
 
 " 挿入モードのカーソルを変更する
 let &t_ti .= "\e[1 q"
