@@ -104,6 +104,10 @@ inoremap <silent><expr> <tab>
 inoremap <expr><s-tab> ddc#map#pum_visible() ? '<up>' : '<c-h>'
 call ddc#enable()
 
+let g:lexima_no_default_rules = 1
+call lexima#set_default_rules()
+call lexima#insmode#map_hook('before', '<cr>', '')
+
 "ctrl-pの設定
 let g:ctrlp_working_path_mode = 'ra'
 let g:ctrlp_show_hidden = 1
