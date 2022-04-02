@@ -1,7 +1,7 @@
 let mapleader = "\<Space>"
 
 call plug#begin()
-Plug 'scrooloose/nerdtree'            " IDEライクなファイルエクスプローラ
+Plug 'preservim/nerdtree'
 Plug 'tpope/vim-vinegar'
 Plug 'tpope/vim-surround'             " 括弧の変更や削除を容易にする
 Plug 'tpope/vim-repeat'               " ドットコマンドをプラグインでも利用可能に
@@ -106,6 +106,7 @@ call ddc#enable()
 
 "ctrl-pの設定
 let g:ctrlp_working_path_mode = 'ra'
+let g:ctrlp_show_hidden = 1
 if exists('*matchfuzzy')
     let g:ctrlp_match_func = { 'match': 'ctrlp_matchfuzzy#matcher' }
 endif
@@ -135,7 +136,7 @@ xmap i<a-w> <Plug>(textobj-if-then)
 let g:NERDTreeShowBookmarks = 1
 autocmd StdinReadPre * let s:std_in = 1 " ファイル名が指定されずにVIMが起動した場合のみNERDTreeを表示
 autocmd VimEnter * if argc() == 0 && !exists("s:std_in") | NERDTree | endif
-noremap <silent> <c-n> :NERDTreeToggle<cr>
+noremap <silent> <c-n> :NERDTree<cr>
 
 " vim-lspの設定
 if !empty(globpath(&rtp, 'autoload/lsp.vim'))
