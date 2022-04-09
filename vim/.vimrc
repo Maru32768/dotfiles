@@ -1,5 +1,3 @@
-let mapleader = "\<Space>"
-
 call plug#begin()
 Plug 'preservim/nerdtree'
 Plug 'tpope/vim-vinegar'
@@ -31,6 +29,8 @@ Plug 'Shougo/vimproc.vim', {'do': 'make'}
 Plug 'vim-denops/denops.vim'    " DenoでVimプラグインを開発するためのプラグイン
 Plug 'simeji/winresizer'
 Plug 'mattn/vim-goimports'
+Plug 'mattn/vim-goaddtags'
+Plug 'mattn/vim-goimpl'
 Plug 'doums/darcula'
 
 Plug 'kana/vim-textobj-user'
@@ -97,11 +97,11 @@ call ddc#custom#patch_filetype(
             \ }
         \ )
 
-inoremap <silent><expr><tab>
+inoremap <silent><expr> <tab>
             \ ddc#map#pum_visible() ? '<down>' :
             \ (col('.') <= 1 <Bar><Bar> getline('.')[col('.') - 2] =~# '\s') ?
             \ '<tab>' : ddc#map#manual_complete()
-inoremap <expr><s-tab> ddc#map#pum_visible() ? '<up>' : '<c-h>'
+inoremap <expr> <s-tab> ddc#map#pum_visible() ? '<up>' : '<c-h>'
 call ddc#enable()
 
 let g:lexima_no_default_rules = 1
@@ -145,8 +145,17 @@ if !empty(globpath(&rtp, 'autoload/lsp.vim'))
     function! s:on_lsp_buffer_enabled() abort
         setlocal omnifunc=lsp#complete
         setlocal signcolumn=yes
+        nmap <buffer> <f4> <plug>(lsp-definition)
         nmap <buffer> gd <plug>(lsp-definition)
-        nmap <buffer> <f2> <plug>(lsp-rename)
+        nmap <buffer> <f7> <plug>(lsp-references)
+        nmap <buffer> gr <plug>(lsp-references)
+        nmap <buffer> gi <plug>(lsp-implementation)
+        nmap <buffer> gt <plug>(lsp-type-definition)
+        nmap <buffer> <s-f6> <plug>(lsp-rename)
+        nmap <buffer> <leader>rn <plug>(lsp-rename)
+        nmap <buffer> [g <plug>(lsp-previous-diagnostic)
+        nmap <buffer> ]g <plug>(lsp-next-diagnostic)
+        nmap <buffer> <c-q> <plug>(lsp-hover) " bash_profileにstty start undefとstty stop undefを記述する必要有
     endfunction
 
     augroup lsp_install
@@ -165,14 +174,6 @@ if !empty(globpath(&rtp, 'autoload/lsp.vim'))
     let g:asyncomplete_auto_completeopt = 0
     let asyncomplete_popup_delay = 0
     let g:lsp_text_edit_enabled = 1
-
-    silent! stty start undef
-    silent! stty stop undef
-
-    nnoremap <c-q> :LspHover<cr>
-    nnoremap <f4> :LspDefinition<cr>
-    nnoremap <s-f6> :LspRename<cr>
-    nnoremap <f7> :LspReferences<cr>
 endif
 
 " vim-quickrunの設定
@@ -227,7 +228,6 @@ if !has('nvim')
     set ruler                            " 現在行を画面隅に表示
     set sessionoptions-=options          " セッションごとにオプションを持ち越さない
     set shortmess=F                      " より簡潔なファイル情報
-    set showcmd                          " ステータスラインに最後に実行されたコマンドを表示
     set sidescroll=1                     " スムーズな横方向のスクロール
     set smarttab                         " Tabキーを押した時の挙動の設定
     set tabpagemax=50                    " -pフラグで開かれるタブの上限
@@ -262,6 +262,7 @@ set history=200
 set mouse=a
 set title
 set showcmd
+set confirm
 silent! helptags ALL
 
 " タブや空白,改行等を可視化
@@ -296,6 +297,8 @@ if has('persistent_undo')
     set undofile
     let &undodir=undoPath
 endif
+
+let mapleader = "\<space>"
 
 noremap <c-j> <c-w><c-j>
 noremap <c-k> <c-w><c-k>
