@@ -97,7 +97,7 @@ call ddc#custom#patch_filetype(
             \ }
         \ )
 
-inoremap <silent><expr> <tab>
+inoremap <silent><expr><tab>
             \ ddc#map#pum_visible() ? '<down>' :
             \ (col('.') <= 1 <Bar><Bar> getline('.')[col('.') - 2] =~# '\s') ?
             \ '<tab>' : ddc#map#manual_complete()
@@ -115,11 +115,9 @@ if exists('*matchfuzzy')
     let g:ctrlp_match_func = { 'match': 'ctrlp_matchfuzzy#matcher' }
 endif
 
-let g:airline_theme = 'simple'
-
 " vim-easy-alignの設定
-xmap ga <Plug>(EasyAlign)
-nmap ga <Plug>(EasyAlign)
+xmap ga <plug>(EasyAlign)
+nmap ga <plug>(EasyAlign)
 
 " spelunker.vimの設定
 set nospell
@@ -128,19 +126,19 @@ autocmd ColorScheme *
     \ highlight SpelunkerComplexOrCompoundWord cterm=underline ctermfg=NONE gui=underline guifg=NONE
 
 " vim-textobj-from-regexpの設定
-omap <expr> <Plug>(textobj-if-then)
+omap <expr> <plug>(textobj-if-then)
 \   textobj#from_regexp#mapexpr('if\s*\zs\_.\{-}\ze\s*{')
-vmap <expr> <Plug>(textobj-if-then)
+vmap <expr> <plug>(textobj-if-then)
 \   textobj#from_regexp#mapexpr('if\s*\zs\_.\{-}\ze\s*{')
 
-omap i<a-w> <Plug>(textobj-if-then)
-xmap i<a-w> <Plug>(textobj-if-then)
+omap i<a-w> <plug>(textobj-if-then)
+xmap i<a-w> <plug>(textobj-if-then)
 
 " NERDTreeの設定
 let g:NERDTreeShowBookmarks = 1
 autocmd StdinReadPre * let s:std_in = 1 " ファイル名が指定されずにVIMが起動した場合のみNERDTreeを表示
 autocmd VimEnter * if argc() == 0 && !exists("s:std_in") | NERDTree | endif
-noremap <silent> <c-n> :NERDTree<cr>
+nnoremap <silent> <c-n> :NERDTreeToggle<cr>
 
 " vim-lspの設定
 if !empty(globpath(&rtp, 'autoload/lsp.vim'))
@@ -216,6 +214,7 @@ if !has('nvim')
     set complete-=i                      " 現在のファイルとインクルードされるファイルから補完しない
     set display=lastline                 " より多くのメッセージテキストを表示
     set encoding=utf-8
+    set fenc=utf8
     set fillchars=vert:\|,fold:\         " セパレータ
     set formatoptions=tcqj               " より直感的なオートフォーマット
     set fsync                            " fscyn()を使った強固なファイル保存
@@ -224,7 +223,6 @@ if !has('nvim')
     set incsearch                        " インクリメンタルサーチ
     set langnoremap                      " マッピングが壊れるのを防ぐ手助けとなる
     set laststatus=2                     " 常にステータスラインを表示
-    set listchars=tab:>\ ,trail:-,nbsp:+ " :limtのための設定
     set nrformats=bin,hex                " <c-a>と<c-x>のための設定
     set ruler                            " 現在行を画面隅に表示
     set sessionoptions-=options          " セッションごとにオプションを持ち越さない
@@ -255,12 +253,15 @@ set expandtab                    " tabを押したときにスペースを入力
 set shiftwidth=4                 " インデントのスペースの数
 set softtabstop=-1               " Tabとしてカウントされるスペースの数をshiftwidthと同一に
 set smartindent                  " インデントを考慮して改行
+set cindent
 set foldcolumn=1
 set cursorline                   " 現在の行を強調表示
 set linebreak
 set virtualedit=block            " 矩形選択時にテキストがないところも選択可能に
 set history=200
 set mouse=a
+set title
+set showcmd
 silent! helptags ALL
 
 " タブや空白,改行等を可視化
@@ -269,6 +270,7 @@ set listchars=tab:»-,trail:-,eol:↲,extends:»,precedes:«,nbsp:%
 autocmd ColorScheme * highlight NonText    ctermbg=NONE ctermfg=59 guibg=NONE guifg=NONE
 autocmd ColorScheme * highlight SpecialKey ctermbg=NONE ctermfg=59 guibg=NONE guifg=NONE
 
+let g:airline_theme = 'simple'
 colorscheme darcula
 set termguicolors
 highlight Constant cterm=NONE
@@ -312,6 +314,11 @@ tnoremap <c-w><c-j> <c-w>J
 tnoremap <c-w><c-k> <c-w>K
 tnoremap <c-w><c-l> <c-w>L
 
+inoremap <c-j> <down>
+inoremap <c-k> <up>
+inoremap <c-h> <left>
+inoremap <c-l> <right>
+
 noremap <leader>w :w<cr>
 noremap <leader>, :so $MYVIMRC<cr>
 noremap <f5> :MundoToggle<cr>
@@ -324,22 +331,35 @@ noremap : ;
 noremap ; :
 tnoremap <c-w>: <c-w>;
 tnoremap <c-w>; <c-w>:
-nnoremap <silent> <Esc><Esc> :noh<cr>
+nnoremap <silent> <esc><esc> :noh<cr>
+nnoremap <silent> <c-l> :<c-u>noh<cr><c-l>
 nnoremap H ^
 nnoremap L $
 vnoremap H ^
 vnoremap L $
+nnoremap x "_x
+nnoremap s "_s
+inoremap <c-d> <del>
+inoremap <c-h> <bs>
 
 " カーソル下の単語をハイライトしてから置換
-nnoremap # "zyiw:let @/ = '\<' . @z . '\>'<cr>:set hlsearch<cr>:%s/<c-r>///g<Left><Left>
+nnoremap # "zyiw:let @/ = '\<' . @z . '\>'<cr>:set hlsearch<cr>:%s/<c-r>///g<left><left>
 
-cnoremap <c-p> <Up>
-cnoremap <c-n> <Down>
-cnoremap <C-a> <Home>
-cnoremap <C-e> <End>
-cnoremap <C-b> <Left>
-cnoremap <C-f> <Right>
-cnoremap <C-y> <C-r>"
+" 行を移動
+nnoremap <c-up> "zdd<up>"zP
+nnoremap <c-down> "zdd<down>"zp
+vnoremap <c-up> "zx<up>"zP`[V`]
+vnoremap <c-down> "zx<down>"zp`[V`]
+
+inoremap <c-t> <esc><left>"zx"zpa
+
+cnoremap <c-p> <up>
+cnoremap <c-n> <down>
+cnoremap <c-a> <home>
+cnoremap <c-e> <end>
+cnoremap <c-b> <left>
+cnoremap <c-f> <right>
+cnoremap <c-y> <c-r>"
 
 " アクティブなファイルが含まれているディレクトリを%%で展開
 cnoremap <expr> %% getcmdtype() == ':' ? expand('%:h').'/' : '%%'
