@@ -165,6 +165,7 @@ if !empty(globpath(&rtp, 'autoload/lsp.vim'))
     command! LspDebug let lsp_log_verbose=1 | let lsp_log_file = expand('~/lsp.log')
 
     autocmd BufWritePre * silent! :LspDocumentFormatSync<cr>
+    let g:goimports = 0
 
     let g:lsp_log_verbose = 0
     let g:lsp_log_file = ""
@@ -343,7 +344,6 @@ vnoremap L $
 nnoremap x "_x
 nnoremap s "_s
 inoremap <c-d> <del>
-inoremap <c-h> <bs>
 
 " カーソル下の単語をハイライトしてから置換
 nnoremap # "zyiw:let @/ = '\<' . @z . '\>'<cr>:set hlsearch<cr>:%s/<c-r>///g<left><left>
@@ -386,9 +386,3 @@ function! s:clang_format()
   exec ":" . now_line
 endfunction
 
-if executable('clang-format')
-  augroup cpp_clang_format
-    autocmd!
-    autocmd BufWrite,FileWritePre,FileAppendPre *.[ch]pp call s:clang_format()
-  augroup END
-endif
