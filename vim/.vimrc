@@ -1,3 +1,4 @@
+let mapleader = "\<space>"
 call plug#begin()
 Plug 'preservim/nerdtree'
 Plug 'tpope/vim-vinegar'
@@ -32,11 +33,14 @@ Plug 'mattn/vim-goimports'
 Plug 'mattn/vim-goaddtags'
 Plug 'mattn/vim-goimpl'
 Plug 'doums/darcula'
+Plug 'osyo-manga/vim-jplus'
+Plug 'mg979/vim-visual-multi', {'branch': 'master'}
 
 Plug 'kana/vim-textobj-user'
 Plug 'osyo-manga/vim-textobj-multiblock'
 Plug 'sgur/vim-textobj-parameter'
 Plug 'osyo-manga/vim-textobj-from_regexp'
+Plug 'glts/vim-textobj-comment'
 
 Plug 'Shougo/ddc.vim' " 補完
 Plug 'Shougo/ddc-around'
@@ -108,18 +112,18 @@ let g:lexima_no_default_rules = 1
 call lexima#set_default_rules()
 call lexima#insmode#map_hook('before', '<cr>', '')
 
-"ctrl-pの設定
+"ctrl-p settings
 let g:ctrlp_working_path_mode = 'ra'
 let g:ctrlp_show_hidden = 1
 if exists('*matchfuzzy')
     let g:ctrlp_match_func = { 'match': 'ctrlp_matchfuzzy#matcher' }
 endif
 
-" vim-easy-alignの設定
+" vim-easy-align settings
 xmap ga <plug>(EasyAlign)
 nmap ga <plug>(EasyAlign)
 
-" spelunker.vimの設定
+" spelunker.vim settings
 set nospell
 autocmd ColorScheme *
     \ highlight SpelunkerSpellBad cterm=underline ctermfg=247 gui=underline guifg=#9e9e9e |
@@ -134,13 +138,13 @@ vmap <expr> <plug>(textobj-if-then)
 omap i<a-w> <plug>(textobj-if-then)
 xmap i<a-w> <plug>(textobj-if-then)
 
-" NERDTreeの設定
+" NERDTree settings
 let g:NERDTreeShowBookmarks = 1
 autocmd StdinReadPre * let s:std_in = 1 " ファイル名が指定されずにVIMが起動した場合のみNERDTreeを表示
 autocmd VimEnter * if argc() == 0 && !exists("s:std_in") | NERDTree | endif
 nnoremap <silent> <c-n> :NERDTreeToggle<cr>
 
-" vim-lspの設定
+" vim-lsp settings
 if !empty(globpath(&rtp, 'autoload/lsp.vim'))
     function! s:on_lsp_buffer_enabled() abort
         setlocal omnifunc=lsp#complete
@@ -177,7 +181,7 @@ if !empty(globpath(&rtp, 'autoload/lsp.vim'))
     let g:lsp_text_edit_enabled = 1
 endif
 
-" vim-quickrunの設定
+" vim-quickrun settings
 nnoremap <silent><leader>r :QuickRun<cr>
 let g:quickrun_config = {}
 let g:quickrun_config._ = {
@@ -198,6 +202,10 @@ let g:quickrun_config.cpp = {
 let g:winresizer_vert_resize = 3
 let g:winresizer_horiz_resize = 1
 
+" jplus.vim settings
+nmap <leader>j <Plug>(jplus-getchar)
+vmap <leader>j <Plug>(jplus-getchar)
+
 " 挿入モードのカーソルを変更する
 let &t_ti .= "\e[1 q"
 let &t_SI .= "\e[5 q"
@@ -209,7 +217,6 @@ if !has('nvim')
     filetype plugin indent on
     syntax on                            " シンタックスハイライトを有効化
     set autoindent                       " 前の行のインデントを補zの
-    set autoread                         " ディスクから再読み込み
     set backspace=indent,eol,start       " 近代的なバックスペースの振る舞い
     set belloff=all                      " ベルを無効化
     set cscopeverbose                    " cscopeの出力を冗長化
@@ -299,28 +306,26 @@ if has('persistent_undo')
     let &undodir=undoPath
 endif
 
-let mapleader = "\<space>"
-
+noremap <c-h> <c-w><c-h>
 noremap <c-j> <c-w><c-j>
 noremap <c-k> <c-w><c-k>
 noremap <c-l> <c-w><c-l>
-noremap <c-h> <c-w><c-h>
 noremap <c-w><c-h> <c-w>H
 noremap <c-w><c-j> <c-w>J
 noremap <c-w><c-k> <c-w>K
 noremap <c-w><c-l> <c-w>L
+tnoremap <c-h> <c-w><c-h>
 tnoremap <c-j> <c-w><c-j>
 tnoremap <c-k> <c-w><c-k>
 tnoremap <c-l> <c-w><c-l>
-tnoremap <c-h> <c-w><c-h>
 tnoremap <c-w><c-h> <c-w>H
 tnoremap <c-w><c-j> <c-w>J
 tnoremap <c-w><c-k> <c-w>K
 tnoremap <c-w><c-l> <c-w>L
 
+inoremap <c-h> <left>
 inoremap <c-j> <down>
 inoremap <c-k> <up>
-inoremap <c-h> <left>
 inoremap <c-l> <right>
 
 noremap <leader>w :w<cr>
@@ -341,8 +346,6 @@ nnoremap H ^
 nnoremap L $
 vnoremap H ^
 vnoremap L $
-nnoremap x "_x
-nnoremap s "_s
 inoremap <c-d> <del>
 
 " カーソル下の単語をハイライトしてから置換
