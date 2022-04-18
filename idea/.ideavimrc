@@ -1,0 +1,91 @@
+let mapleader = "\<space>"
+
+" NERDTree settings
+let g:NERDTreeShowBookmarks = 1
+autocmd StdinReadPre * let s:std_in = 1 " ファイル名が指定されずにVIMが起動した場合のみNERDTreeを表示
+autocmd VimEnter * if argc() == 0 && !exists("s:std_in") | NERDTree | endif
+nnoremap <silent> <c-n> :NERDTreeToggle<cr>
+
+nmap <buffer> <f4> <plug>(lsp-definition)
+nmap <buffer> gd <plug>(lsp-definition)
+nmap <buffer> <f7> <plug>(lsp-references)
+nmap <buffer> gr <plug>(lsp-references)
+nmap <buffer> gi <plug>(lsp-implementation)
+nmap <buffer> gt <plug>(lsp-type-definition)
+nmap <buffer> <s-f6> <plug>(lsp-rename)
+nmap <buffer> <leader>rn <plug>(lsp-rename)
+nmap <buffer> [g <plug>(lsp-previous-diagnostic)
+nmap <buffer> ]g <plug>(lsp-next-diagnostic)
+nmap <buffer> <c-q> <plug>(lsp-hover) " bash_profileにstty start undefとstty stop undefを記述する必要有
+
+set history=10000                    " コマンド履歴を多く保存
+set hlsearch                         " 検索結果をハイライト
+set incsearch                        " インクリメンタルサーチ
+set sidescroll=1                     " スムーズな横方向のスクロール
+set ignorecase                   " 検索時に大文字小文字を区別しない
+set smartcase                    " 検索時に大文字を入力した場合,大文字小文字を区別する
+set clipboard+=unnamed           " 無名レジスタに入るデータを*レジスタにも入れる
+set number                       " 行番号を表示
+set relativenumber               " 行番号を相対値に
+set virtualedit=block            " 矩形選択時にテキストがないところも選択可能に
+set history=200
+set showcmd
+
+noremap <c-h> <c-w><c-h>
+noremap <c-j> <c-w><c-j>
+noremap <c-k> <c-w><c-k>
+noremap <c-l> <c-w><c-l>
+noremap <c-w><c-h> <c-w>H
+noremap <c-w><c-j> <c-w>J
+noremap <c-w><c-k> <c-w>K
+noremap <c-w><c-l> <c-w>L
+
+inoremap <c-h> <left>
+inoremap <c-j> <down>
+inoremap <c-k> <up>
+inoremap <c-l> <right>
+
+noremap <leader>w :w<cr>
+noremap <leader>, :so $MYVIMRC<cr>
+noremap <f5> :MundoToggle<cr>
+nnoremap <space> <nop>
+nnoremap * *N
+nnoremap U <c-r>
+nnoremap & :&&<cr>
+xnoremap & :&&<cr>
+noremap : ;
+noremap ; :
+nnoremap <silent> <esc><esc> :noh<cr>
+nnoremap <silent> <c-l> :<c-u>noh<cr><c-l>
+nnoremap H ^
+nnoremap L $
+vnoremap H ^
+vnoremap L $
+inoremap <c-d> <del>
+
+" カーソル下の単語をハイライトしてから置換
+nnoremap # "zyiw:let @/ = '\<' . @z . '\>'<cr>:set hlsearch<cr>:%s/<c-r>///g<left><left>
+
+" 行を移動
+nnoremap <c-up> "zdd<up>"zP
+nnoremap <c-down> "zdd<down>"zp
+vnoremap <c-up> "zx<up>"zP`[V`]
+vnoremap <c-down> "zx<down>"zp`[V`]
+
+inoremap <c-t> <esc><left>"zx"zpa
+
+cnoremap <c-p> <up>
+cnoremap <c-n> <down>
+cnoremap <c-a> <home>
+cnoremap <c-e> <end>
+cnoremap <c-b> <left>
+cnoremap <c-f> <right>
+cnoremap <c-y> <c-r>"
+
+" アクティブなファイルが含まれているディレクトリを%%で展開
+cnoremap <expr> %% getcmdtype() == ':' ? expand('%:h').'/' : '%%'
+
+" コマンドラインモード時は相対行番号を無効化
+nnoremap ; :set norelativenumber<cr>:
+au CmdLineLeave * set relativenumber
+
