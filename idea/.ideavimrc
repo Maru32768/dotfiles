@@ -12,12 +12,16 @@ set relativenumber               " 行番号を相対値に
 set virtualedit=block            " 矩形選択時にテキストがないところも選択可能に
 set history=200
 set showcmd
+set scrolloff=5
 set surround
 set easymotion
-set scrolloff=5
+set NERDTree
+set argtextobj
 
 nnoremap j gj
 nnoremap k gk
+
+nnoremap <c-w>q q<cr>
 
 noremap <c-h> <c-w><c-h>
 noremap <c-j> <c-w><c-j>
