@@ -355,9 +355,9 @@ nnoremap # "zyiw:let @/ = '\<' . @z . '\>'<cr>:set hlsearch<cr>:%s/<c-r>///g<lef
 
 " 行を移動
 nnoremap <c-up> "zdd<up>"zP
-nnoremap <c-down> "zdd<down>"zp
+nnoremap <c-down> "zdd"zp
 vnoremap <c-up> "zx<up>"zP`[V`]
-vnoremap <c-down> "zx<down>"zp`[V`]
+vnoremap <c-down> "zx"zp`[V`]
 
 inoremap <c-t> <esc><left>"zx"zpa
 
