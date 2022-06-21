@@ -11,7 +11,7 @@ ln -s ~/dotfiles/.bash_profile ~/.bash_profile
 
 source ~/.bash_profile 2> /dev/null
 
-sudo apt install build-essential curl git
+sudo apt install build-essential curl git unzip
 
 curl -L https://go.dev/dl/go1.18.linux-amd64.tar.gz -o go.tar.gz
 sudo rm -rf /usr/local/go
