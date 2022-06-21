@@ -1,17 +1,5 @@
 let mapleader = "\<space>"
 
-nmap <buffer> <f4> <plug>(lsp-definition)
-nmap <buffer> gd <plug>(lsp-definition)
-nmap <buffer> <f7> <plug>(lsp-references)
-nmap <buffer> gr <plug>(lsp-references)
-nmap <buffer> gi <plug>(lsp-implementation)
-nmap <buffer> gt <plug>(lsp-type-definition)
-nmap <buffer> <s-f6> <plug>(lsp-rename)
-nmap <buffer> <leader>rn <plug>(lsp-rename)
-nmap <buffer> [g <plug>(lsp-previous-diagnostic)
-nmap <buffer> ]g <plug>(lsp-next-diagnostic)
-nmap <buffer> <c-q> <plug>(lsp-hover) " bash_profileにstty start undefとstty stop undefを記述する必要有
-
 set history=10000                    " コマンド履歴を多く保存
 set hlsearch                         " 検索結果をハイライト
 set incsearch                        " インクリメンタルサーチ
@@ -24,6 +12,9 @@ set relativenumber               " 行番号を相対値に
 set virtualedit=block            " 矩形選択時にテキストがないところも選択可能に
 set history=200
 set showcmd
+
+nnoremap j gj
+nnoremap k gk
 
 noremap <c-h> <c-w><c-h>
 noremap <c-j> <c-w><c-j>
@@ -57,13 +48,13 @@ vnoremap L $
 inoremap <c-d> <del>
 
 " カーソル下の単語をハイライトしてから置換
-nnoremap # "zyiw:let @/ = '\<' . @z . '\>'<cr>:set hlsearch<cr>:%s/<c-r>///g<left><left>
+nnoremap # "zyiw:let @z = '\<' . @z . '\>'<cr>:set hlsearch<cr>:%s/<c-r>z//g<left><left>
 
 " 行を移動
 nnoremap <c-up> "zdd<up>"zP
-nnoremap <c-down> "zdd<down>"zp
+nnoremap <c-down> "zdd"zp
 vnoremap <c-up> "zx<up>"zP`[V`]
-vnoremap <c-down> "zx<down>"zp`[V`]
+vnoremap <c-down> "zx"zp`[V`]
 
 inoremap <c-t> <esc><left>"zx"zpa
 
@@ -75,10 +66,7 @@ cnoremap <c-b> <left>
 cnoremap <c-f> <right>
 cnoremap <c-y> <c-r>"
 
-" アクティブなファイルが含まれているディレクトリを%%で展開
-cnoremap <expr> %% getcmdtype() == ':' ? expand('%:h').'/' : '%%'
-
 " コマンドラインモード時は相対行番号を無効化
 nnoremap ; :set norelativenumber<cr>:
-au CmdLineLeave * set relativenumber
-
+cnoremap <esc> :set relativenumber<cr>
+cnoremap <c-[> :set relativenumber<cr>
