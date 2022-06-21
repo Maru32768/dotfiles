@@ -13,6 +13,7 @@ set virtualedit=block            " 矩形選択時にテキストがないとこ
 set history=200
 set showcmd
 set surround
+set easymotion
 set scrolloff=5
 
 nnoremap j gj
