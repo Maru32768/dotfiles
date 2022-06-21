@@ -142,7 +142,7 @@ xmap i<a-w> <plug>(textobj-if-then)
 let g:NERDTreeShowBookmarks = 1
 autocmd StdinReadPre * let s:std_in = 1 " ファイル名が指定されずにVIMが起動した場合のみNERDTreeを表示
 autocmd VimEnter * if argc() == 0 && !exists("s:std_in") | NERDTree | endif
-nnoremap <silent> <c-n> :NERDTreeToggle<cr>
+nnoremap <silent> <c-t> :NERDTreeToggle<cr>
 
 " vim-lsp settings
 if !empty(globpath(&rtp, 'autoload/lsp.vim'))
@@ -306,6 +306,9 @@ if has('persistent_undo')
     let &undodir=undoPath
 endif
 
+nnoremap j gj
+nnoremap k gk
+
 noremap <c-h> <c-w><c-h>
 noremap <c-j> <c-w><c-j>
 noremap <c-k> <c-w><c-k>
@@ -341,7 +344,6 @@ noremap ; :
 tnoremap <c-w>: <c-w>;
 tnoremap <c-w>; <c-w>:
 nnoremap <silent> <esc><esc> :noh<cr>
-nnoremap <silent> <c-l> :<c-u>noh<cr><c-l>
 nnoremap H ^
 nnoremap L $
 vnoremap H ^
