@@ -12,6 +12,8 @@ set relativenumber               " 行番号を相対値に
 set virtualedit=block            " 矩形選択時にテキストがないところも選択可能に
 set history=200
 set showcmd
+set surround
+set scrolloff=5
 
 nnoremap j gj
 nnoremap k gk
