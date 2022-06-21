@@ -17,11 +17,24 @@ set surround
 set easymotion
 set NERDTree
 set argtextobj
+set vim-paragraph-motion
 
 nnoremap j gj
 nnoremap k gk
 
 nnoremap <c-w>q q<cr>
+nnoremap <c-o> :<c-u>action Back<cr>
+nnoremap <c-i> :<c-u>action Forward<cr>
+nnoremap [g :<c-u>action GotoPreviousError<cr>
+nnoremap ]g :<c-u>action GotoNextError<cr>
+nnoremap <leader>k :<c-u>action QuickJavaDoc<cr>
+nnoremap <leader>d :<c-u>action GotoDeclaration<cr>
+nnoremap <leader>f :<c-u>action GotoTypeDeclaration<cr>
+nnoremap <leader>i :<c-u>action GotoImplementation<cr>
+nnoremap <leader>s :<c-u>action GotoSuperMethod<cr>
+nnoremap <leader>n :<c-u>action RenameElement<cr>
+nnoremap gt :<c-u>action NextTab<cr>
+nnoremap gT :<c-u>action PreviousTab<cr>
 
 noremap <c-h> <c-w><c-h>
 noremap <c-j> <c-w><c-j>
