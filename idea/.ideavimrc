@@ -1,11 +1,5 @@
 let mapleader = "\<space>"
 
-" NERDTree settings
-let g:NERDTreeShowBookmarks = 1
-autocmd StdinReadPre * let s:std_in = 1 " ファイル名が指定されずにVIMが起動した場合のみNERDTreeを表示
-autocmd VimEnter * if argc() == 0 && !exists("s:std_in") | NERDTree | endif
-nnoremap <silent> <c-n> :NERDTreeToggle<cr>
-
 nmap <buffer> <f4> <plug>(lsp-definition)
 nmap <buffer> gd <plug>(lsp-definition)
 nmap <buffer> <f7> <plug>(lsp-references)
@@ -56,7 +50,6 @@ xnoremap & :&&<cr>
 noremap : ;
 noremap ; :
 nnoremap <silent> <esc><esc> :noh<cr>
-nnoremap <silent> <c-l> :<c-u>noh<cr><c-l>
 nnoremap H ^
 nnoremap L $
 vnoremap H ^
