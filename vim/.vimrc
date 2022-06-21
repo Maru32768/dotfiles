@@ -34,11 +34,11 @@ Plug 'mattn/vim-goaddtags'
 Plug 'mattn/vim-goimpl'
 Plug 'doums/darcula'
 Plug 'osyo-manga/vim-jplus'
-Plug 'mg979/vim-visual-multi', {'branch': 'master'}
 
 Plug 'kana/vim-textobj-user'
 Plug 'osyo-manga/vim-textobj-multiblock'
 Plug 'sgur/vim-textobj-parameter'
+Plug 'vim-scripts/argtextobj.vim'
 Plug 'osyo-manga/vim-textobj-from_regexp'
 Plug 'glts/vim-textobj-comment'
 
@@ -142,7 +142,7 @@ xmap i<a-w> <plug>(textobj-if-then)
 let g:NERDTreeShowBookmarks = 1
 autocmd StdinReadPre * let s:std_in = 1 " ファイル名が指定されずにVIMが起動した場合のみNERDTreeを表示
 autocmd VimEnter * if argc() == 0 && !exists("s:std_in") | NERDTree | endif
-nnoremap <silent> <c-t> :NERDTreeToggle<cr>
+nnoremap <silent> <c-n> :NERDTreeToggle<cr>
 
 " vim-lsp settings
 if !empty(globpath(&rtp, 'autoload/lsp.vim'))
@@ -150,16 +150,19 @@ if !empty(globpath(&rtp, 'autoload/lsp.vim'))
         setlocal omnifunc=lsp#complete
         setlocal signcolumn=yes
         nmap <buffer> <f4> <plug>(lsp-definition)
-        nmap <buffer> gd <plug>(lsp-definition)
+        nmap <buffer> <leader>d <plug>(lsp-definition)
         nmap <buffer> <f7> <plug>(lsp-references)
-        nmap <buffer> gr <plug>(lsp-references)
-        nmap <buffer> gi <plug>(lsp-implementation)
-        nmap <buffer> gt <plug>(lsp-type-definition)
+        nmap <buffer> <leader>r <plug>(lsp-references)
+        nmap <buffer> <leader>i <plug>(lsp-implementation)
+        nmap <buffer> <leader>f <plug>(lsp-type-definition)
         nmap <buffer> <s-f6> <plug>(lsp-rename)
-        nmap <buffer> <leader>rn <plug>(lsp-rename)
+        nmap <buffer> <leader>n <plug>(lsp-rename)
         nmap <buffer> [g <plug>(lsp-previous-diagnostic)
         nmap <buffer> ]g <plug>(lsp-next-diagnostic)
         nmap <buffer> <c-q> <plug>(lsp-hover) " bash_profileにstty start undefとstty stop undefを記述する必要有
+        nmap <buffer> <leader>k <plug>(lsp-hover) 
+        nnoremap <buffer> <expr><c-f> lsp#scroll(+4)
+        nnoremap <buffer> <expr><c-d> lsp#scroll(-4)
     endfunction
 
     augroup lsp_install
@@ -169,7 +172,7 @@ if !empty(globpath(&rtp, 'autoload/lsp.vim'))
     command! LspDebug let lsp_log_verbose=1 | let lsp_log_file = expand('~/lsp.log')
 
     autocmd BufWritePre * silent! :LspDocumentFormatSync<cr>
-    let g:goimports = 0
+    let g:goimports = 1
 
     let g:lsp_log_verbose = 0
     let g:lsp_log_file = ""
@@ -182,7 +185,7 @@ if !empty(globpath(&rtp, 'autoload/lsp.vim'))
 endif
 
 " vim-quickrun settings
-nnoremap <silent><leader>r :QuickRun<cr>
+nnoremap <silent><leader>q :QuickRun<cr>
 let g:quickrun_config = {}
 let g:quickrun_config._ = {
     \ 'outputter/error/success': 'buffer',
