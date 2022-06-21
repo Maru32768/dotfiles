@@ -237,6 +237,7 @@ if !has('nvim')
     set sessionoptions-=options          " セッションごとにオプションを持ち越さない
     set shortmess=F                      " より簡潔なファイル情報
     set sidescroll=1                     " スムーズな横方向のスクロール
+    set scrolloff=5
     set smarttab                         " Tabキーを押した時の挙動の設定
     set tabpagemax=50                    " -pフラグで開かれるタブの上限
     set tags=./tags;,tags                " タグコマンドが探すファイル名
