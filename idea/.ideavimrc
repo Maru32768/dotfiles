@@ -19,6 +19,8 @@ set NERDTree
 set argtextobj
 set vim-paragraph-motion
 
+sethandler <c-[> n:ide
+
 nnoremap j gj
 nnoremap k gk
 
@@ -36,6 +38,7 @@ nnoremap <leader>n :<c-u>action RenameElement<cr>
 nnoremap gt :<c-u>action NextTab<cr>
 nnoremap gT :<c-u>action PreviousTab<cr>
 nnoremap <c-n> :<c-u>action NERDTree<cr>
+nnoremap <c-p> :<c-u>action GotoFile<cr>
 
 noremap <c-h> <c-w><c-h>
 noremap <c-j> <c-w><c-j>
