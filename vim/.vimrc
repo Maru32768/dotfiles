@@ -1,4 +1,5 @@
 let mapleader = "\<space>"
+
 call plug#begin()
 Plug 'preservim/nerdtree'
 Plug 'tpope/vim-vinegar'
@@ -354,6 +355,8 @@ vnoremap H ^
 vnoremap L $
 inoremap <c-d> <del>
 nnoremap <c-_> :Commentary<cr>j
+vnoremap <c-_> :Commentary<cr>gv
+inoremap <c-t> <esc><left>"zx"zpa
 
 " カーソル下の単語をハイライトしてから置換
 nnoremap # "zyiw:let @/ = '\<' . @z . '\>'<cr>:set hlsearch<cr>:%s/<c-r>///g<left><left>
@@ -363,8 +366,6 @@ nnoremap <c-up> "zdd<up>"zP
 nnoremap <c-down> "zdd"zp
 vnoremap <c-up> "zx<up>"zP`[V`]
 vnoremap <c-down> "zx"zp`[V`]
-
-inoremap <c-t> <esc><left>"zx"zpa
 
 cnoremap <c-p> <up>
 cnoremap <c-n> <down>
