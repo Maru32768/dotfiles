@@ -35,6 +35,7 @@ nnoremap <leader>s :<c-u>action GotoSuperMethod<cr>
 nnoremap <leader>n :<c-u>action RenameElement<cr>
 nnoremap gt :<c-u>action NextTab<cr>
 nnoremap gT :<c-u>action PreviousTab<cr>
+nnoremap <c-n> :<c-u>action NERDTree<cr>
 
 noremap <c-h> <c-w><c-h>
 noremap <c-j> <c-w><c-j>
@@ -51,8 +52,7 @@ inoremap <c-k> <up>
 inoremap <c-l> <right>
 
 noremap <leader>w :w<cr>
-noremap <leader>, :so $MYVIMRC<cr>
-noremap <f5> :MundoToggle<cr>
+noremap <leader>, :so ~/.ideavimrc<cr>
 nnoremap <space> <nop>
 nnoremap * *N
 nnoremap U <c-r>
