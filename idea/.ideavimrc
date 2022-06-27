@@ -18,6 +18,7 @@ set easymotion
 set NERDTree
 set argtextobj
 set vim-paragraph-motion
+set ideajoin
 
 sethandler <c-o> a:vim
 sethandler <c-i> a:vim
