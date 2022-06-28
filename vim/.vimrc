@@ -273,6 +273,7 @@ set linebreak
 set virtualedit=block            " 矩形選択時にテキストがないところも選択可能に
 set history=200
 set mouse=a
+set ttymouse=xterm2
 set title
 set showcmd
 set confirm
