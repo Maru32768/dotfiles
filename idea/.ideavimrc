@@ -27,7 +27,6 @@ sethandler <c-y> a:vim
 sethandler <c-c> a:vim
 sethandler <c-v> a:vim
 
-nnoremap <c-w>q q<cr>
 nnoremap <c-o> :<c-u>action Back<cr>
 nnoremap <c-i> :<c-u>action Forward<cr>
 nnoremap [g :<c-u>action GotoPreviousError<cr>
