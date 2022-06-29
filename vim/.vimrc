@@ -312,9 +312,6 @@ if has('persistent_undo')
     let &undodir=undoPath
 endif
 
-nnoremap j gj
-nnoremap k gk
-
 noremap <c-h> <c-w><c-h>
 noremap <c-j> <c-w><c-j>
 noremap <c-k> <c-w><c-k>
@@ -331,6 +328,11 @@ tnoremap <c-w><c-h> <c-w>H
 tnoremap <c-w><c-j> <c-w>J
 tnoremap <c-w><c-k> <c-w>K
 tnoremap <c-w><c-l> <c-w>L
+
+nnoremap j gj
+nnoremap k gk
+nnoremap GT gT
+nnoremap GG G
 
 inoremap <c-h> <left>
 inoremap <c-j> <down>
