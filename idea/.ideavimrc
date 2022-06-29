@@ -27,9 +27,6 @@ sethandler <c-y> a:vim
 sethandler <c-c> a:vim
 sethandler <c-v> a:vim
 
-nnoremap j gj
-nnoremap k gk
-
 nnoremap <c-w>q q<cr>
 nnoremap <c-o> :<c-u>action Back<cr>
 nnoremap <c-i> :<c-u>action Forward<cr>
@@ -53,6 +50,11 @@ noremap <c-w><c-h> <c-w>H
 noremap <c-w><c-j> <c-w>J
 noremap <c-w><c-k> <c-w>K
 noremap <c-w><c-l> <c-w>L
+
+nnoremap j gj
+nnoremap k gk
+nnoremap GT gT
+nnoremap GG G
 
 inoremap <c-h> <left>
 inoremap <c-j> <down>
