@@ -20,8 +20,8 @@ set argtextobj
 set vim-paragraph-motion
 set ideajoin
 
-sethandler <c-o> a:vim
-sethandler <c-i> a:vim
+sethandler <c-o> a:vim n:ide
+sethandler <c-i> a:vim n:ide
 sethandler <c-q> a:vim
 sethandler <c-y> a:vim
 sethandler <c-c> a:vim
