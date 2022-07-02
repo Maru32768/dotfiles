@@ -79,6 +79,7 @@ inoremap <c-d> <del>
 vnoremap v <c-v>
 vnoremap , <esc>ggVG
 nnoremap <c-w>q q:<cr>
+nnoremap S ddO
 
 " カーソル下の単語をハイライトしてから置換
 nnoremap # "zyiw:let @z = '\<' . @z . '\>'<cr>:set hlsearch<cr>:%s/<c-r>z//g<left><left>
