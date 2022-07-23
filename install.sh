@@ -26,6 +26,8 @@ sh /tmp/rustup.rs -y
 
 curl -fsSL https://deno.land/install.sh | sh
 
+curl https://get.volta.sh | bash
+
 # -----build vim-----
 sudo apt remove vim
 sudo apt autoremove vim
