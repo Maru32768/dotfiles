@@ -249,6 +249,7 @@ if !has('nvim')
     set ttyfast                          " 接続を高速に
     set viminfo+=!                       " セッションにグローバル変数を保存
     set wildmenu                         " 強化されたコマンドライン補完
+    set ttymouse=xterm2
 endif
 
 set ignorecase                   " 検索時に大文字小文字を区別しない
@@ -273,7 +274,6 @@ set linebreak
 set virtualedit=block            " 矩形選択時にテキストがないところも選択可能に
 set history=200
 set mouse=a
-set ttymouse=xterm2
 set title
 set showcmd
 set confirm
