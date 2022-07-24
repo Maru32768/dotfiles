@@ -12,6 +12,12 @@ set vim-paragraph-motion
 nnoremap w <leader>w
 nnoremap e <leader>e
 nnoremap b <leader>b
+omap <silent> iw i<leader>w
+xmap <silent> iw i<leader>w
+omap <silent> ie i<leader>e
+xmap <silent> ie i<leader>e
+omap <silent> ib i<leader>b
+xmap <silent> ib i<leader>b
 
 noremap <c-h> <c-w><c-h>
 noremap <c-j> <c-w><c-j>
