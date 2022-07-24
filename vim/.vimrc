@@ -360,7 +360,6 @@ inoremap <c-d> <del>
 nnoremap <c-_> :Commentary<cr>j
 vnoremap <c-_> :Commentary<cr>gv
 inoremap <c-t> <esc><left>"zx"zpa
-vnoremap v <c-v>
 vnoremap , <esc>ggVG
 
 " カーソル下の単語をハイライトしてから置換
