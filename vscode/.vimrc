@@ -7,26 +7,11 @@ set history=200
 set showcmd
 set vim-paragraph-motion
 
-sethandler <c-o> a:vim n:ide
-sethandler <c-i> a:vim n:ide
-sethandler <c-q> a:vim
-sethandler <c-y> a:vim
-sethandler <c-c> a:vim
-sethandler <c-v> a:vim
+" nnoremap <leader>s :<c-u>action GotoSuperMethod<cr>
 
-" nnoremap <c-o> :<c-u>action Back<cr>
-" nnoremap <c-i> :<c-u>action Forward<cr>
-" nnoremap [g :<c-u>action GotoPreviousError<cr>
-" nnoremap ]g :<c-u>action GotoNextError<cr>
-" nnoremap <leader>k :<c-u>action QuickJavaDoc<cr>
-" nnoremap <c-q> :<c-u>action QuickJavaDoc<cr>
-" nnoremap <leader>d :<c-u>action GotoDeclaration<cr>
-" nnoremap <leader>f :<c-u>action GotoTypeDeclaration<cr>
-" nnoremap <leader>i :<c-u>action GotoImplementation<cr>
-nnoremap <leader>s :<c-u>action GotoSuperMethod<cr>
-" nnoremap <leader>n :<c-u>action RenameElement<cr>
-" nnoremap <c-n> :NERDTree<cr>
-" nnoremap <c-p> :<c-u>action GotoFile<cr>
+nnoremap w <leader>w
+nnoremap e <leader>e
+nnoremap b <leader>b
 
 noremap <c-h> <c-w><c-h>
 noremap <c-j> <c-w><c-j>
@@ -37,8 +22,6 @@ noremap <c-w><c-j> <c-w>J
 noremap <c-w><c-k> <c-w>K
 noremap <c-w><c-l> <c-w>L
 
-nnoremap j gj
-nnoremap k gk
 nnoremap GT gT
 nnoremap GG G
 
@@ -47,7 +30,7 @@ inoremap <c-j> <down>
 inoremap <c-k> <up>
 inoremap <c-l> <right>
 
-noremap <silent> <leader>w :w<cr>
+nnoremap <silent> <leader>w :w<cr>
 nnoremap * *N
 nnoremap U <c-r>
 nnoremap <silent> <esc><esc> :noh<cr>

@@ -7,6 +7,7 @@ Plug 'tpope/vim-surround'             " 括弧の変更や削除を容易にす�
 Plug 'tpope/vim-repeat'               " ドットコマンドをプラグインでも利用可能に
 Plug 'tpope/vim-unimpaired'
 Plug 'tpope/vim-abolish'              " 強化版substitute
+Plug 'bkad/CamelCaseMotion'
 Plug 'ctrlpvim/ctrlp.vim'             " ファジーファインダー
 Plug 'mattn/ctrlp-matchfuzzy'         " 高速なCtrlP matcher
 Plug 'mileszs/ack.vim'                " vimからackの結果を取り扱う
@@ -123,6 +124,23 @@ endif
 " vim-easy-align settings
 xmap ga <plug>(EasyAlign)
 nmap ga <plug>(EasyAlign)
+
+" CamelCaseMotion settings
+let g:camelcasemotion_key = '<leader>'
+map <silent> w <Plug>CamelCaseMotion_w
+map <silent> b <Plug>CamelCaseMotion_b
+map <silent> e <Plug>CamelCaseMotion_e
+map <silent> ge <Plug>CamelCaseMotion_ge
+sunmap w
+sunmap b
+sunmap e
+sunmap ge
+omap <silent> iw <Plug>CamelCaseMotion_iw
+xmap <silent> iw <Plug>CamelCaseMotion_iw
+omap <silent> ib <Plug>CamelCaseMotion_ib
+xmap <silent> ib <Plug>CamelCaseMotion_ib
+omap <silent> ie <Plug>CamelCaseMotion_ie
+xmap <silent> ie <Plug>CamelCaseMotion_ie
 
 " spelunker.vim settings
 set nospell

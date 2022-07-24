@@ -41,6 +41,11 @@ nnoremap <leader>n :<c-u>action RenameElement<cr>
 nnoremap <c-n> :NERDTree<cr>
 nnoremap <c-p> :<c-u>action GotoFile<cr>
 
+nnoremap w [w
+nnoremap e ]w
+nnoremap b [b
+nnoremap ge ]b
+
 noremap <c-h> <c-w><c-h>
 noremap <c-j> <c-w><c-j>
 noremap <c-k> <c-w><c-k>
