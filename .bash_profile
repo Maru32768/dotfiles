@@ -9,9 +9,7 @@ export PATH=$PATH:$DENO_INSTALL/bin
 export PATH=$PATH:/usr/local/go/bin
 export PATH=$PATH:$HOME/.local/bin
 export PATH=$PATH:$HOME/go/bin
-
+export PATH=$PATH:$HOME/.volta/bin
 source $HOME/.cargo/env
 
 source ~/.bashrc
-export VOLTA_HOME="$HOME/.volta"
-export PATH="$VOLTA_HOME/bin:$PATH"

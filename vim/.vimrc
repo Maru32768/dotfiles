@@ -159,6 +159,7 @@ xmap i<a-w> <plug>(textobj-if-then)
 
 " NERDTree settings
 let g:NERDTreeShowBookmarks = 1
+let NERDTreeShowHidden = 1
 autocmd StdinReadPre * let s:std_in = 1 " ファイル名が指定されずにVIMが起動した場合のみNERDTreeを表示
 autocmd VimEnter * if argc() == 0 && !exists("s:std_in") | NERDTree | endif
 nnoremap <silent> <c-n> :NERDTreeToggle<cr>
