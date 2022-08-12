@@ -158,11 +158,13 @@ omap i<a-w> <plug>(textobj-if-then)
 xmap i<a-w> <plug>(textobj-if-then)
 
 " NERDTree settings
+nnoremap <silent> <c-n> :NERDTreeFind<cr>
 let g:NERDTreeShowBookmarks = 1
 let NERDTreeShowHidden = 1
-autocmd StdinReadPre * let s:std_in = 1 " ファイル名が指定されずにVIMが起動した場合のみNERDTreeを表示
+autocmd StdinReadPre * let s:std_in = 1 
 autocmd VimEnter * if argc() == 0 && !exists("s:std_in") | NERDTree | endif
-nnoremap <silent> <c-n> :NERDTreeToggle<cr>
+autocmd VimEnter * if argc() == 1 && isdirectory(argv()[0]) && !exists('s:std_in') |
+    \ execute 'NERDTree' argv()[0] | wincmd p | enew | execute 'cd '.argv()[0] | endif
 
 " vim-lsp settings
 if !empty(globpath(&rtp, 'autoload/lsp.vim'))
