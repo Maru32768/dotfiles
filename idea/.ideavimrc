@@ -22,7 +22,7 @@ set ideajoin
 
 sethandler <c-o> a:vim n:ide
 sethandler <c-i> a:vim n:ide
-sethandler <c-q> a:vim
+sethandler <c-q> a:vim i:ide
 sethandler <c-y> a:vim
 sethandler <c-c> a:vim
 sethandler <c-v> a:vim
