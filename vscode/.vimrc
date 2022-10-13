@@ -43,6 +43,8 @@ nnoremap <silent> <esc><esc> :noh<cr>
 nnoremap <silent> <c-[><c-[> :noh<cr>
 nnoremap ; :
 nnoremap : ;
+vnoremap ; :
+vnoremap : ;
 nnoremap H ^
 nnoremap L $
 vnoremap H ^
