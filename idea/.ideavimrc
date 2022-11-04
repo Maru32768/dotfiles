@@ -20,8 +20,8 @@ set argtextobj
 set vim-paragraph-motion
 set ideajoin
 
-sethandler <c-o> a:vim n:ide
-sethandler <c-i> a:vim n:ide
+sethandler <c-o> a:vim
+sethandler <c-i> a:vim
 sethandler <c-q> a:vim i:ide
 sethandler <c-y> a:ide
 sethandler <c-c> a:vim
@@ -30,8 +30,8 @@ sethandler <c-p> a:vim
 sethandler <c-[> a:vim
 sethandler <c-w> a:vim
 
-nnoremap <c-o> :<c-u>action Back<cr>
-nnoremap <c-i> :<c-u>action Forward<cr>
+nmap <c-o> <Action>(Back)
+nmap <c-i> <Action>(Forward)
 nnoremap [g :<c-u>action GotoPreviousError<cr>
 nnoremap ]g :<c-u>action GotoNextError<cr>
 nnoremap <leader>k :<c-u>action QuickJavaDoc<cr>
