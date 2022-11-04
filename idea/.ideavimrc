@@ -26,6 +26,9 @@ sethandler <c-q> a:vim i:ide
 sethandler <c-y> a:ide
 sethandler <c-c> a:vim
 sethandler <c-v> a:vim
+sethandler <c-p> a:vim
+sethandler <c-[> a:vim
+sethandler <c-w> a:vim
 
 nnoremap <c-o> :<c-u>action Back<cr>
 nnoremap <c-i> :<c-u>action Forward<cr>
