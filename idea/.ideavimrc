@@ -20,6 +20,9 @@ set argtextobj
 set vim-paragraph-motion
 set ideajoin
 
+command! GitDiff <Action>(Diff.ShowDiff)
+
+sethandler <c-a> a:vim
 sethandler <c-o> a:vim
 sethandler <c-i> a:vim
 sethandler <c-q> a:vim i:ide
@@ -29,11 +32,16 @@ sethandler <c-v> a:vim
 sethandler <c-p> a:vim
 sethandler <c-[> a:vim
 sethandler <c-w> a:vim
+sethandler <c-cr> a:vim
+sethandler <c-d> a:ide i:vim
 
+nnoremap <c-cr> :action ShowIntentionActions<cr>
 nmap <c-o> <Action>(Back)
 nmap <c-i> <Action>(Forward)
-nnoremap [g :<c-u>action GotoPreviousError<cr>
-nnoremap ]g :<c-u>action GotoNextError<cr>
+nnoremap [g :action GotoPreviousError<cr>
+nnoremap ]g :action GotoNextError<cr>
+nmap [n <Action>(PreviousDiff)
+nmap ]n <Action>(NextDiff)
 nnoremap <leader>k :<c-u>action QuickJavaDoc<cr>
 nnoremap <c-q> :<c-u>action QuickJavaDoc<cr>
 nnoremap <leader>d :<c-u>action GotoDeclaration<cr>
@@ -43,11 +51,6 @@ nnoremap <leader>s :<c-u>action GotoSuperMethod<cr>
 nnoremap <leader>n :<c-u>action RenameElement<cr>
 nnoremap <c-n> :NERDTree<cr>
 nnoremap <c-p> :<c-u>action GotoFile<cr>
-
-nnoremap w [w
-nnoremap e ]w
-nnoremap b [b
-nnoremap ge ]b
 
 noremap <c-h> <c-w><c-h>
 noremap <c-j> <c-w><c-j>
@@ -69,14 +72,15 @@ inoremap <c-k> <up>
 inoremap <c-l> <right>
 
 noremap <leader>w :w<cr>
-noremap <leader>, :so ~/.ideavimrc<cr>
+nnoremap <leader>q :wq<cr>
+nnoremap <leader>, :so ~/.ideavimrc<cr>
 nnoremap <space> <nop>
 nnoremap * *N
 nnoremap U <c-r>
 nnoremap & :&&<cr>
 xnoremap & :&&<cr>
-noremap : ;
-noremap ; :
+nnoremap : ;
+nnoremap ; :
 nnoremap <silent> <esc><esc> :noh<cr>
 nmap <c-[> <esc>
 nnoremap H ^
@@ -106,8 +110,10 @@ cnoremap <c-e> <end>
 cnoremap <c-b> <left>
 cnoremap <c-f> <right>
 cnoremap <c-y> <c-r>"
+cnoremap <c-d> <del>
 
 " コマンドラインモード時は相対行番号を無効化
 nnoremap ; :set norelativenumber<cr>:
 cnoremap <esc> :set relativenumber<cr>
 cnoremap <c-[> :set relativenumber<cr>
+cnoremap <cr> <cr>:set relativenumber<cr>
