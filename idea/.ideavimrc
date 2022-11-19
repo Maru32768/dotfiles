@@ -51,6 +51,7 @@ nnoremap <leader>s :<c-u>action GotoSuperMethod<cr>
 nnoremap <leader>n :<c-u>action RenameElement<cr>
 nnoremap <c-n> :NERDTree<cr>
 nnoremap <c-p> :<c-u>action GotoFile<cr>
+nnoremap <leader>q :action Run<cr>
 
 noremap <c-h> <c-w><c-h>
 noremap <c-j> <c-w><c-j>
@@ -72,7 +73,6 @@ inoremap <c-k> <up>
 inoremap <c-l> <right>
 
 noremap <leader>w :w<cr>
-nnoremap <leader>q :wq<cr>
 nnoremap <leader>, :so ~/.ideavimrc<cr>
 nnoremap <space> <nop>
 nnoremap * *N
