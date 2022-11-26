@@ -4,12 +4,14 @@ export PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\
 export MYVIMRC=$HOME/.vimrc
 
 export DENO_INSTALL=$HOME/.deno
-export PATH=$PATH:$DENO_INSTALL/bin
+export PATH=$DENO_INSTALL/bin:$PATH
 
-export PATH=$PATH:/usr/local/go/bin
-export PATH=$PATH:$HOME/.local/bin
-export PATH=$PATH:$HOME/go/bin
-export PATH=$PATH:$HOME/.volta/bin
+export PATH=/usr/local/go/bin:$PATH
+export PATH=$HOME/.local/bin:$PATH
+export PATH=$HOME/go/bin:$PATH
+export PATH=$HOME/.volta/bin:$PATH
 source $HOME/.cargo/env
+
+WATCHPACK_POLLING=true
 
 source ~/.bashrc

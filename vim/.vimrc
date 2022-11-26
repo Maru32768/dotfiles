@@ -418,7 +418,7 @@ au CmdLineLeave * set relativenumber
 " *.[ch]ppファイル保存時に自動的にclang-formatを実行
 function! s:clang_format()
   let now_line = line(".")
-  silent exec ":%! clang-format"
+  silent exec ":%! clang-format --style=GNU"
   exec ":" . now_line
 endfunction
 
