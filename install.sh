@@ -55,7 +55,7 @@ git config --global color.ui true
 git config --global push.default simple
 git config --global core.ignorecase false
 git config --global core.quotepath false
-git config --global core.autocrlf false
+git config --global core.autocrlf true
 git config --global merge.tool vimdiff
 git config --global merge.conflictstyle diff3
 git config --global mergetool.prompt false
