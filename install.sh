@@ -3,11 +3,11 @@
 rm ~/.vimrc
 ln -s ~/dotfiles/vim/.vimrc ~/.vimrc
 
-rm ~/.bashrc
-ln -s ~/dotfiles/.bashrc ~/.bashrc
+touch ~/.bashrc
+echo 'source ~/dotfiles/.bashrc' >> ~/.bashrc
 
-rm ~/.bash_profile
-ln -s ~/dotfiles/.bash_profile ~/.bash_profile
+touch ~/.bash_profile
+echo 'source ~/dotfiles/.bash_profile' >> ~/.bash_profile
 
 source ~/.bash_profile 2> /dev/null
 

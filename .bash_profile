@@ -9,9 +9,11 @@ export PATH=$DENO_INSTALL/bin:$PATH
 export PATH=/usr/local/go/bin:$PATH
 export PATH=$HOME/.local/bin:$PATH
 export PATH=$HOME/go/bin:$PATH
-export PATH=$HOME/.volta/bin:$PATH
-source $HOME/.cargo/env
+
+export VOLTA_HOME="$HOME/.volta"
+export PATH="$VOLTA_HOME/bin:$PATH"
 
 WATCHPACK_POLLING=true
 
+source $HOME/.cargo/env
 source ~/.bashrc

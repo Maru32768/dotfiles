@@ -45,6 +45,7 @@ Plug 'osyo-manga/vim-textobj-from_regexp'
 Plug 'glts/vim-textobj-comment'
 
 Plug 'Shougo/ddc.vim' " 補完
+Plug 'Shougo/ddc-ui-native'
 Plug 'Shougo/ddc-around'
 Plug 'Shougo/ddc-matcher_head'
 Plug 'Shougo/ddc-sorter_rank'
@@ -60,6 +61,7 @@ Plug 'hrsh7th/vim-vsnip'
 Plug 'hrsh7th/vim-vsnip-integ'
 call plug#end()
 
+call ddc#custom#patch_global('ui', 'native')
 call ddc#custom#patch_global('sources', [
             \ 'vim-lsp',
             \ 'file',
