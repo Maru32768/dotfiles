@@ -80,5 +80,9 @@ cp ~/.gitconfig $WINHOME/.gitconfig
 rm ~/.gitconfig
 ln -s $WINHOME/.gitconfig ~/.gitconfig
 
+sudo touch /etc/wsl.conf
+echo "[automount]" | sudo tee -a /etc/wsl.conf
+echo "options = "metadata"" | sudo tee -a /etc/wsl.conf
+
 source ~/.bash_profile
 
