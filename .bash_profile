@@ -25,11 +25,12 @@ function isWinDir {
 
 # wrap the git command to either run windows git or linux
 function git {
-  if isWinDir
-  then
-    git.exe "$@"
-  else
-    /usr/bin/git "$@"
+  type git.exe &> /dev/null
+  if isWinDir && [ $? -eq 0 ]
+    then
+      git.exe "$@"
+    else
+      /usr/bin/git "$@"
   fi
 }
 
