@@ -15,5 +15,23 @@ export PATH="$VOLTA_HOME/bin:$PATH"
 
 WATCHPACK_POLLING=true
 
+# checks to see if we are in a windows or linux dir
+function isWinDir {
+  case $(pwd -P) in
+    /mnt/*) return $(true);;
+    *) return $(false);;
+  esac
+}
+
+# wrap the git command to either run windows git or linux
+function git {
+  if isWinDir
+  then
+    git.exe "$@"
+  else
+    /usr/bin/git "$@"
+  fi
+}
+
 source $HOME/.cargo/env
 source ~/.bashrc

@@ -61,4 +61,24 @@ git config --global merge.conflictstyle diff3
 git config --global mergetool.prompt false
 # ------------------------
 
+sudo apt install wslu
+WINHOME="$(wslpath "$(wslvar USERPROFILE)")"
+mv $WINHOME/.ssh $WINHOME/.ssh_bak$(date +%s)
+mkdir $WINHOME/.ssh
+cp -r ~/.ssh/* $WINHOME
+rm -r ~/.ssh
+ln -s $WINHOME/.ssh ~/.ssh
+
+mkdir -p $WINHOME/.config/git
+mv $WINHOME/.config/git/ignore $WINHOME/.config/git/ignore_bak$(date +%s)
+cp ~/.config/git/ignore $WINHOME/.config/git/ignore
+rm ~/.config/git/ignore
+ln -s $WINHOME/.config/git/ignore ~/.config/git/ignore
+
+mv $WINHOME/.gitconfig $WINHOME/.gitconfig_bak$(date +%s)
+cp ~/.gitconfig $WINHOME/.gitconfig
+rm ~/.gitconfig
+ln -s $WINHOME/.gitconfig ~/.gitconfig
+
 source ~/.bash_profile
+
