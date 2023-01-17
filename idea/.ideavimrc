@@ -22,7 +22,7 @@ set ideajoin
 
 command! GitDiff <Action>(Diff.ShowDiff)
 
-sethandler <c-a> a:vim
+sethandler <c-a> a:vim 
 sethandler <c-o> a:vim
 sethandler <c-i> a:vim
 sethandler <c-q> a:vim i:ide
