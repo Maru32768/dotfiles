@@ -70,10 +70,10 @@ rm -r ~/.ssh
 ln -s $WINHOME/.ssh ~/.ssh
 
 mkdir -p $WINHOME/.config/git
-mv $WINHOME/.config/git/ignore $WINHOME/.config/git/ignore_bak$(date +%s)
-cp ~/.config/git/ignore $WINHOME/.config/git/ignore
-rm ~/.config/git/ignore
-ln -s $WINHOME/.config/git/ignore ~/.config/git/ignore
+mv $WINHOME/.config/git $WINHOME/.config/git_bak$(date +%s)
+cp -r ~/.config/git $WINHOME/.config/git
+rm -r ~/.config/git
+ln -s $WINHOME/.config/git ~/.config/git
 
 mv $WINHOME/.gitconfig $WINHOME/.gitconfig_bak$(date +%s)
 cp ~/.gitconfig $WINHOME/.gitconfig
