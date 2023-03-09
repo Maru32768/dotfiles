@@ -81,6 +81,8 @@ nnoremap & :&&<cr>
 xnoremap & :&&<cr>
 nnoremap : ;
 nnoremap ; :
+vnoremap : ;
+vnoremap ; :
 nnoremap <silent> <esc><esc> :noh<cr>
 nmap <c-[> <esc>
 nnoremap H ^
