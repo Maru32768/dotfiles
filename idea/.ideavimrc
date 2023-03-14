@@ -20,9 +20,10 @@ set argtextobj
 set vim-paragraph-motion
 set ideajoin
 
-command! GitDiff <Action>(Diff.ShowDiff)
+command! GitDiff action Diff.ShowDiff
+command! Temp action NewScratchFile
 
-sethandler <c-a> a:vim 
+sethandler <c-a> a:vim i:ide
 sethandler <c-o> a:vim
 sethandler <c-i> a:vim
 sethandler <c-q> a:vim i:ide
@@ -34,6 +35,7 @@ sethandler <c-[> a:vim
 sethandler <c-w> a:vim
 sethandler <c-cr> a:vim
 sethandler <c-d> a:ide i:vim
+sethandler <c-t> a:ide
 
 nnoremap <c-cr> :action ShowIntentionActions<cr>
 nmap <c-o> <Action>(Back)
