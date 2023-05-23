@@ -36,7 +36,7 @@ sethandler <c-w> a:vim
 sethandler <c-cr> a:vim
 sethandler <c-d> a:ide i:vim
 sethandler <c-t> a:ide
-sethandler <c-r> a:ide
+sethandler <c-r> a:ide i:vim
 
 nnoremap <c-cr> :action ShowIntentionActions<cr>
 nmap <c-o> <Action>(Back)
