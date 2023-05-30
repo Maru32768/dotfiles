@@ -409,7 +409,7 @@ cnoremap <expr> %% getcmdtype() == ':' ? expand('%:h').'/' : '%%'
 if system('uname -a | grep microsoft') != ''
     augroup myYank
         autocmd!
-        autocmd TextYankPost * :call system('cd /mnt/c; clip.exe &', @")
+        autocmd TextYankPost * :call system('cd /mnt/c; iconv -t sjis | clip.exe &', @")
     augroup END
 endif
 
