@@ -61,30 +61,31 @@ git config --global merge.conflictstyle diff3
 git config --global mergetool.prompt false
 # ------------------------
 
-sudo apt install wslu
-WINHOME="$(wslpath "$(wslvar USERPROFILE)")"
-mv $WINHOME/.ssh $WINHOME/.ssh_bak$(date +%s)
-mkdir $WINHOME/.ssh
-cp -r ~/.ssh/* $WINHOME
-rm -r ~/.ssh
-ln -s $WINHOME/.ssh ~/.ssh
+if grep -qi microsoft /proc/version; then
+    sudo apt install wslu
+    WINHOME="$(wslpath "$(wslvar USERPROFILE)")"
+    mv $WINHOME/.ssh $WINHOME/.ssh_bak$(date +%s)
+    mkdir $WINHOME/.ssh
+    cp -r ~/.ssh/* $WINHOME
+    rm -r ~/.ssh
+    ln -s $WINHOME/.ssh ~/.ssh
 
-mkdir -p $WINHOME/.config/git
-mv $WINHOME/.config/git $WINHOME/.config/git_bak$(date +%s)
-cp -r ~/.config/git $WINHOME/.config/git
-rm -r ~/.config/git
-ln -s $WINHOME/.config/git ~/.config/git
+    mkdir -p $WINHOME/.config/git
+    mv $WINHOME/.config/git $WINHOME/.config/git_bak$(date +%s)
+    cp -r ~/.config/git $WINHOME/.config/git
+    rm -r ~/.config/git
+    ln -s $WINHOME/.config/git ~/.config/git
 
-mv $WINHOME/.gitconfig $WINHOME/.gitconfig_bak$(date +%s)
-cp ~/.gitconfig $WINHOME/.gitconfig
-rm ~/.gitconfig
-ln -s $WINHOME/.gitconfig ~/.gitconfig
+    mv $WINHOME/.gitconfig $WINHOME/.gitconfig_bak$(date +%s)
+    cp ~/.gitconfig $WINHOME/.gitconfig
+    rm ~/.gitconfig
+    ln -s $WINHOME/.gitconfig ~/.gitconfig
 
-sudo touch /etc/wsl.conf
-echo "[automount]" | sudo tee -a /etc/wsl.conf
-echo "options = "metadata"" | sudo tee -a /etc/wsl.conf
-echo "[boot]" | sudo tee -a /etc/wsl.conf
-echo "systemd = true" | sudo tee -a /etc/wsl.conf
+    sudo touch /etc/wsl.conf
+    echo "[automount]" | sudo tee -a /etc/wsl.conf
+    echo "options = "metadata"" | sudo tee -a /etc/wsl.conf
+    echo "[boot]" | sudo tee -a /etc/wsl.conf
+    echo "systemd = true" | sudo tee -a /etc/wsl.conf
+fi
 
 source ~/.bash_profile
-
