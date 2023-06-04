@@ -66,19 +66,19 @@ if grep -qi microsoft /proc/version; then
     WINHOME="$(wslpath "$(wslvar USERPROFILE)")"
     mv $WINHOME/.ssh $WINHOME/.ssh_bak$(date +%s)
     mkdir $WINHOME/.ssh
-    cp -r ~/.ssh/* $WINHOME
-    rm -r ~/.ssh
+    cp -r ~/.ssh $WINHOME
+    mv ~/.ssh ~/.ssh_bak$(date +%s)
     ln -s $WINHOME/.ssh ~/.ssh
 
     mkdir -p $WINHOME/.config/git
     mv $WINHOME/.config/git $WINHOME/.config/git_bak$(date +%s)
     cp -r ~/.config/git $WINHOME/.config/git
-    rm -r ~/.config/git
+    mv ~/.config/git ~/.config/git_bak$(date +%s)
     ln -s $WINHOME/.config/git ~/.config/git
 
     mv $WINHOME/.gitconfig $WINHOME/.gitconfig_bak$(date +%s)
     cp ~/.gitconfig $WINHOME/.gitconfig
-    rm ~/.gitconfig
+    mv ~/.gitconfig ~/.gitconfig_bak$(date +%s)
     ln -s $WINHOME/.gitconfig ~/.gitconfig
 
     sudo touch /etc/wsl.conf
