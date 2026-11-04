@@ -10,9 +10,6 @@ export PATH=/usr/local/go/bin:$PATH
 export PATH=$HOME/.local/bin:$PATH
 export PATH=$HOME/go/bin:$PATH
 
-export VOLTA_HOME="$HOME/.volta"
-export PATH="$VOLTA_HOME/bin:$PATH"
-
 WATCHPACK_POLLING=true
 
 # checks to see if we are in a windows or linux dir
@@ -37,3 +34,8 @@ function git {
 
 source $HOME/.cargo/env
 source ~/.bashrc
+. "$HOME/.cargo/env"
+
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"

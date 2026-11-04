@@ -1,91 +1,27 @@
 #!/bin/bash
+# このリポジトリを使って WSL(Ubuntu) の開発環境を再現するためのエントリーポイント。
+# scripts/ 以下を番号順に実行する。
+#
+# 個別のカテゴリだけ再実行したい場合は該当スクリプトを直接実行すればよい (各スクリプトは冪等):
+#   ./scripts/001_lang_runtimes.sh
+#
+# scripts/ 内の番号は 000, 001, 002... の連番。途中に挿入したくなったら以降の番号を
+# ずらしてリネームする (3桁ゼロ埋めなので 999 まではソート順が壊れない)。
+#
+# 対象外(意図的に除外。必要なら手動で入れる): mysql-server, postgresql, haskell-stack,
+# qemu-kvm/virt-manager, ngrok, hashicorp系(terraform等), VSCode/JetBrains本体のインストール、
+# neovim, Volta, SDKMAN (いずれも使っていない/mise に一本化する方針のため未導入)、
+# 各言語ランタイムの具体バージョン(node/java/terraform等 個別プロジェクトで mise により導入する想定)
+set -euo pipefail
 
-rm ~/.vimrc
-ln -s ~/dotfiles/vim/.vimrc ~/.vimrc
+cd "$(dirname "${BASH_SOURCE[0]}")"
 
-touch ~/.bashrc
-echo 'source ~/dotfiles/.bashrc' >> ~/.bashrc
+for script in scripts/[0-9][0-9][0-9]_*.sh; do
+  echo
+  echo "########## $script ##########"
+  bash "$script"
+done
 
-touch ~/.bash_profile
-echo 'source ~/dotfiles/.bash_profile' >> ~/.bash_profile
-
-source ~/.bash_profile 2> /dev/null
-
-sudo add-apt-repository ppa:neovim-ppa/stable
-
-sudo apt install -y build-essential curl git unzip neovim tmux python-is-python3 libncurses5-dev python3-dev
-
-curl https://sh.rustup.rs -sSf -o /tmp/rustup.rs 
-sh /tmp/rustup.rs -y
-
-curl -fsSL https://deno.land/install.sh | sh
-
-curl https://get.volta.sh | bash
-
-# ----- go -----
-curl -L https://go.dev/dl/$(curl https://go.dev/VERSION?m=text).linux-amd64.tar.gz -o go.tar.gz
-sudo rm -rf /usr/local/go
-sudo tar -C /usr/local -xzf go.tar.gz
-rm -rf go.tar.gz
-
-go install golang.org/x/tools/cmd/goimports@latest
-go install github.com/x-motemen/ghq@latest
-# --------------
-
-# -----build vim-----
-sudo apt remove vim
-sudo apt autoremove vim
-
-ghq get https://github.com/vim/vim
-cd ~/ghq/github.com/vim/vim/src
-
-~/dotfiles/build_vim.sh && make && sudo make install && cd -
-
-curl -fLo ~/.vim/autoload/plug.vim --create-dirs \
-    https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
-# -------------------
-
-# ----- git settings -----
-git config --global user.name "Maru32768"
-git config --global core.editor 'vim -c "set fenc=utf-8"'
-git config --global color.diff auto
-git config --global color.status auto
-git config --global color.branch auto
-git config --global color.ui true
-git config --global push.default simple
-git config --global core.ignorecase false
-git config --global core.quotepath false
-git config --global core.autocrlf input 
-git config --global merge.tool vimdiff
-git config --global merge.conflictstyle diff3
-git config --global mergetool.prompt false
-# ------------------------
-
-if grep -qi microsoft /proc/version; then
-    sudo apt install wslu
-    WINHOME="$(wslpath "$(wslvar USERPROFILE)")"
-    mv $WINHOME/.ssh $WINHOME/.ssh_bak$(date +%s)
-    mkdir $WINHOME/.ssh
-    cp -r ~/.ssh $WINHOME
-    mv ~/.ssh ~/.ssh_bak$(date +%s)
-    ln -s $WINHOME/.ssh ~/.ssh
-
-    mkdir -p $WINHOME/.config/git
-    mv $WINHOME/.config/git $WINHOME/.config/git_bak$(date +%s)
-    cp -r ~/.config/git $WINHOME/.config/git
-    mv ~/.config/git ~/.config/git_bak$(date +%s)
-    ln -s $WINHOME/.config/git ~/.config/git
-
-    mv $WINHOME/.gitconfig $WINHOME/.gitconfig_bak$(date +%s)
-    cp ~/.gitconfig $WINHOME/.gitconfig
-    mv ~/.gitconfig ~/.gitconfig_bak$(date +%s)
-    ln -s $WINHOME/.gitconfig ~/.gitconfig
-
-    sudo touch /etc/wsl.conf
-    echo "[automount]" | sudo tee -a /etc/wsl.conf
-    echo "options = "metadata"" | sudo tee -a /etc/wsl.conf
-    echo "[boot]" | sudo tee -a /etc/wsl.conf
-    echo "systemd = true" | sudo tee -a /etc/wsl.conf
-fi
-
-source ~/.bash_profile
+echo
+echo "install.sh が完了しました。新しいシェルを開くか 'exec bash -l' で反映してください。"
+echo "docker グループの反映にはログインし直しが必要です。"
