@@ -67,6 +67,14 @@ gpg --symmetric --cipher-algo AES256 --output secret-key.asc.gpg secret-key.asc
 
 このパスフレーズを同じ場所に保管しないこと。復元は `gpg --output secret-key.asc --decrypt secret-key.asc.gpg` で行う。
 
+## パスフレーズの入力
+
+WSL では `pinentry-gtk2` を使い、WSLg のポップアップで入力する。`scripts/000_apt.sh` が入れる。
+
+- `/usr/bin/pinentry` は `update-alternatives` の自動選択で `pinentry-gtk-2` を指す (優先度が `pinentry-curses` より高い)。
+- `~/.gnupg/gpg-agent.conf` の `pinentry-program` は JetBrains IDE が書き込んだ `pinentry-ide.sh` を指しているが、IDE の外では `/usr/bin/pinentry` を呼ぶので同じポップアップが出る。
+- 端末を持たないプロセス (Claude のコミットなど) でも `DISPLAY` があればポップアップが出るはず。キャッシュが切れた状態では未確認。
+
 ## キャッシュ時間
 
 パスフレーズのキャッシュは WSL で 8 時間にしている。`GPG_CACHE_TTL_SECONDS` で変えられる。
@@ -83,6 +91,6 @@ GPG_CACHE_TTL_SECONDS=3600 ./scripts/007_gpg.sh
 
 | 症状 | 原因と対処 |
 |---|---|
-| `Inappropriate ioctl for device` | 端末がなくパスフレーズを入力できない。`export GPG_TTY=$(tty)` を実行した端末で試す。`.bashrc` では設定済み |
+| `Inappropriate ioctl for device` | パスフレーズの入力画面を出せない。`readlink -f /usr/bin/pinentry` が `pinentry-gtk-2` を指し、`DISPLAY` が設定されているか確認する。端末で入力するなら `export GPG_TTY=$(tty)` (`.bashrc` では設定済み) |
 | `cannot run C:\Program Files\...` | `gpg.program` に Windows のパスが入っている。`git config --global gpg.program gpg` |
 | GitHub で Unverified になる | 別の鍵で署名している。`git log -1 --show-signature` で鍵 ID を確認する |

@@ -31,4 +31,6 @@ log "docker グループへの追加はログインし直すまで反映され�
 
 if is_wsl; then
   has_cmd wslvar || sudo apt install -y wslu
+  # GPG のパスフレーズをポップアップで入力する (WSLg で表示される。docs/gpg.md)
+  sudo apt install -y pinentry-gtk2
 fi
