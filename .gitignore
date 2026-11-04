@@ -1,1 +1,6 @@
 .idea
+
+# GPG の秘密鍵・失効証明書を誤ってコミットしないように (docs/gpg.md)
+*.asc
+*.gpg
+*.rev

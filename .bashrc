@@ -12,3 +12,4 @@ fi
 . "$HOME/.cargo/env"
 
 eval "$(~/.local/bin/mise activate bash)"
+export GPG_TTY=$(tty)

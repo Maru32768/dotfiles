@@ -16,3 +16,9 @@ git config --global core.autocrlf input
 git config --global merge.tool vimdiff
 git config --global merge.conflictstyle diff3
 git config --global mergetool.prompt false
+
+# コミット署名 (docs/gpg.md)。.gitconfig は Windows と共有するので gpg.program にパスを書かない。
+git config --global commit.gpgsign true
+git config --global gpg.program gpg
+git config --global user.signingkey "${GPG_SIGNING_FPR: -16}"
+git config --global --unset user.signinkey || true # 過去のスペルミス

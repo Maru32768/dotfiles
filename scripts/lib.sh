@@ -5,6 +5,9 @@ set -uo pipefail
 
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+# コミット署名に使う GPG 鍵 (docs/gpg.md)
+GPG_SIGNING_FPR="${GPG_SIGNING_FPR:-7AF93B4735CF2AAC930EF5CD78324D99D34D3111}"
+
 log() { echo -e "\033[1;32m==>\033[0m $*"; }
 warn() { echo -e "\033[1;33m!!\033[0m $*" >&2; }
 has_cmd() { command -v "$1" >/dev/null 2>&1; }
