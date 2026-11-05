@@ -18,7 +18,8 @@ python = "3.14"
 java = "21"
 terraform = "1"
 
-aws-cli = "2"
+# mise では Windows に入らないので、Windows は winget で入れる
+aws-cli = { version = "2", os = ["linux", "macos"] }
 gh = "latest"
 ghq = "latest"
 ripgrep = "latest"

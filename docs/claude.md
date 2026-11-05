@@ -5,9 +5,9 @@ Windows と WSL で同じ設定を使うため、共通部分を chezmoi で管�
 | ファイル | 内容 |
 |---|---|
 | `home/.claude-settings.json` | 共通の設定 (モデル、プラグイン、マーケットプレイス、フックなど) |
-| `home/dot_claude/modify_settings.json.tmpl` | 共通の設定を `settings.json` へマージする |
+| `home/dot_claude/modify_settings.json` | 共通の設定を `settings.json` へマージする (chezmoi のテンプレートなので両 OS で動く) |
 | `home/.hooks-src/block-signing-bypass/` | 署名の回避を止めるフック (Go) |
-| `home/run_onchange_after_20-build-hooks.sh.tmpl` | フックをテストしてビルドする |
+| `home/run_onchange_after_20-build-hooks.*` | フックをテストしてビルドする (`.sh` と `.ps1`) |
 
 ## 反映
 
@@ -21,8 +21,6 @@ chezmoi apply   # 反映する
 - フックはソースが変わると自動でテストとビルドが走る。テストが落ちたら置き換えない。
 
 どちらかの環境で `/config` などから変えた設定を共通にしたいときは、`home/.claude-settings.json` に書き写して反映し直す。
-
-Windows への適用は次の段階で chezmoi に移す。それまでの Windows の設定は、以前の `008_claude.sh` で反映したものが残っている。
 
 ## 署名回避を止めるフック
 

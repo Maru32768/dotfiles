@@ -1,0 +1,5 @@
+{{- if eq .chezmoi.os "windows" -}}
+{{ include ".vimrc-files/vscode.vimrc" }}
+{{- else -}}
+{{ include ".vimrc-files/linux.vimrc" }}
+{{- end -}}

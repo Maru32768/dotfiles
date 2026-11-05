@@ -1,0 +1,8 @@
+{{- /* chezmoi:modify-template */ -}}
+{{- /* Claude Code 自身も書き換えるので、共通設定を既存の内容へマージする。環境固有のキーは残り、同じキーは共通設定が優先される (配列は丸ごと置き換わる)。 */ -}}
+{{- $current := dict -}}
+{{- if .chezmoi.stdin -}}
+{{-   $current = fromJson .chezmoi.stdin -}}
+{{- end -}}
+{{- $shared := include ".claude-settings.json" | fromJson -}}
+{{ mergeOverwrite $current $shared | toPrettyJson "  " }}

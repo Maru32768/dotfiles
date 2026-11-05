@@ -6,7 +6,7 @@
 |---|---|
 | `home/dot_config/mise/config.toml` | どこまで自動で上げてよいか (例: `python = "3.14"`) |
 | `home/dot_config/mise/mise.lock` | 正確なバージョン、URL、チェックサム (Linux と Windows の両方) |
-| `provision/user.sh` の `MISE_VERSION` | mise 本体のバージョン |
+| `provision/user.sh` の `MISE_VERSION`、`bootstrap.ps1` の `$MiseVersion` | mise 本体のバージョン (揃える) |
 | `packages/apt.txt` | mise で入らないもの (バージョンは Ubuntu に任せる) |
 
 ## 更新する
@@ -27,7 +27,7 @@ cp ~/.config/mise/mise.lock ~/dotfiles/home/dot_config/mise/
 
 マイナーバージョンをまたぐときは (Python の 3.14 から 3.15 など)、先に `config.toml` を書き換える。
 
-mise 本体は `MISE_VERSION` を書き換える。`mise self-update` で上げると、別の環境とずれる。
+mise 本体は `MISE_VERSION` と `$MiseVersion` を書き換える。引数なしの `mise self-update` で上げると、別の環境とずれる。
 
 ## 固定できていないもの
 
@@ -40,4 +40,4 @@ mise 本体は `MISE_VERSION` を書き換える。`mise self-update` で上げ�
 
 ## Windows
 
-`aws-cli` は mise では Windows に入らないので、Windows では `winget` で入れる (予定)。
+`aws-cli` は mise では Windows に入らないので、`config.toml` で Linux と macOS に限定し、Windows では `winget` で入れる。

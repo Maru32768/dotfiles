@@ -15,6 +15,7 @@
 | 設定ファイル | chezmoi (`home/`) | Windows にも実ファイルを置ける。環境の違いをテンプレートで表せる |
 | 開発ツール | mise (`home/dot_config/mise/`) | Windows と WSL でバージョンを揃えられる。`mise.lock` で固定する (`docs/tools.md`) |
 | OS パッケージ | `packages/apt.txt` | mise で入らないものだけに絞り、OS 更新の影響を減らす |
+| Windows アプリ | `packages/winget.json` | `winget import` で入れる |
 | インスタンスの作成と削除 | `lab/lab.ps1` | Windows 側にあるので、WSL が壊れていても動く |
 | 確認 | `tests/doctor.sh` | 作り直せたことを機械的に確かめる |
 | 秘密情報 | リポジトリに入れない | 公開リポジトリのため |
@@ -30,12 +31,31 @@ home/                    chezmoi のソース
   .claude-settings.json  Claude Code の共通設定
   .hooks-src/            フックのソース
   run_*                  ツールの導入やフックのビルド
-packages/apt.txt         OS パッケージ
+packages/                apt.txt と winget.json
+bootstrap.ps1            Windows の入口
 provision/               インスタンスの初期設定
 lab/lab.ps1              インスタンスの作成と削除
-tests/doctor.sh          環境の確認
+tests/                   doctor.sh と doctor.ps1 (環境の確認)
 docs/
 ```
+
+## Windows のセットアップ
+
+```powershell
+powershell -ExecutionPolicy Bypass -File bootstrap.ps1
+```
+
+`winget` でアプリを入れ、リポジトリを `~\dotfiles` に clone し、mise と chezmoi で設定を適用して `tests\doctor.ps1` で確認する。
+
+| 対象 | 扱い |
+|---|---|
+| `.gitconfig`, `.ideavimrc`, mise の設定 | WSL と同じ内容 |
+| `.vimrc` | VS Code の Vim 拡張用 (`home/.vimrc-files/vscode.vimrc`)。Linux 用とは別 |
+| `.bashrc`, `.bash_profile` | Git Bash 用。mise を優先する |
+| PowerShell の profile | direnv と mise を有効にする。パスは OneDrive の `Documents` 前提 |
+| `.tmux.conf`, `.ssh`, `.gnupg` など | 管理しない (`home/.chezmoiignore`) |
+
+Windows ではシステムの `PATH` がユーザーの `PATH` より先に来るので、`C:\Program Files\Go` などが mise より優先される。Git Bash と PowerShell では profile で mise を優先するが、IDE のように profile を読まないプロセスにはシステムのものが見える。
 
 ## インスタンスの作り方
 
@@ -89,8 +109,8 @@ WSL の各インスタンスは VM とカーネルを共有するので、悪意
 
 ## 進める順番
 
-1. `dev` (Ubuntu 26.04) を chezmoi と mise で作る ← 今ここ
-2. Windows に同じ chezmoi と mise を適用し、`winget configure` を作る
+1. `dev` (Ubuntu 26.04) を chezmoi と mise で作る
+2. Windows に同じ chezmoi と mise を適用する ← 今ここ
 3. `lab` に `agent` プロファイルを足し、隔離のテストを作る
 4. GitHub Actions と定期的な `lab new restore-test` で、復元できることを確認し続ける
 5. `wslc` を評価する
@@ -103,4 +123,5 @@ WSL の各インスタンスは VM とカーネルを共有するので、悪意
 | Nix / home-manager | Windows を同じ仕組みで扱えない |
 | Ansible | この規模には重い |
 | cloud-init | `wsl -u root` で十分で、仕組みを増やさずに済む |
+| `winget configure` | アプリの一覧を入れるだけなら `winget import` で足りる。管理者権限も要らない |
 | `wslu` | 廃止されていて、Ubuntu 26.04 に候補がない |

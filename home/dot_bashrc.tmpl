@@ -1,3 +1,7 @@
+{{ if eq .chezmoi.os "windows" -}}
+# Git Bash
+command -v mise >/dev/null && eval "$(mise activate bash)"
+{{ else -}}
 case $- in
   *i*) ;;
   *) return ;;
@@ -33,3 +37,4 @@ git() {
   esac
   command git "$@"
 }
+{{ end -}}

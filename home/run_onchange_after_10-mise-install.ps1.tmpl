@@ -1,0 +1,6 @@
+# Runs again when these change:
+# {{ include "dot_config/mise/config.toml" | sha256sum }}
+# {{ include "dot_config/mise/mise.lock" | sha256sum }}
+$ErrorActionPreference = 'Stop'
+& mise install --yes
+if ($LASTEXITCODE -ne 0) { throw "mise install failed: $LASTEXITCODE" }

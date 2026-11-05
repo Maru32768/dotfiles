@@ -1,0 +1,21 @@
+{{ if eq .chezmoi.os "windows" }}
+.tmux.conf
+.ssh
+.ssh/**
+.gnupg
+.gnupg/**
+.config/environment.d
+.config/environment.d/**
+.vim
+.vim/**
+10-mise-install.sh
+20-build-hooks.sh
+30-vim-plugins.sh
+40-claude-code.sh
+{{ else }}
+.wslconfig
+OneDrive
+OneDrive/**
+10-mise-install.ps1
+20-build-hooks.ps1
+{{ end }}

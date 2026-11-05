@@ -1,0 +1,26 @@
+# Runs again when the source changes:
+# {{ include ".hooks-src/block-signing-bypass/main.go" | sha256sum }}
+# {{ include ".hooks-src/block-signing-bypass/main_test.go" | sha256sum }}
+# {{ include ".hooks-src/block-signing-bypass/go.mod" | sha256sum }}
+# Replaces the binary only after the tests pass. A running session may hold the
+# old binary open for a moment, so the rename is retried.
+$ErrorActionPreference = 'Stop'
+Set-Location {{ joinPath .chezmoi.sourceDir ".hooks-src/block-signing-bypass" | quote }}
+$dst = Join-Path $HOME '.claude\hooks\block-signing-bypass.exe'
+
+& mise exec go -- go test ./...
+if ($LASTEXITCODE -ne 0) { throw "hook tests failed: $LASTEXITCODE" }
+
+New-Item -ItemType Directory -Force -Path (Split-Path $dst) | Out-Null
+& mise exec go -- go build -o "$dst.tmp" .
+if ($LASTEXITCODE -ne 0) { throw "hook build failed: $LASTEXITCODE" }
+
+foreach ($attempt in 1..5) {
+    try {
+        Move-Item -Force "$dst.tmp" $dst
+        break
+    } catch {
+        if ($attempt -eq 5) { throw }
+        Start-Sleep -Seconds 1
+    }
+}

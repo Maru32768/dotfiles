@@ -1,9 +1,0 @@
-#!/bin/bash
-# Claude Code 自身も settings.json を書き換えるので、共通設定を既存の内容へマージする。
-# 環境固有のキーは残り、同じキーは共通設定が優先される (配列は丸ごと置き換わる)。
-set -euo pipefail
-
-current="$(cat)"
-[ -n "$current" ] || current='{}'
-printf '%s\n' "$current" |
-  jq -s '.[0] * .[1]' - {{ joinPath .chezmoi.sourceDir ".claude-settings.json" | quote }}
