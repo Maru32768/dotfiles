@@ -1,18 +1,24 @@
+# ここには「どこまで自動で上げてよいか」を書く。正確なバージョンとチェックサムは mise.lock で固定する。
+# 更新の手順は docs/tools.md。
+[settings]
+lockfile = true
+lockfile_platforms = ["linux-x64", "windows-x64"]
+
 [tools]
-chezmoi = "latest"
+chezmoi = "2"
 
-go = "latest"
+go = "1.27"
 "go:golang.org/x/tools/cmd/goimports" = "latest"
-node = "lts"
-rust = "stable"
-deno = "latest"
-bun = "latest"
+node = "26"
+rust = "1.99"
+deno = "2"
+bun = "1"
 uv = "latest"
-python = "latest"
+python = "3.14"
 java = "21"
-terraform = "latest"
+terraform = "1"
 
-aws-cli = "latest"
+aws-cli = "2"
 gh = "latest"
 ghq = "latest"
 ripgrep = "latest"

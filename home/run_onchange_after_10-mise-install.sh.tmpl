@@ -1,5 +1,7 @@
 #!/bin/bash
-# config.toml の内容が変わったら再実行される: {{ include "dot_config/mise/config.toml" | sha256sum }}
+# 内容が変わったら再実行される:
+# {{ include "dot_config/mise/config.toml" | sha256sum }}
+# {{ include "dot_config/mise/mise.lock" | sha256sum }}
 set -euo pipefail
 
 "$HOME/.local/bin/mise" install --yes

@@ -4,6 +4,8 @@
 set -uo pipefail
 
 export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$PATH"
+# mise は親ディレクトリの設定も読むので、プロジェクトの設定に影響されないようにする
+cd "$HOME" || exit 1
 GPG_FPR="7AF93B4735CF2AAC930EF5CD78324D99D34D3111"
 failures=0
 
@@ -21,6 +23,12 @@ while read -r pkg; do
 done < <(grep -vE '^(#|$)' "$HOME/dotfiles/packages/apt.txt")
 
 check "mise" 'mise --version'
+lock_versions() {
+  awk '/^\[\[tools\./ { name = $0; gsub(/^\[\[tools\.|\]\]$|"/, "", name) }
+       /^version = / { version = $3; gsub(/"/, "", version); print name, version }' \
+    "$HOME/.config/mise/mise.lock" | sort
+}
+check "ツールのバージョンが mise.lock と一致" 'diff <(lock_versions) <(mise ls --current | awk "{print \$1, \$2}" | sort)'
 for tool in chezmoi go node rustc deno bun uv python java terraform aws gh ghq rg fd shellcheck yt-dlp goimports; do
   check "ツール: $tool" "command -v $tool"
 done

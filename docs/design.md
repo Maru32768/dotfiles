@@ -13,7 +13,7 @@
 | 管理するもの | 手段 | 理由 |
 |---|---|---|
 | 設定ファイル | chezmoi (`home/`) | Windows にも実ファイルを置ける。環境の違いをテンプレートで表せる |
-| 開発ツール | mise (`home/dot_config/mise/config.toml`) | Windows と WSL でバージョンを揃えられる |
+| 開発ツール | mise (`home/dot_config/mise/`) | Windows と WSL でバージョンを揃えられる。`mise.lock` で固定する (`docs/tools.md`) |
 | OS パッケージ | `packages/apt.txt` | mise で入らないものだけに絞り、OS 更新の影響を減らす |
 | インスタンスの作成と削除 | `lab/lab.ps1` | Windows 側にあるので、WSL が壊れていても動く |
 | 確認 | `tests/doctor.sh` | 作り直せたことを機械的に確かめる |
