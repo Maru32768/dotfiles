@@ -1,0 +1,106 @@
+# dotfiles の設計
+
+## 目的
+
+1. 開発環境が壊れても、簡単に作り直せる
+2. Windows と WSL の設定とツールを、できるだけ揃える
+3. Claude などのエージェントを、使い捨ての環境で安全に動かす
+
+## 基本方針
+
+**どの環境も壊して作り直せる状態にする。** 復元、OS の更新、エージェント用の環境は、同じ手順で作る。
+
+| 管理するもの | 手段 | 理由 |
+|---|---|---|
+| 設定ファイル | chezmoi (`home/`) | Windows にも実ファイルを置ける。環境の違いをテンプレートで表せる |
+| 開発ツール | mise (`home/dot_config/mise/config.toml`) | Windows と WSL でバージョンを揃えられる |
+| OS パッケージ | `packages/apt.txt` | mise で入らないものだけに絞り、OS 更新の影響を減らす |
+| インスタンスの作成と削除 | `lab/lab.ps1` | Windows 側にあるので、WSL が壊れていても動く |
+| 確認 | `tests/doctor.sh` | 作り直せたことを機械的に確かめる |
+| 秘密情報 | リポジトリに入れない | 公開リポジトリのため |
+
+作業データは対象外。
+
+## 構成
+
+```text
+.chezmoiroot             chezmoi のソースが home/ だと示す
+home/                    chezmoi のソース
+  .chezmoi.toml.tmpl     プロファイルと共通の値
+  .claude-settings.json  Claude Code の共通設定
+  .hooks-src/            フックのソース
+  run_*                  ツールの導入やフックのビルド
+packages/apt.txt         OS パッケージ
+provision/               インスタンスの初期設定
+lab/lab.ps1              インスタンスの作成と削除
+tests/doctor.sh          環境の確認
+docs/
+```
+
+## インスタンスの作り方
+
+```powershell
+powershell -ExecutionPolicy Bypass -File lab\lab.ps1 new dev
+```
+
+1. `wsl --install` で Ubuntu 26.04 を入れる (既存のインスタンスには触らない)
+2. root で OS パッケージ、ユーザー、`wsl.conf` を設定する
+3. ユーザーで mise と chezmoi を入れ、設定を適用する
+4. `doctor.sh` で確認する
+
+対話が必要なものは、作成後に手で行う。
+
+```powershell
+wsl -d dev -u root passwd maru
+```
+
+```bash
+~/dotfiles/provision/setup-credentials.sh
+```
+
+## 資格情報
+
+| 環境 | SSH キー | GPG 署名鍵 |
+|---|---|---|
+| Windows | 既存の `~/.ssh/github` | 正式な鍵 |
+| `dev` | 環境ごとに新規作成して GitHub に登録 | 正式な鍵を取り込む |
+| `agent` (予定) | 持たない | 持たない |
+
+- `~/.ssh` と `~/.gitconfig` を Windows へのリンクにしない。WSL が単体で復元できなくなり、隔離とも両立しないため。
+- SSH キーは環境ごとに作り直せるので、バックアップしない。作り直したら古い鍵を GitHub から消す。
+- SSH キーのパスフレーズも gpg-agent で扱う。入力はポップアップで、キャッシュは GPG と同じ 8 時間。
+- 長く保管する秘密は GPG 鍵だけ (`docs/gpg.md`)。
+- パスワードマネージャーは構築の前提にしない。導入する場合も `agent` ではログインしない。
+
+## エージェント用の環境 (予定)
+
+WSL の分離だけには頼らず、層を重ねる。
+
+| 層 | 内容 |
+|---|---|
+| インスタンス | `wsl.conf` で interop と automount を無効化 |
+| ユーザー | `sudo` なしの一般ユーザーで実行 |
+| 資格情報 | SSH キー、GPG 鍵、AWS を入れない |
+| Claude の設定 | root 所有の `managed-settings.json` でサンドボックスを強制 |
+| 通信 | `allowedDomains` で必要な宛先だけ許可 |
+| 成果物 | 署名なしの `agent/*` ブランチで受け取り、確認してから署名する |
+
+WSL の各インスタンスは VM とカーネルを共有するので、悪意あるコードを閉じ込める壁としては弱い。信頼できないリポジトリには devcontainer や `wslc` を使う。隔離の効果は `tests/verify-isolation.sh` (予定) で確かめる。
+
+## 進める順番
+
+1. `dev` (Ubuntu 26.04) を chezmoi と mise で作る ← 今ここ
+2. Windows に同じ chezmoi と mise を適用し、`winget configure` を作る
+3. `lab` に `agent` プロファイルを足し、隔離のテストを作る
+4. GitHub Actions と定期的な `lab new restore-test` で、復元できることを確認し続ける
+5. `wslc` を評価する
+
+## 採用しなかったもの
+
+| 候補 | 理由 |
+|---|---|
+| `do-release-upgrade` | 20.04 からは 22.04、24.04 を経由する必要があり、やり直しも利かない |
+| Nix / home-manager | Windows を同じ仕組みで扱えない |
+| Ansible | この規模には重い |
+| cloud-init | `wsl -u root` で十分で、仕組みを増やさずに済む |
+| `wslu` | 廃止されていて、Ubuntu 26.04 に候補がない |

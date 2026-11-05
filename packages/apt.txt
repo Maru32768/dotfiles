@@ -1,0 +1,16 @@
+# mise で入らないものだけをここに書く
+bc
+bubblewrap
+build-essential
+ca-certificates
+curl
+file
+git
+gnupg
+jq
+libncurses-dev
+pinentry-gtk2
+socat
+tmux
+unzip
+vim-nox

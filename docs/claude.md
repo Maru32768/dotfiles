@@ -1,29 +1,28 @@
 # Claude Code の設定
 
-Windows と WSL で同じ設定を使うため、共通部分を `claude/` で管理する。
+Windows と WSL で同じ設定を使うため、共通部分を chezmoi で管理する。
 
 | ファイル | 内容 |
 |---|---|
-| `claude/settings.json` | 共通の設定 (モデル、プラグイン、マーケットプレイス、フックなど) |
-| `claude/hooks/block-signing-bypass/` | 署名の回避を止めるフック (Go) |
-| `scripts/008_claude.sh` | 上記を両環境へ反映する |
+| `home/.claude-settings.json` | 共通の設定 (モデル、プラグイン、マーケットプレイス、フックなど) |
+| `home/dot_claude/modify_settings.json.tmpl` | 共通の設定を `settings.json` へマージする |
+| `home/.hooks-src/block-signing-bypass/` | 署名の回避を止めるフック (Go) |
+| `home/run_onchange_after_20-build-hooks.sh.tmpl` | フックをテストしてビルドする |
 
 ## 反映
 
 ```bash
-./scripts/008_claude.sh --check   # 差分を見るだけ
-./scripts/008_claude.sh           # 反映する
+chezmoi diff    # 差分を見るだけ
+chezmoi apply   # 反映する
 ```
 
-`install.sh` からも実行される。
+- `settings.json` は Claude Code 自身も書き換えるので、丸ごと置き換えずにマージする。
+- 環境固有のキーは残り、同じキーは共通の設定が優先される。配列は丸ごと置き換わるので、共通の設定にある `hooks.PreToolUse` に環境固有のフックを足しても次の反映で消える。
+- フックはソースが変わると自動でテストとビルドが走る。テストが落ちたら置き換えない。
 
-- `settings.json` は Claude Code 自身も書き換えるので、symlink にせずマージする。
-- 環境固有のキーは残り、同じキーは `claude/settings.json` が優先される。配列は丸ごと置き換わるので、共通設定にある `hooks.PreToolUse` に環境固有のフックを足しても次の反映で消える。
-- 上書きする前に、元のファイルを `settings.json.bak.<時刻>` として残す。
-- フックは WSL 上の Go でテストしてから、Linux 用と Windows 用をビルドして `~/.claude/hooks/` に置く。Windows に Go は要らない。
-- フックのソースを変えたら、再実行するまで反映されない。
+どちらかの環境で `/config` などから変えた設定を共通にしたいときは、`home/.claude-settings.json` に書き写して反映し直す。
 
-どちらかの環境で `/config` などから変えた設定を共通にしたいときは、`claude/settings.json` に書き写して反映し直す。
+Windows への適用は次の段階で chezmoi に移す。それまでの Windows の設定は、以前の `008_claude.sh` で反映したものが残っている。
 
 ## 署名回避を止めるフック
 
@@ -60,12 +59,12 @@ true # hook test: --no-gpg-sign
 
 - Bash / Edit / Write の実行ごとに動くので、起動が速いほうがよい。計測では WSL で 4 ms、Windows で約 29 ms (Git Bash の起動分を除く) で、Perl や node より速かった。
 - ビルド済みのバイナリを置くので、実行する環境にランタイムが要らない。
-- `GOOS=windows` で WSL から Windows 用をビルドできる。
+- 同じソースを Windows 用にもビルドできる。
 
 ### テスト
 
 ```bash
-cd claude/hooks/block-signing-bypass && go test ./...
+cd home/.hooks-src/block-signing-bypass && go test ./...
 ```
 
 止めるコマンドと通すコマンドの一覧は `main_test.go` にある。回避方法を見つけたら、ここにケースを足してからルールを直す。

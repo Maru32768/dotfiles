@@ -1,0 +1,16 @@
+#!/bin/bash
+# ソースが変わったら再実行される:
+# {{ include ".hooks-src/block-signing-bypass/main.go" | sha256sum }}
+# {{ include ".hooks-src/block-signing-bypass/main_test.go" | sha256sum }}
+# {{ include ".hooks-src/block-signing-bypass/go.mod" | sha256sum }}
+# テストが通ったときだけ、別名でビルドしてから置き換える (実行中のセッションが書きかけを起動しないように)。
+set -euo pipefail
+
+cd {{ joinPath .chezmoi.sourceDir ".hooks-src/block-signing-bypass" | quote }}
+mise="$HOME/.local/bin/mise"
+dst="$HOME/.claude/hooks/block-signing-bypass"
+
+"$mise" exec go -- go test ./...
+mkdir -p "$(dirname "$dst")"
+"$mise" exec go -- go build -o "$dst.tmp" .
+mv -f "$dst.tmp" "$dst"

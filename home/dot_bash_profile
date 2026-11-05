@@ -1,0 +1,6 @@
+export TERM=xterm-256color
+export MYVIMRC="$HOME/.vimrc"
+
+export PATH="$HOME/.local/bin:$HOME/go/bin:$HOME/.local/share/mise/shims:$PATH"
+
+[ -f "$HOME/.bashrc" ] && . "$HOME/.bashrc"

@@ -1,0 +1,35 @@
+case $- in
+  *i*) ;;
+  *) return ;;
+esac
+
+export PS1='\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
+
+alias ls='ls --color=auto'
+alias grep='grep --color=auto'
+alias fgrep='fgrep --color=auto'
+alias egrep='egrep --color=auto'
+alias youtube-dl='yt-dlp --no-check-certificates'
+
+if [[ -t 0 ]]; then
+  stty stop undef
+  stty start undef
+fi
+
+command -v mise >/dev/null && eval "$(mise activate bash)"
+
+export GPG_TTY=$(tty)
+command -v gpgconf >/dev/null && export SSH_AUTH_SOCK="$(gpgconf --list-dirs agent-ssh-socket)"
+
+# Windows 側のファイルでは Windows の git を使う (改行コードやファイル権限の扱いのため)
+git() {
+  case "$(pwd -P)" in
+    /mnt/*)
+      if command -v git.exe >/dev/null; then
+        git.exe "$@"
+        return
+      fi
+      ;;
+  esac
+  command git "$@"
+}

@@ -1,0 +1,29 @@
+[user]
+	name = {{ .name }}
+	email = {{ .email }}
+{{- if eq .profile "main" }}
+	signingkey = {{ .signingKey }}
+{{- end }}
+[core]
+	editor = vim -c \"set fenc=utf-8\"
+	ignorecase = false
+	quotepath = false
+	autocrlf = input
+[color]
+	diff = auto
+	status = auto
+	branch = auto
+	ui = true
+[push]
+	default = simple
+[merge]
+	tool = vimdiff
+	conflictstyle = diff3
+[mergetool]
+	prompt = false
+{{- if eq .profile "main" }}
+[commit]
+	gpgsign = true
+[gpg]
+	program = gpg
+{{- end }}

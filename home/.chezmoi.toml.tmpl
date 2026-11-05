@@ -1,0 +1,9 @@
+{{- $profile := env "DOTFILES_PROFILE" | default "main" -}}
+sourceDir = "{{ .chezmoi.sourceDir | trimSuffix "/home" }}"
+
+[data]
+    # main: 普段の開発環境 / agent: Claude を動かす使い捨て環境
+    profile = "{{ $profile }}"
+    name = "Maru32768"
+    email = "maru32768@gmail.com"
+    signingKey = "78324D99D34D3111"

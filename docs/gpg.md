@@ -12,7 +12,7 @@ WSL には GitHub に登録していない古い鍵 `87D535BB8566CC0A` も残っ
 
 ## Windows と WSL の関係
 
-- `~/.gitconfig` は Windows 側 `C:\Users\maru3\.gitconfig` への symlink で、両環境で共有している (`scripts/005_wsl_windows.sh`)。
+- `.gitconfig` は同じテンプレート (`home/dot_gitconfig.tmpl`) から環境ごとに作る。Windows へのリンクにはしない。
 - `gpg.program = gpg` なので、各環境の `PATH` で解決される。
 
 | 環境 | 使われる gpg | 鍵の場所 |
@@ -22,30 +22,25 @@ WSL には GitHub に登録していない古い鍵 `87D535BB8566CC0A` も残っ
 
 Kleopatra 系の `%APPDATA%\gnupg` は別の場所で、署名には使っていない。
 
-`.gitconfig` に Windows のパスを書くと WSL で動かなくなる (その逆も同じ) ので、`gpg.program` にはパスを書かない。
+`gpg.program` に Windows のパスを書くと WSL で動かなくなる (その逆も同じ) ので、パスを書かない。
 
 ## 新しい環境のセットアップ
 
-1. `./install.sh` を実行する。`scripts/004_git.sh` が署名設定を、`scripts/007_gpg.sh` がキャッシュ時間を設定する。
-2. バックアップから秘密鍵を取り込む。パスフレーズの入力があるので、対話できる端末で実行する。
+1. `lab\lab.ps1 new <名前>` でインスタンスを作る。署名設定とキャッシュ時間は chezmoi が適用する。
+2. 鍵を取り込む。パスフレーズの入力があるので、対話できる端末で実行する。
 
    ```bash
-   ./scripts/gpg_import_key.sh <エクスポートした秘密鍵ファイル>
+   ~/dotfiles/provision/setup-credentials.sh                       # Windows の gpg から取り込む
+   ~/dotfiles/provision/setup-credentials.sh <エクスポートしたファイル>  # バックアップから取り込む
    ```
 
-   フィンガープリントが違うファイルなら、何も変更せずに終了する。
+   フィンガープリントが違うファイルなら、何も変更せずに終了する。同じスクリプトがこの環境専用の SSH キーも作る。
 
 3. 署名を確認する。
 
    ```bash
    echo test | gpg -u 78324D99D34D3111 --clearsign > /dev/null && echo OK
    ```
-
-Windows がすでにセットアップ済みなら、バックアップの代わりに直接取り込むこともできる。
-
-```bash
-"/mnt/c/Program Files/Git/usr/bin/gpg.exe" --armor --export-secret-keys 78324D99D34D3111 | gpg --import
-```
 
 ## バックアップ
 
@@ -69,19 +64,16 @@ gpg --symmetric --cipher-algo AES256 --output secret-key.asc.gpg secret-key.asc
 
 ## パスフレーズの入力
 
-WSL では `pinentry-gtk2` を使い、WSLg のポップアップで入力する。`scripts/000_apt.sh` が入れる。
+WSL では `pinentry-gtk2` を使い、WSLg のポップアップで入力する。`packages/apt.txt` で入れる。
 
 - `/usr/bin/pinentry` は `update-alternatives` の自動選択で `pinentry-gtk-2` を指す (優先度が `pinentry-curses` より高い)。
-- `~/.gnupg/gpg-agent.conf` の `pinentry-program` は JetBrains IDE が書き込んだ `pinentry-ide.sh` を指しているが、IDE の外では `/usr/bin/pinentry` を呼ぶので同じポップアップが出る。
+- JetBrains IDE が `gpg-agent.conf` に `pinentry-program` を書き込むことがある。chezmoi は必要な行だけを管理するので、この行は残る。
+- SSH キーのパスフレーズも gpg-agent が扱うので、同じポップアップが出る。SSH の要求には表示先の情報が付かないので、`home/dot_config/environment.d/wslg.conf` で gpg-agent の環境に `DISPLAY` を入れている。
 - 端末を持たないプロセス (Claude のコミットなど) でも `DISPLAY` があればポップアップが出るはず。キャッシュが切れた状態では未確認。
 
 ## キャッシュ時間
 
-パスフレーズのキャッシュは WSL で 8 時間にしている。`GPG_CACHE_TTL_SECONDS` で変えられる。
-
-```bash
-GPG_CACHE_TTL_SECONDS=3600 ./scripts/007_gpg.sh
-```
+パスフレーズのキャッシュは WSL で 8 時間にしている。変えるときは `home/private_dot_gnupg/modify_gpg-agent.conf` の `CACHE_TTL_SECONDS` を直して `chezmoi apply` する。
 
 - キャッシュが有効な間は、Claude を含む同じユーザーのプロセスがパスフレーズなしで署名できる。
 - 再読み込みするとキャッシュは消える。WSL が停止したときも消える。
@@ -92,5 +84,6 @@ GPG_CACHE_TTL_SECONDS=3600 ./scripts/007_gpg.sh
 | 症状 | 原因と対処 |
 |---|---|
 | `Inappropriate ioctl for device` | パスフレーズの入力画面を出せない。`readlink -f /usr/bin/pinentry` が `pinentry-gtk-2` を指し、`DISPLAY` が設定されているか確認する。端末で入力するなら `export GPG_TTY=$(tty)` (`.bashrc` では設定済み) |
+| `ssh-add` で `agent refused operation` | gpg-agent が入力画面を出せない。`gpg-connect-agent updatestartuptty /bye` を実行してから試す |
 | `cannot run C:\Program Files\...` | `gpg.program` に Windows のパスが入っている。`git config --global gpg.program gpg` |
 | GitHub で Unverified になる | 別の鍵で署名している。`git log -1 --show-signature` で鍵 ID を確認する |
