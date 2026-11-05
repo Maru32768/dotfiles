@@ -40,8 +40,9 @@ foreach ($tool in ($locked.Keys | Sort-Object)) {
     Check "mise: $tool $($locked[$tool])" { $current[$tool] -eq $locked[$tool] }
 }
 
+# Claude Code rewrites settings.json itself. The hook registration is checked below.
 Check 'chezmoi: no differences' {
-    -not (& mise exec chezmoi -- chezmoi status --exclude=scripts)
+    -not (& mise exec chezmoi -- chezmoi status --exclude=scripts 2>$null | Where-Object { $_ -notmatch '\.claude/settings\.json$' })
 }
 
 Check 'git: commit signing on' { (& git config --global commit.gpgsign) -eq 'true' }

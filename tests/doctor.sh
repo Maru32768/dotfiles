@@ -33,7 +33,8 @@ for tool in chezmoi go node rustc deno bun uv python java terraform aws gh ghq r
   check "ツール: $tool" "command -v $tool"
 done
 
-check "chezmoi の管理ファイルに差分がない" '[ -z "$(chezmoi status --exclude=scripts)" ]'
+# settings.json は Claude Code 自身も書き換えるので比べない。フックの登録は下で確かめる
+check "chezmoi の管理ファイルに差分がない" '[ -z "$(chezmoi status --exclude=scripts | grep -v "\.claude/settings\.json$")" ]'
 check ".gitconfig が実ファイル" '[ -f ~/.gitconfig ] && [ ! -L ~/.gitconfig ]'
 check ".ssh が実ディレクトリ" '[ -d ~/.ssh ] && [ ! -L ~/.ssh ]'
 check ".ssh の権限が 700" '[ "$(stat -c %a ~/.ssh)" = 700 ]'

@@ -1,5 +1,4 @@
 {
-  "model": "fable",
   "enabledPlugins": {
     "frontend-design@claude-plugins-official": true,
     "gopls-lsp@claude-plugins-official": true,
@@ -40,11 +39,6 @@
         "source": "git",
         "url": "https://github.com/blader/humanizer.git"
       }
-    }
-  },
-  "modelSettings": {
-    "claude-opus-5-5": {
-      "effortLevel": "high"
     }
   },
   "autoUpdatesChannel": "latest",
