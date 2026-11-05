@@ -26,12 +26,12 @@ function Invoke-Wsl {
 }
 
 function Get-Instances {
-    $previous = [Console]::OutputEncoding
-    [Console]::OutputEncoding = [Text.Encoding]::Unicode
+    # wsl.exe writes UTF-16 by default, which PowerShell misreads when capturing it
+    $env:WSL_UTF8 = '1'
     try {
         return (& wsl.exe --list --quiet) | ForEach-Object { $_.Trim() } | Where-Object { $_ }
     } finally {
-        [Console]::OutputEncoding = $previous
+        Remove-Item Env:WSL_UTF8
     }
 }
 
@@ -84,7 +84,13 @@ $arguments = @($ProfileName, $(if ($isLocal) { $bootstrap } else { $Source }))
 if ($Branch) { $arguments += $Branch }
 Invoke-Wsl -d $Name -u $User --cd '~' -e bash "$bootstrap/provision/user.sh" @arguments
 
+Write-Host '==> Restarting to apply the user environment'
+Invoke-Wsl -d $Name -u root -e rm -rf $bootstrap
+Invoke-Wsl --terminate $Name
+
 Write-Host '==> Checking the result'
 & wsl.exe -d $Name -u $User --cd '~' -e bash -lc 'bash ~/dotfiles/tests/doctor.sh'
-Invoke-Wsl -d $Name -u root -e rm -rf $bootstrap
+if ($LASTEXITCODE -ne 0) {
+    throw "doctor.sh reported problems in $Name"
+}
 Write-Host "==> Done. Next: wsl -d $Name -u root passwd $User"
