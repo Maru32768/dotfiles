@@ -6,6 +6,8 @@ export MYVIMRC="$HOME/.vimrc"
 export PATH="$HOME/.local/bin:$HOME/AppData/Local/mise/shims:$PATH"
 {{ else -}}
 export PATH="$HOME/.local/bin:$HOME/go/bin:$HOME/.local/share/mise/shims:$PATH"
+# mise は親ディレクトリの設定も読むので、Windows 側のホーム以下で Windows 用の設定を読まないようにする
+export MISE_IGNORED_CONFIG_PATHS="/mnt/c/Users/maru3/.config/mise"
 {{ end -}}
 
 [ -f "$HOME/.bashrc" ] && . "$HOME/.bashrc"

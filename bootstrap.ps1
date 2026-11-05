@@ -46,9 +46,15 @@ if (-not $SkipPackages) {
     Update-SessionPath
 }
 
-Write-Host "==> Pinning mise to $MiseVersion"
-& mise self-update $MiseVersion --yes
-Assert-LastExit 'mise self-update'
+if ((& mise --version) -notmatch "^$([regex]::Escape($MiseVersion))\b") {
+    Write-Host "==> Pinning mise to $MiseVersion"
+    # Newer mise refuses to update itself when winget installed it. Winget may also
+    # not have this version yet, so a mismatch is reported but is not fatal.
+    & mise self-update $MiseVersion --yes
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warning "mise stays at $(& mise --version); expected $MiseVersion"
+    }
+}
 
 Write-Host '==> Applying settings'
 $miseConfig = Join-Path $HOME '.config\mise'

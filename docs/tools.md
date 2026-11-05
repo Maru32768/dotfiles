@@ -27,7 +27,7 @@ cp ~/.config/mise/mise.lock ~/dotfiles/home/dot_config/mise/
 
 マイナーバージョンをまたぐときは (Python の 3.14 から 3.15 など)、先に `config.toml` を書き換える。
 
-mise 本体は `MISE_VERSION` と `$MiseVersion` を書き換える。引数なしの `mise self-update` で上げると、別の環境とずれる。
+mise 本体は `MISE_VERSION` と `$MiseVersion` を書き換える。引数なしの `mise self-update` で上げると、別の環境とずれる。 Windows の mise は winget で入れているので、バージョンが違ってもセットアップは止めず、警告だけ出す。
 
 ## 固定できていないもの
 
