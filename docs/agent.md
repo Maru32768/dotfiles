@@ -68,7 +68,7 @@ git fetch agent-foo.bundle agent/foo:agent/foo
 | OS | `sudo`、Windows のドライブ、共有マウント、秘密鍵に届かないこと。管理設定を書き換えられないこと |
 | サンドボックス | `tests/sandbox-probe.sh` を Claude に実行させ、ホームへの書き込みや、許可していない宛先、共有ネットワーク上のポート、トークンに届かないこと。commit など開発の作業はできること |
 | 対照 | 同じプローブをサンドボックスの外で実行し、検出できることを確かめる |
-| ツール | `Read` や `Grep` でトークンを読めず、`~/.bashrc` に書けないこと |
+| ツール | `Read` や `Grep` で `/proc` のプロセスの環境変数を読めず、`~/.bashrc` に書けないこと。ルールが効かなくてもトークンが漏れないよう、目印だけを持つプロセスで試す |
 
 `dev` で実行すれば FAIL が並ぶので、検査が失敗を検出できることも確かめられる。
 
@@ -87,6 +87,8 @@ wsl.exe -d dev -e bash -s -- --exe /mnt/c/Windows/System32/whoami.exe < tests/ve
 | Windows | `%LOCALAPPDATA%\dotfiles-lab\claude-oauth-token.dpapi` に DPAPI で暗号化して保存 |
 | 起動時 | `lab.ps1` が 1 回の `wsl.exe` にだけ `WSLENV` で渡す |
 | インスタンス | Claude 本体の環境変数にだけある。`sandbox.credentials.envVars` で Bash から隠す |
+
+`/proc/<PID>/environ` は、Claude 2.1.318 の `Read` では組み込みの制限でも読めない。`Read(//proc/**)` の拒否ルールはその上の保険で、ルールだけの効果は `/proc/version` で確かめた (ありなら拒否され、なしなら読める)。
 
 Windows のユーザー環境変数には入れない。Windows 上の Claude Code でも `/login` より優先されてしまう。
 
