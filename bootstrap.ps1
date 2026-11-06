@@ -2,7 +2,7 @@
 # 5.1 misreads UTF-8 without a BOM. Safe to run again.
 #
 #   powershell -ExecutionPolicy Bypass -File bootstrap.ps1
-#   powershell -ExecutionPolicy Bypass -File bootstrap.ps1 -Branch redesign
+#   powershell -ExecutionPolicy Bypass -File bootstrap.ps1 -Branch some-branch
 [CmdletBinding()]
 param(
     [string]$Source = 'https://github.com/Maru32768/dotfiles.git',
