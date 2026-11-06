@@ -4,7 +4,7 @@ Windows と WSL で同じ設定を使うため、共通部分を chezmoi で管�
 
 | ファイル | 内容 |
 |---|---|
-| `home/.claude-settings.json` | 共通の設定 (モデル、プラグイン、マーケットプレイス、フックなど) |
+| `home/.claude-settings.json` | 共通の設定 (プラグイン、マーケットプレイス、フックなど) |
 | `home/dot_claude/modify_settings.json` | 共通の設定を `settings.json` へマージする (chezmoi のテンプレートなので両 OS で動く) |
 | `home/.hooks-src/block-signing-bypass/` | 署名の回避を止めるフック (Go) |
 | `home/run_onchange_after_20-build-hooks.*` | フックをテストしてビルドする (`.sh` と `.ps1`) |

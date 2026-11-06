@@ -19,3 +19,18 @@ OneDrive/**
 10-mise-install.ps1
 20-build-hooks.ps1
 {{ end }}
+{{ if eq .profile "agent" }}
+.ssh
+.ssh/**
+.gnupg
+.gnupg/**
+.claude
+.claude/**
+.config/environment.d
+.config/environment.d/**
+.vim
+.vim/**
+.vimrc
+20-build-hooks.sh
+30-vim-plugins.sh
+{{ end }}

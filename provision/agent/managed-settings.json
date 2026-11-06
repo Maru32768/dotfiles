@@ -1,0 +1,67 @@
+{
+  "permissions": {
+    "disableBypassPermissionsMode": "disable",
+    "allow": [
+      "Read",
+      "Glob",
+      "Grep"
+    ],
+    "deny": [
+      "WebFetch",
+      "WebSearch",
+      "Read(//proc/**)",
+      "Edit(~/.bashrc)",
+      "Edit(~/.bash_profile)",
+      "Edit(~/.profile)",
+      "Edit(~/.local/**)",
+      "Edit(~/.config/mise/**)",
+      "Edit(~/.claude/settings.json)",
+      "Edit(~/.claude/settings.local.json)",
+      "Edit(~/.claude.json)"
+    ]
+  },
+  "allowManagedPermissionRulesOnly": true,
+  "allowManagedHooksOnly": true,
+  "allowManagedMcpServersOnly": true,
+  "allowedMcpServers": [],
+  "strictKnownMarketplaces": [],
+  "sandbox": {
+    "enabled": true,
+    "failIfUnavailable": true,
+    "allowUnsandboxedCommands": false,
+    "autoAllowBashIfSandboxed": true,
+    "credentials": {
+      "envVars": [
+        {
+          "name": "CLAUDE_CODE_OAUTH_TOKEN",
+          "mode": "deny"
+        }
+      ]
+    },
+    "filesystem": {
+      "allowWrite": [
+        "~/.npm",
+        "~/go/pkg"
+      ]
+    },
+    "network": {
+      "allowManagedDomainsOnly": true,
+      "strictAllowlist": true,
+      "allowedDomains": [
+        "github.com",
+        "codeload.github.com",
+        "raw.githubusercontent.com",
+        "objects.githubusercontent.com",
+        "release-assets.githubusercontent.com",
+        "registry.npmjs.org",
+        "pypi.org",
+        "files.pythonhosted.org",
+        "proxy.golang.org",
+        "sum.golang.org",
+        "crates.io",
+        "index.crates.io",
+        "static.crates.io"
+      ]
+    }
+  }
+}

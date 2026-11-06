@@ -35,7 +35,7 @@ packages/                apt.txt と winget.json
 bootstrap.ps1            Windows の入口
 provision/               インスタンスの初期設定
 lab/lab.ps1              インスタンスの作成と削除
-tests/                   doctor.sh と doctor.ps1 (環境の確認)
+tests/                   doctor.sh と doctor.ps1 (環境の確認)、verify-isolation.sh (agent の隔離の確認)
 docs/
 ```
 
@@ -84,7 +84,7 @@ wsl -d dev -u root passwd maru
 |---|---|---|
 | Windows | 既存の `~/.ssh/github` | 正式な鍵 |
 | `dev` | 環境ごとに新規作成して GitHub に登録 | 正式な鍵を取り込む |
-| `agent` (予定) | 持たない | 持たない |
+| `agent` | 持たない | 持たない |
 
 - `~/.ssh` と `~/.gitconfig` を Windows へのリンクにしない。WSL が単体で復元できなくなり、隔離とも両立しないため。
 - SSH キーは環境ごとに作り直せるので、バックアップしない。作り直したら古い鍵を GitHub から消す。
@@ -92,26 +92,17 @@ wsl -d dev -u root passwd maru
 - 長く保管する秘密は GPG 鍵だけ (`docs/gpg.md`)。
 - パスワードマネージャーは構築の前提にしない。導入する場合も `agent` ではログインしない。
 
-## エージェント用の環境 (予定)
+## エージェント用の環境
 
-WSL の分離だけには頼らず、層を重ねる。
+WSL の分離だけには頼らず、インスタンス、ユーザー、資格情報、Claude の設定、サンドボックス、通信の層を重ねる。成果物は署名なしの `agent/*` ブランチで受け取り、確認してから署名する。詳しくは `docs/agent.md`。
 
-| 層 | 内容 |
-|---|---|
-| インスタンス | `wsl.conf` で interop と automount を無効化 |
-| ユーザー | `sudo` なしの一般ユーザーで実行 |
-| 資格情報 | SSH キー、GPG 鍵、AWS を入れない |
-| Claude の設定 | root 所有の `managed-settings.json` でサンドボックスを強制 |
-| 通信 | `allowedDomains` で必要な宛先だけ許可 |
-| 成果物 | 署名なしの `agent/*` ブランチで受け取り、確認してから署名する |
-
-WSL の各インスタンスは VM とカーネルを共有するので、悪意あるコードを閉じ込める壁としては弱い。信頼できないリポジトリには devcontainer や `wslc` を使う。隔離の効果は `tests/verify-isolation.sh` (予定) で確かめる。
+WSL の各インスタンスは VM とカーネルを共有するので、悪意あるコードを閉じ込める壁としては弱い。信頼できないリポジトリには devcontainer や `wslc` を使う。隔離の効果は `tests/verify-isolation.sh` で実際に試して確かめる。
 
 ## 進める順番
 
 1. `dev` (Ubuntu 26.04) を chezmoi と mise で作る
-2. Windows に同じ chezmoi と mise を適用する ← 今ここ
-3. `lab` に `agent` プロファイルを足し、隔離のテストを作る
+2. Windows に同じ chezmoi と mise を適用する
+3. `lab` に `agent` プロファイルを足し、隔離のテストを作る ← 今ここ
 4. GitHub Actions と定期的な `lab new restore-test` で、復元できることを確認し続ける
 5. `wslc` を評価する
 

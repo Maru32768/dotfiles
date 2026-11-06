@@ -1,0 +1,117 @@
+# agent 環境
+
+Claude を確認の少ない設定で動かすための、使い捨ての WSL インスタンス。名前が `agent-` で始まると、このプロファイルで作られる。
+
+## 使い方
+
+Windows の PowerShell で実行する。
+
+```powershell
+powershell -ExecutionPolicy Bypass -File lab\lab.ps1 new agent-foo
+```
+
+トークンは最初に 1 回だけ保存する。`claude setup-token` の出力を、次のコマンドの入力欄に貼る。
+
+```powershell
+powershell -ExecutionPolicy Bypass -File lab\lab.ps1 token
+```
+
+```powershell
+powershell -ExecutionPolicy Bypass -File lab\lab.ps1 run agent-foo -Path ~/work/repo
+powershell -ExecutionPolicy Bypass -File lab\lab.ps1 verify agent-foo
+powershell -ExecutionPolicy Bypass -File lab\lab.ps1 rm agent-foo
+```
+
+`-Path` を省くと `~/work` で動く。サンドボックスは作業ディレクトリへの書き込みを許すので、ホームでは起動しない。`rm` で消せるのは `agent-*` と `restore-test*` だけ。ほかは `wsl --unregister` を自分で実行する。
+
+## コードの受け渡し
+
+インスタンスに資格情報がないので、公開リポジトリは中で `git clone` する。非公開のリポジトリは手元から渡す。
+
+```bash
+git bundle create - --all | wsl.exe -d agent-foo --cd '~' -e sh -c 'cat > /tmp/in.bundle && git clone /tmp/in.bundle work/repo && rm /tmp/in.bundle'
+```
+
+成果物は署名なしの `agent/*` ブランチで受け取り、内容を確認してから手元で署名する。
+
+```bash
+wsl.exe -d agent-foo --cd '~/work/repo' -e git bundle create - agent/foo > agent-foo.bundle
+```
+
+```bash
+git fetch agent-foo.bundle agent/foo:agent/foo
+```
+
+## 隔離の層
+
+| 層 | 内容 |
+|---|---|
+| インスタンス | `wsl.conf` で interop と automount を無効化。共有される `/mnt/wsl` と WSLg のマウントを外す (`provision/agent/isolate-mounts.sh`) |
+| ユーザー | `sudo` なし。uid は 2000 で、普段のユーザー (1000) と分ける |
+| 資格情報 | SSH キー、GPG 鍵、AWS を入れない。トークンはインスタンスに保存しない |
+| Claude の設定 | root 所有の `/etc/claude-code/managed-settings.json` (`provision/agent/managed-settings.json`) |
+| サンドボックス | Bash が書けるのは作業ディレクトリと、`allowWrite` に挙げたキャッシュだけ。サンドボックスを使えないときは起動しない |
+| 通信 | Bash からは `allowedDomains` の宛先だけ。`api.anthropic.com` は入れない |
+| ツール | `WebFetch` と `WebSearch` を無効化。`/proc` の読み取りとシェルの設定ファイルの書き換えを拒否する |
+| リポジトリの設定 | `--setting-sources user` で読まない (フックや `apiKeyHelper` はサンドボックスの外で動く) |
+| 拡張 | フック、MCP、プラグインを管理設定で閉じる。chezmoi の `.claude` も適用しない |
+
+権限モードは `acceptEdits`。作業ディレクトリの中の編集と、サンドボックスの中の Bash は確認なしで動く。それ以外は確認を求める。bypass モードは禁止している。
+
+## 確かめ方
+
+`tests/verify-isolation.sh` が、設定を読むだけでなく実際に試す。トークンを保存してあれば、`lab.ps1 new` と `lab.ps1 verify` で Claude も動かす。
+
+| 区分 | 内容 |
+|---|---|
+| 外から試す | 実物の `whoami.exe` を起動できないこと (`lab.ps1` がインスタンスにコピーする) |
+| OS | `sudo`、Windows のドライブ、共有マウント、秘密鍵に届かないこと。管理設定を書き換えられないこと |
+| サンドボックス | `tests/sandbox-probe.sh` を Claude に実行させ、ホームへの書き込みや、許可していない宛先、共有ネットワーク上のポート、トークンに届かないこと。commit など開発の作業はできること |
+| 対照 | 同じプローブをサンドボックスの外で実行し、検出できることを確かめる |
+| ツール | `Read` や `Grep` でトークンを読めず、`~/.bashrc` に書けないこと |
+
+`dev` で実行すれば FAIL が並ぶので、検査が失敗を検出できることも確かめられる。
+
+```bash
+wsl.exe -d dev -e bash -s -- --exe /mnt/c/Windows/System32/whoami.exe < tests/verify-isolation.sh
+```
+
+起動の前にも `provision/agent/agent-claude.sh` が同じ検査を実行し、FAIL があれば起動しない。ただしこのときは Claude を動かす検査を行わない。Claude Code の更新でサンドボックスの挙動が変わることがあるので、更新の後は `lab.ps1 verify` をやり直す。
+
+## トークン
+
+`claude setup-token` のトークンを使う。Max プランの枠を使うので、追加の費用はかからない。公式文書によると、できるのはモデルへのリクエストだけで、有効期限は 1 年。**失効の方法は公式文書に書かれていない。** 持ち出されうるものとして扱う。
+
+| 場所 | 扱い |
+|---|---|
+| Windows | `%LOCALAPPDATA%\dotfiles-lab\claude-oauth-token.dpapi` に DPAPI で暗号化して保存 |
+| 起動時 | `lab.ps1` が 1 回の `wsl.exe` にだけ `WSLENV` で渡す |
+| インスタンス | Claude 本体の環境変数にだけある。`sandbox.credentials.envVars` で Bash から隠す |
+
+Windows のユーザー環境変数には入れない。Windows 上の Claude Code でも `/login` より優先されてしまう。
+
+API キーに変えるなら、`lab.ps1` の変数名と `sandbox.credentials.envVars` を `ANTHROPIC_API_KEY` にする。
+
+## CLAUDE_CODE_SUBPROCESS_ENV_SCRUB を使わない理由
+
+トークンをサブプロセスから消す機能だが、Claude Code 2.1.318 で試すと次のことが起きたので、管理設定には入れない。`verify-isolation.sh` でも有効にしていないことを確かめている。
+
+- 権限モードが `default` に固定され、`autoAllowBashIfSandboxed` も効かない。Bash が毎回確認を求める
+- `--allowedTools` で Bash を許可すると、ホームの直下に書ける (なしなら `Read-only file system` で拒否される)。ネットワークの制限と `~/.local/bin` への書き込みの拒否は効いている
+- 作業ディレクトリに空の `package.json`、`.env`、`yarn.lock` などを作って残す
+- それらを `.git/info/exclude` に追記するので、本物の `package.json` を新しく作っても `git status` に出ない
+
+## 既知の制限
+
+- **カーネルを共有する:** 各インスタンスは同じ VM で動く (`boot_id` が一致する)。悪意あるコードを閉じ込める壁としては弱い。信頼できないリポジトリには devcontainer か `wslc` を使う。
+- **ネットワークを共有する:** IP アドレスも待ち受けポートも、ほかのインスタンスと同じものが見える。`wsl.conf` では分離できない。サンドボックスの中の Bash からは届かないが、外で動くもの (Claude 本体) からは届く。
+- **ツールはサンドボックスの外で動く:** `Read`、`Edit`、`Write` を止めるのは権限ルールだけ。
+- **許可した宛先へは持ち出せる:** たとえば攻撃者のトークンで `github.com` に push できる。
+- **起動前の検査は自己申告:** 検査のスクリプトは `agent` ユーザーのものなので、中で書き換えられていれば信用できない。怪しければ作り直す。
+- **WSLENV の値は環境変数:** 同じユーザーのプロセスなら `/proc` から読める。サンドボックスの中からは見えないことを確かめている。
+
+## 変更するとき
+
+通信先や書き込み先は `provision/agent/managed-settings.json` を編集して、インスタンスを作り直す。`allowWrite` に足した場所は、`agent-claude.sh` で先に作っておく。サンドボックスの中からは作れない。
+
+`/mnt/wsl` は全インスタンスで共有される。`isolate-mounts.sh` のように private にしてから外す。そのまま外したり、上に別のものをマウントしたりすると、ほかのインスタンスの Docker Desktop に影響する恐れがある。
