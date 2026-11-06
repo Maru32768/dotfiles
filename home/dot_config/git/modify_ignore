@@ -1,0 +1,13 @@
+{{- /* chezmoi:modify-template */ -}}
+{{- /* Claude Code もこのファイルに追記するので、丸ごと置き換えずに足りない行だけを足す。mise.lock を無視する理由は docs/tools.md。 */ -}}
+{{- $current := .chezmoi.stdin | replace "\r\n" "\n" | trimSuffix "\n" -}}
+{{- $lines := list -}}
+{{- if $current -}}
+{{-   $lines = splitList "\n" $current -}}
+{{- end -}}
+{{- range list "**/.claude/settings.local.json" "mise.lock" ".mise/" -}}
+{{-   if not (has . $lines) -}}
+{{-     $lines = append $lines . -}}
+{{-   end -}}
+{{- end -}}
+{{ join "\n" $lines }}

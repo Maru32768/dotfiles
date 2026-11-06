@@ -8,7 +8,10 @@ file
 git
 gnupg
 jq
+libasound2t64
 libncurses-dev
+libnspr4
+libnss3
 pinentry-gtk2
 socat
 tmux

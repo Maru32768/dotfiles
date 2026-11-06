@@ -29,6 +29,12 @@ cp ~/.config/mise/mise.lock ~/dotfiles/home/dot_config/mise/
 
 mise 本体は `MISE_VERSION` と `$MiseVersion` を書き換える。引数なしの `mise self-update` で上げると、別の環境とずれる。 Windows の mise は winget で入れているので、バージョンが違ってもセットアップは止めず、警告だけ出す。
 
+## プロジェクトの mise.lock
+
+`lockfile = true` は全プロジェクトに効くので、`.mise.toml` のあるリポジトリで `mise install` すると、そこにも `mise.lock` ができる。`lockfile = false` にするとグローバルの `mise.lock` も無視されて固定が効かなくなるので (古いバージョンをロックに書いて確かめた)、設定は外さない。
+
+代わりに `~/.config/git/ignore` で `mise.lock` と `.mise/` を無視する。追跡済みのファイルには影響しない。プロジェクトで新しく `mise.lock` をコミットするときは `git add -f` を使う。
+
 ## 固定できていないもの
 
 | 対象 | 理由 |
