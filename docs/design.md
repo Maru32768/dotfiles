@@ -17,7 +17,7 @@
 | OS パッケージ | `packages/apt.txt` | mise で入らないものだけに絞り、OS 更新の影響を減らす |
 | Windows アプリ | `packages/winget.json` | `winget import` で入れる |
 | インスタンスの作成と削除 | `lab/lab.ps1` | Windows 側にあるので、WSL が壊れていても動く |
-| 確認 | `tests/doctor.sh` | 作り直せたことを機械的に確かめる |
+| 確認 | `tests/doctor.sh`、CI (`docs/ci.md`) | 作り直せたことを機械的に確かめる |
 | 秘密情報 | リポジトリに入れない | 公開リポジトリのため |
 
 作業データは対象外。
@@ -36,6 +36,8 @@ bootstrap.ps1            Windows の入口
 provision/               インスタンスの初期設定
 lab/lab.ps1              インスタンスの作成と削除
 tests/                   doctor.sh と doctor.ps1 (環境の確認)、verify-isolation.sh (agent の隔離の確認)
+  ci/                    CI の検査。手元でも実行できる
+.github/workflows/       CI (docs/ci.md)
 docs/
 ```
 
@@ -103,7 +105,7 @@ WSL の各インスタンスは VM とカーネルを共有するので、悪意
 1. `dev` (Ubuntu 26.04) を chezmoi と mise で作る
 2. Windows に同じ chezmoi と mise を適用する
 3. `lab` に `agent` プロファイルを足し、隔離のテストを作る
-4. GitHub Actions と定期的な `lab new restore-test` で、復元できることを確認し続ける ← 今ここ
+4. GitHub Actions (`docs/ci.md`) と定期的な `lab new restore-test` で、復元できることを確認し続ける ← 今ここ (`lab new restore-test` の定期実行が残っている)
 5. `wslc` を評価する
 
 ## 採用しなかったもの

@@ -1,0 +1,64 @@
+# 検査の内容は tests/ci/ にあり、手元でも同じものを実行できる。docs/ci.md を参照。
+name: CI
+
+on:
+  push:
+    paths-ignore:
+      - "docs/**"
+      - "**.md"
+  schedule:
+    # 固定していないもの (apt、インストーラー、Vim プラグイン) の破損に気づくため。日曜 6:00 JST
+    - cron: "0 21 * * 6"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # gitleaks が履歴すべてを調べる
+          persist-credentials: false
+      - run: bash tests/ci/setup.sh
+        env:
+          GITHUB_TOKEN: ${{ github.token }} # mise が GitHub の API を呼ぶときの回数制限を避ける
+      - run: bash tests/ci/static.sh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+  container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [main, agent]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: bash tests/ci/container.sh ${{ matrix.profile }}
+
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Windows PowerShell 5.1 の構文
+        shell: powershell
+        run: .\tests\ci\windows.ps1
+      - name: PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          Install-Module PSScriptAnalyzer -RequiredVersion 1.25.0 -Scope CurrentUser -Force
+          .\tests\ci\windows.ps1 -Analyze
