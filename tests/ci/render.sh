@@ -58,7 +58,7 @@ blocked "linux-agent: 署名の設定がない" 'grep -qE "signingkey|gpgsign" "
 equals "linux-agent: 実行するスクリプト" "$(scripts_of linux-agent)" "10-mise-install.sh 40-claude-code.sh"
 
 # --- 普段の環境 ---
-for file in .ssh/config .gnupg/gpg-agent.conf .claude/settings.json .tmux.conf .vimrc; do
+for file in .ssh/config .gnupg/gpg-agent.conf .claude/settings.json .claude/CLAUDE.md .tmux.conf .vimrc; do
   check "linux-main: $file がある" '[ -f "$work/linux-main/home/$file" ]'
 done
 check "linux-main: コミット署名が有効" 'grep -q "gpgsign = true" "$work/linux-main/home/.gitconfig"'
@@ -66,7 +66,7 @@ check "linux-main: Claude の設定にフックがある" 'jq -e ".hooks.PreTool
 equals "linux-main: 実行するスクリプト" "$(scripts_of linux-main)" "10-mise-install.sh 20-build-hooks.sh 30-vim-plugins.sh 40-claude-code.sh"
 
 # --- Windows ---
-for file in .wslconfig OneDrive/Documents/PowerShell/Microsoft.PowerShell_profile.ps1 .claude/settings.json .vimrc; do
+for file in .wslconfig OneDrive/Documents/PowerShell/Microsoft.PowerShell_profile.ps1 .claude/settings.json .claude/CLAUDE.md .vimrc; do
   check "windows-main: $file がある" '[ -f "$work/windows-main/home/$file" ]'
 done
 for file in .tmux.conf .ssh .gnupg .config/environment.d; do
