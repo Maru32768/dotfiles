@@ -9,20 +9,27 @@
 #   lab.ps1 run agent-foo [-Path ~/work/repo]   (the default path is ~/work)
 #   lab.ps1 verify agent-foo
 #   lab.ps1 rm agent-foo           (only agent-* and restore-test*)
+#   lab.ps1 restore-test           (builds main and agent, checks them, removes them)
+#
+# -NoClaude skips the checks that run Claude, so the stored token is not used.
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory, Position = 0)][ValidateSet('new', 'rm', 'run', 'verify', 'token')][string]$Command,
+    [Parameter(Mandatory, Position = 0)][ValidateSet('new', 'rm', 'run', 'verify', 'token', 'restore-test')][string]$Command,
     [Parameter(Position = 1)][ValidatePattern('^[A-Za-z0-9-]+$')][string]$Name,
     [string]$Distro = 'Ubuntu-26.04',
     [string]$User = '',
     [string]$Source = 'https://github.com/Maru32768/dotfiles.git',
     [string]$Branch = '',
-    [string]$Path = '~/work'
+    [string]$Path = '~/work',
+    [switch]$NoClaude
 )
 
 $ErrorActionPreference = 'Stop'
 
-$TokenPath = Join-Path $env:LOCALAPPDATA 'dotfiles-lab\claude-oauth-token.dpapi'
+$LabDir = Join-Path $env:LOCALAPPDATA 'dotfiles-lab'
+$TokenPath = Join-Path $LabDir 'claude-oauth-token.dpapi'
+$ResultPath = Join-Path $LabDir 'restore-test.json'
+$LogPath = Join-Path $LabDir 'restore-test.log'
 
 function Invoke-Wsl {
     & wsl.exe @args
@@ -73,12 +80,12 @@ function Invoke-Verify {
     Copy-Item -LiteralPath "$env:WINDIR\System32\whoami.exe" -Destination "\\wsl.localhost\$Name$($probeExe.Replace('/', '\'))"
     Invoke-Wsl -d $Name -u root -e chmod 755 $probeExe
     try {
-        if (Test-Path -LiteralPath $TokenPath) {
+        if ((-not $NoClaude) -and (Test-Path -LiteralPath $TokenPath)) {
             Invoke-WithToken {
                 & wsl.exe -d $Name -u $User --cd '~' -e bash -lc "bash ~/dotfiles/tests/verify-isolation.sh --exe $probeExe --e2e"
             }
         } else {
-            Write-Host 'No token stored, so the checks that run Claude are skipped.'
+            Write-Host 'The checks that run Claude are skipped (no token stored, or -NoClaude).'
             & wsl.exe -d $Name -u $User --cd '~' -e bash -lc "bash ~/dotfiles/tests/verify-isolation.sh --exe $probeExe"
         }
         if ($LASTEXITCODE -ne 0) {
@@ -87,6 +94,86 @@ function Invoke-Verify {
     } finally {
         Invoke-Wsl -d $Name -u root -e rm -f $probeExe
     }
+}
+
+# Runs one step as a separate process, so a failed step cannot stop the others.
+function Invoke-LabStep([string[]]$Arguments) {
+    # wsl.exe prints its own messages in UTF-16, which leaves NUL characters in the log
+    & powershell -NoProfile -ExecutionPolicy Bypass -File $PSCommandPath @Arguments 2>&1 |
+        ForEach-Object {
+            $line = "$_" -replace "`0", ''
+            Add-Content -LiteralPath $LogPath -Value $line -Encoding UTF8
+            Write-Host $line
+        }
+    return $LASTEXITCODE
+}
+
+# Builds each profile from nothing, checks it and removes it again. The result
+# goes to a file because nobody is watching a scheduled run: doctor.ps1 reports
+# it, and provision/promote-stable.sh only tags a commit that passed.
+function Invoke-RestoreTest {
+    # Windows PowerShell turns the stderr of a native command into errors. A
+    # failed step has to reach the result file instead of stopping here.
+    $ErrorActionPreference = 'Continue'
+
+    $targets = @(
+        @{ Profile = 'main'; Instance = 'restore-test'; User = 'maru' },
+        @{ Profile = 'agent'; Instance = 'agent-restore-test'; User = 'agent' }
+    )
+    $existing = Get-Instances
+    foreach ($target in $targets) {
+        if ($existing -contains $target.Instance) {
+            throw "Instance $($target.Instance) already exists. Remove it first: lab.ps1 rm $($target.Instance)"
+        }
+    }
+
+    New-Item -ItemType Directory -Force -Path $LabDir -ErrorAction Stop | Out-Null
+    "Restore test started at $(Get-Date -Format o)" | Set-Content -LiteralPath $LogPath -Encoding UTF8 -ErrorAction Stop
+    # doctor.sh prints Japanese in UTF-8
+    [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+
+    $options = @('-Source', $Source)
+    if ($Branch) { $options += @('-Branch', $Branch) }
+    if ($NoClaude) { $options += '-NoClaude' }
+
+    $results = [ordered]@{}
+    $commits = @()
+    foreach ($target in $targets) {
+        Write-Host "==> Restore test: $($target.Profile)"
+        $code = Invoke-LabStep (@('new', $target.Instance) + $options)
+        $results[$target.Profile] = ($code -eq 0)
+        if ($code -eq 0) {
+            $commits += (& wsl.exe -d $target.Instance -u $target.User --cd '~' -e git -C dotfiles rev-parse HEAD 2>$null)
+        }
+        if ((Get-Instances) -contains $target.Instance) {
+            $code = Invoke-LabStep @('rm', $target.Instance)
+            if ($code -ne 0) { $results[$target.Profile] = $false }
+        }
+    }
+
+    # A push between the two builds would mean they did not test the same thing
+    $uniqueCommits = @($commits | Sort-Object -Unique)
+    $passed = (@($results.Values | Where-Object { -not $_ }).Count -eq 0) -and ($uniqueCommits.Count -eq 1)
+    [ordered]@{
+        time    = Get-Date -Format o
+        passed  = $passed
+        commit  = $(if ($uniqueCommits.Count -eq 1) { $uniqueCommits[0] } else { $null })
+        claude  = ((-not $NoClaude) -and (Test-Path -LiteralPath $TokenPath))
+        results = $results
+    } | ConvertTo-Json | Set-Content -LiteralPath $ResultPath -Encoding Ascii -ErrorAction Stop
+
+    Write-Host "Result: $ResultPath"
+    Write-Host "Log: $LogPath"
+    if (-not $passed) {
+        Write-Host 'Restore test FAILED'
+        exit 1
+    }
+    Write-Host 'Restore test passed'
+    exit 0
+}
+
+if ($Command -eq 'restore-test') {
+    Invoke-RestoreTest
 }
 
 if ($Command -eq 'token') {

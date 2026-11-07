@@ -78,6 +78,22 @@ Check "pwsh uses Go $expectedGo" {
     (& pwsh -NoLogo -Command 'go version') -match [regex]::Escape("go$expectedGo")
 }
 
+# A scheduled restore test has nobody watching it, so its result is reported here.
+$restoreResult = Join-Path $env:LOCALAPPDATA 'dotfiles-lab\restore-test.json'
+if (Test-Path -LiteralPath $restoreResult) {
+    $restore = Get-Content -Raw -LiteralPath $restoreResult | ConvertFrom-Json
+    $restoreAge = ((Get-Date) - [datetime]$restore.time).Days
+    if (-not $restore.passed) {
+        Todo "restore test failed $restoreAge day(s) ago: see $env:LOCALAPPDATA\dotfiles-lab\restore-test.log"
+    } elseif ($restoreAge -gt 45) {
+        Todo "restore test is $restoreAge days old: run lab\lab.ps1 restore-test"
+    } else {
+        Pass "restore test passed $restoreAge day(s) ago"
+    }
+} else {
+    Todo 'restore test: run lab\lab.ps1 restore-test'
+}
+
 Write-Host ''
 if ($script:Failures -gt 0) {
     Write-Host "$script:Failures problem(s) found"

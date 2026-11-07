@@ -3,6 +3,7 @@ name: CI
 
 on:
   push:
+    branches: ["**"] # stable タグの付け替えでは動かさない
     paths-ignore:
       - "docs/**"
       - "**.md"

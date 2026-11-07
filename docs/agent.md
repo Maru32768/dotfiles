@@ -60,7 +60,7 @@ git fetch agent-foo.bundle agent/foo:agent/foo
 
 ## 確かめ方
 
-`tests/verify-isolation.sh` が、設定を読むだけでなく実際に試す。トークンを保存してあれば、`lab.ps1 new` と `lab.ps1 verify` で Claude も動かす。
+`tests/verify-isolation.sh` が、設定を読むだけでなく実際に試す。トークンを保存してあれば、`lab.ps1 new`、`lab.ps1 verify`、`lab.ps1 restore-test` で Claude も動かす。`-NoClaude` を付けると動かさない。
 
 | 区分 | 内容 |
 |---|---|

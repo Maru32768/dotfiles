@@ -105,7 +105,7 @@ WSL の各インスタンスは VM とカーネルを共有するので、悪意
 1. `dev` (Ubuntu 26.04) を chezmoi と mise で作る
 2. Windows に同じ chezmoi と mise を適用する
 3. `lab` に `agent` プロファイルを足し、隔離のテストを作る
-4. GitHub Actions (`docs/ci.md`) と定期的な `lab new restore-test` で、復元できることを確認し続ける ← 今ここ (`lab new restore-test` の定期実行が残っている)
+4. GitHub Actions と定期的な `lab.ps1 restore-test` で、復元できることを確認し続ける (`docs/ci.md`) ← 今ここ
 5. `wslc` を評価する
 
 ## 採用しなかったもの
