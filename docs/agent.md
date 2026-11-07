@@ -76,7 +76,23 @@ git fetch agent-foo.bundle agent/foo:agent/foo
 wsl.exe -d dev -e bash -s -- --exe /mnt/c/Windows/System32/whoami.exe < tests/verify-isolation.sh
 ```
 
-起動の前にも `provision/agent/agent-claude.sh` が同じ検査を実行し、FAIL があれば起動しない。ただしこのときは Claude を動かす検査を行わない。Claude Code の更新でサンドボックスの挙動が変わることがあるので、更新の後は `lab.ps1 verify` をやり直す。
+起動の前にも `provision/agent/agent-claude.sh` が同じ検査を実行し、FAIL があれば起動しない。ただしこのときは Claude を動かす検査を行わない。
+
+## Claude Code のバージョン
+
+Claude Code の更新でサンドボックスの挙動が変わることがあるので、隔離を確かめたバージョンに固定する。
+
+- バージョンは `provision/agent/claude-version` に書く。`root.sh` が root 所有で `/etc/claude-code/claude-version` に置き、インストーラーにそのバージョンを渡す。
+- `verify-isolation.sh` が実物のバージョンと比べる。違えば起動前の検査で止まる。
+- `DISABLE_AUTOUPDATER` を `agent-claude.sh` と管理設定で指定する。ただし、ログインしていない環境では自動更新が起きず、効果は確かめられていない。`claude update` はこの指定があっても更新する (2.1.317 で確認)。止める手段として頼りにしているのは、上の検査のほう。
+
+上げるときは `claude-version` を書き換えて、インスタンスを作り直す。
+
+```powershell
+powershell -ExecutionPolicy Bypass -File lab\lab.ps1 new agent-foo
+```
+
+トークンを保存してあれば、`new` が Claude を動かす検査まで行う。このファイルを置く前に作ったインスタンスは検査に通らないので、作り直す。
 
 ## トークン
 

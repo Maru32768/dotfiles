@@ -1,4 +1,5 @@
-{{- $profile := env "DOTFILES_PROFILE" | default "main" -}}
+{{- /* chezmoi init をやり直しても、環境変数がなければ今のプロファイルを保つ。agent が main に戻らないように */ -}}
+{{- $profile := env "DOTFILES_PROFILE" | default (get . "profile") | default "main" -}}
 sourceDir = "{{ .chezmoi.sourceDir | trimSuffix "/home" }}"
 
 [data]

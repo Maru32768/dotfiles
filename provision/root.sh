@@ -22,14 +22,18 @@ if [ "$profile" = agent ]; then
 
   install -d -o root -g root -m 755 /etc/claude-code
   install -o root -g root -m 644 "$here/agent/managed-settings.json" /etc/claude-code/managed-settings.json
+  install -o root -g root -m 644 "$here/agent/claude-version" /etc/claude-code/claude-version
   install -o root -g root -m 755 "$here/agent/isolate-mounts.sh" /usr/local/sbin/agent-isolate-mounts
   install -o root -g root -m 755 "$here/agent/agent-claude.sh" /usr/local/bin/agent-claude
 
   # /etc/resolv.conf は /mnt/wsl を指す symlink で、WSL が起動のたびに作り直す。
   # /mnt/wsl を外すので、WSL に生成させず実ファイルにする
-  resolv="$(cat /etc/resolv.conf)"
-  rm -f /etc/resolv.conf
-  printf '%s\n' "$resolv" >/etc/resolv.conf
+  # (コンテナでは実ファイルがバインドマウントされていて、消せないし変える必要もない)
+  if [ -L /etc/resolv.conf ]; then
+    resolv="$(cat /etc/resolv.conf)"
+    rm -f /etc/resolv.conf
+    printf '%s\n' "$resolv" >/etc/resolv.conf
+  fi
 
   cat >/etc/wsl.conf <<EOF
 [boot]

@@ -1,7 +1,18 @@
 #!/bin/bash
 # 環境が想定どおりか確認する。問題があれば終了コード 1 を返す。
 # TODO は、ユーザーの手作業がまだ残っているだけで、失敗とは数えない。
+#
+# 使い方: doctor.sh [--container]
+#   --container  CI のコンテナ用。コンテナには systemd がないので、その検査を飛ばす
+# shellcheck disable=SC2016
 set -uo pipefail
+
+container=false
+case "${1:-}" in
+  "") ;;
+  --container) container=true ;;
+  *) echo "不明な引数: $1" >&2; exit 2 ;;
+esac
 
 export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$PATH"
 # mise は親ディレクトリの設定も読むので、プロジェクトの設定に影響されないようにする
@@ -12,11 +23,16 @@ failures=0
 pass() { printf 'PASS %s\n' "$1"; }
 fail() { printf 'FAIL %s\n' "$1"; failures=$((failures + 1)); }
 todo() { printf 'TODO %s\n' "$1"; }
+skip() { printf 'SKIP %s\n' "$1"; }
 check() { if eval "$2" >/dev/null 2>&1; then pass "$1"; else fail "$1"; fi; }
 
 check "Ubuntu 26.04" 'grep -q "VERSION_ID=\"26.04\"" /etc/os-release'
 check "既定ユーザーが wsl.conf にある" 'grep -q "^default=$(id -un)$" /etc/wsl.conf'
-check "systemd が動いている" '[ "$(cat /proc/1/comm)" = systemd ]'
+if "$container"; then
+  skip "systemd が動いている"
+else
+  check "systemd が動いている" '[ "$(cat /proc/1/comm)" = systemd ]'
+fi
 
 while read -r pkg; do
   check "apt: $pkg" "dpkg -s $pkg"
@@ -42,7 +58,11 @@ check ".gnupg の権限が 700" '[ "$(stat -c %a ~/.gnupg)" = 700 ]'
 check "コミット署名が有効" '[ "$(git config --global commit.gpgsign)" = true ]'
 check "pinentry が GUI" 'readlink -f /usr/bin/pinentry | grep -q gtk'
 check "gpg-agent の設定" 'grep -q "^enable-ssh-support$" ~/.gnupg/gpg-agent.conf'
-check "systemd の環境に DISPLAY がある (反映には再起動が必要)" 'systemctl --user show-environment | grep -q "^DISPLAY="'
+if "$container"; then
+  skip "systemd の環境に DISPLAY がある"
+else
+  check "systemd の環境に DISPLAY がある (反映には再起動が必要)" 'systemctl --user show-environment | grep -q "^DISPLAY="'
+fi
 
 hook="$HOME/.claude/hooks/block-signing-bypass"
 deny_input='{"tool_name":"Bash","tool_input":{"command":"git commit --no-gpg-sign"}}'
@@ -53,12 +73,21 @@ check "Claude の設定にフックがある" 'jq -e ".hooks.PreToolUse[0].hooks
 check "Claude Code" 'claude --version'
 check "サンドボックスの依存" 'command -v bwrap && command -v socat'
 
+# 一覧にあるものがすべて入っていること。ビルドの失敗までは分からない
 plug_dir="$HOME/.vim/plugged"
-if [ -d "$plug_dir" ] && [ "$(find "$plug_dir" -mindepth 1 -maxdepth 1 -type d | wc -l)" -gt 0 ]; then
-  pass "vim プラグイン ($(find "$plug_dir" -mindepth 1 -maxdepth 1 -type d | wc -l) 個)"
+declared_plugins() { sed -nE "s|^Plug '[^/']+/([^']+)'.*|\\1|p" "$HOME/.vimrc" | sort -u; }
+installed_plugins() { find "$plug_dir" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' 2>/dev/null | sort -u; }
+declared_count="$(declared_plugins | wc -l)"
+missing_plugins="$(comm -23 <(declared_plugins) <(installed_plugins) | paste -sd ' ' -)"
+if [ "$declared_count" -eq 0 ]; then
+  fail "vim プラグイン (~/.vimrc に一覧がない)"
+elif [ -n "$missing_plugins" ]; then
+  fail "vim プラグイン (足りない: $missing_plugins)"
 else
-  fail "vim プラグイン"
+  pass "vim プラグイン ($declared_count 個)"
 fi
+# エラーの内容は vim -N -es -u ~/.vimrc -i NONE +qall で見られる
+check ".vimrc をエラーなしで読める" 'vim -N -es -u ~/.vimrc -i NONE +qall </dev/null'
 
 if gpg --list-secret-keys "$GPG_FPR" >/dev/null 2>&1; then
   pass "GPG 署名鍵"

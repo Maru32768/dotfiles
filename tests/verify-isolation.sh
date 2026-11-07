@@ -119,6 +119,10 @@ expect_managed "bypass モードを禁止" '.permissions.disableBypassPermission
 expect_managed "サンドボックスのコマンドからトークンを消す" '(.sandbox.credentials.envVars | map(select(.name == "CLAUDE_CODE_OAUTH_TOKEN" and .mode == "deny")) | length) == 1'
 # 有効にするとホームに書けるようになり、権限モードも固定される (docs/agent.md)
 expect_managed "CLAUDE_CODE_SUBPROCESS_ENV_SCRUB を有効にしていない" '.env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB == null'
+expect_managed "Claude Code を自動で更新しない" '.env.DISABLE_AUTOUPDATER == "1"'
+pin=/etc/claude-code/claude-version
+blocked "固定するバージョンを書き換えられない" '[ -w "$pin" ]'
+check "Claude Code が固定したバージョン" '[ "$(claude --version | awk "{print \$1}")" = "$(cat "$pin")" ]'
 
 # --- 動くこと ---
 check "Claude Code" 'claude --version'

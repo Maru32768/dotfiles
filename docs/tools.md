@@ -27,7 +27,7 @@ cp ~/.config/mise/mise.lock ~/dotfiles/home/dot_config/mise/
 
 マイナーバージョンをまたぐときは (Python の 3.14 から 3.15 など)、先に `config.toml` を書き換える。
 
-mise 本体は `MISE_VERSION` と `$MiseVersion` を書き換える。引数なしの `mise self-update` で上げると、別の環境とずれる。 Windows の mise は winget で入れているので、バージョンが違ってもセットアップは止めず、警告だけ出す。
+mise 本体は `MISE_VERSION` と `$MiseVersion` を書き換える。ずれていると CI が失敗する。引数なしの `mise self-update` で上げると、別の環境とずれる。 Windows の mise は winget で入れているので、バージョンが違ってもセットアップは止めず、警告だけ出す。
 
 ## プロジェクトの mise.lock
 
@@ -40,8 +40,8 @@ mise 本体は `MISE_VERSION` と `$MiseVersion` を書き換える。引数な�
 | 対象 | 理由 |
 |---|---|
 | `rust`, `goimports` | rustup と `go install` で入るので、バージョンの固定だけでチェックサムはない |
-| Claude Code | 公式のインストーラーで入れて、自動更新に任せている |
-| Vim プラグイン | vim-plug が最新を取得する |
+| Claude Code (`main`) | 公式のインストーラーで入れて、自動更新に任せている。`agent` はバージョンを固定する (`docs/agent.md`) |
+| Vim プラグイン | vim-plug が最新を取得する。`linux.vimrc` が変わると、足りないものを導入し直す |
 | `apt.txt` のパッケージ | Ubuntu の更新に任せる |
 
 ## Windows

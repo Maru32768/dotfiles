@@ -1,0 +1,11 @@
+#!/bin/bash
+# プラグインの一覧が変わったら再実行される:
+# {{ include ".vimrc-files/linux.vimrc" | sha256sum }}
+# 一部のプラグインのビルドが失敗しても、環境の構築は止めない。結果は tests/doctor.sh で確認する。
+export PATH="$HOME/.local/share/mise/shims:$PATH"
+# -N: -u を付けると compatible が既定になり、.vimrc の行継続がエラーになる
+# 初めての導入ではプラグインがまだないので、.vimrc を読むときに必ずエラーが出る。この結果は見ない
+vim -N -es -u "$HOME/.vimrc" -i NONE +PlugInstall +qall </dev/null >/dev/null 2>&1
+# 導入の後なら、エラーなしで読めるはず
+vim -N -es -u "$HOME/.vimrc" -i NONE +qall </dev/null >/dev/null 2>&1 || echo "vim のプラグインの導入で警告がありました" >&2
+exit 0

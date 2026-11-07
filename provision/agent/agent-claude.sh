@@ -6,6 +6,8 @@
 set -euo pipefail
 
 export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$PATH"
+# 隔離を確かめたバージョンのまま動かす。更新はインスタンスを作り直して行う (docs/agent.md)
+export DISABLE_AUTOUPDATER=1
 
 if [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
   echo "CLAUDE_CODE_OAUTH_TOKEN がありません。Windows から lab.ps1 run で起動してください" >&2
