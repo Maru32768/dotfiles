@@ -7,3 +7,5 @@
 - 開発ツールは mise で入れる。OS パッケージは、mise で入らないものだけ `packages/apt.txt` に足す
 - Windows アプリは `packages/winget.json` に足す
 - 詳しくは `~/dotfiles/docs/design.md` を読む
+
+@~/.claude/pstack-models.md
