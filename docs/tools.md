@@ -42,6 +42,7 @@ mise 本体は `MISE_VERSION` と `$MiseVersion` を書き換える。ずれて�
 | `rust`, `goimports` | rustup と `go install` で入るので、バージョンの固定だけでチェックサムはない |
 | Claude Code (`main`) | 公式のインストーラーで入れて、自動更新に任せている。`agent` はバージョンを固定する (`docs/agent.md`) |
 | Vim プラグイン | vim-plug が最新を取得する。`linux.vimrc` が変わると、足りないものを導入し直す |
+| エージェントのスキル | コミットで固定するが、チェックサムはない (`docs/skills.md`) |
 | `apt.txt` のパッケージ | Ubuntu の更新に任せる |
 
 ## Windows

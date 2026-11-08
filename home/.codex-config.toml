@@ -1,0 +1,64 @@
+# Codex の共通設定。~/.codex/config.toml へマージする (home/dot_codex/modify_config.toml)。
+# モデルと effort、信頼するプロジェクト、アプリが書き込むパスは入れない (docs/codex.md)。
+approvals_reviewer = "user"
+
+[windows]
+sandbox = "elevated"
+
+[features]
+js_repl = false
+
+[notice]
+hide_rate_limit_model_nudge = true
+
+[desktop]
+ambient-suggestions-enabled = true
+conversationDetailMode = "STEPS_COMMANDS"
+followUpQueueMode = "queue"
+
+[marketplaces.pstack-claude]
+source_type = "git"
+source = "https://github.com/michael-denyer/pstack-claude.git"
+
+[marketplaces.sentry-skills]
+source_type = "git"
+source = "https://github.com/getsentry/skills.git"
+
+[plugins."pstack@pstack-claude"]
+enabled = true
+
+[plugins."build-web-apps@openai-curated"]
+enabled = true
+
+[plugins."browser@openai-bundled"]
+enabled = true
+
+[plugins."chrome@openai-bundled"]
+enabled = true
+
+[plugins."codex-app-tools@openai-bundled"]
+enabled = true
+
+[plugins."computer-use@openai-bundled"]
+enabled = true
+
+[plugins."unified-computer-use@openai-bundled"]
+enabled = true
+
+[plugins."visualize@openai-bundled"]
+enabled = true
+
+[plugins."documents@openai-primary-runtime"]
+enabled = true
+
+[plugins."pdf@openai-primary-runtime"]
+enabled = true
+
+[plugins."presentations@openai-primary-runtime"]
+enabled = true
+
+[plugins."spreadsheets@openai-primary-runtime"]
+enabled = true
+
+[plugins."template-creator@openai-primary-runtime"]
+enabled = true

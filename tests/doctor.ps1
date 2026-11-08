@@ -40,9 +40,11 @@ foreach ($tool in ($locked.Keys | Sort-Object)) {
     Check "mise: $tool $($locked[$tool])" { $current[$tool] -eq $locked[$tool] }
 }
 
-# Claude Code rewrites settings.json itself. The hook registration is checked below.
+# Claude Code and Codex rewrite these files themselves. The hook registration is checked below.
+# A failed status prints nothing, so the exit code is checked too.
 Check 'chezmoi: no differences' {
-    -not (& mise exec chezmoi -- chezmoi status --exclude=scripts 2>$null | Where-Object { $_ -notmatch '\.claude/settings\.json$' })
+    $status = & mise exec chezmoi -- chezmoi status --exclude=scripts 2>$null
+    ($LASTEXITCODE -eq 0) -and -not ($status | Where-Object { $_ -notmatch '(\.claude/settings\.json|\.codex/config\.toml)$' })
 }
 
 Check 'git: commit signing on' { (& git config --global commit.gpgsign) -eq 'true' }

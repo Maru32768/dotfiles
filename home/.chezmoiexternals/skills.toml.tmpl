@@ -1,0 +1,26 @@
+{{- /* スキルを .chezmoidata/skills.toml の一覧から置く。exact なので、上流で消えたファイルは手元からも消える */ -}}
+{{- $dirs := dict "claude" ".claude/skills" "codex" ".agents/skills" -}}
+{{- range $name, $s := .skills }}
+{{-   $strip := 1 }}
+{{-   if $s.path }}
+{{-     $strip = add 1 (len (splitList "/" $s.path)) }}
+{{-   end }}
+{{-   range $s.targets }}
+{{-     $dir := get $dirs . }}
+{{-     if not $dir }}
+{{-       fail (printf "skills.%s: 置く先 %q は claude か codex にする" $name .) }}
+{{-     end }}
+
+[{{ printf "%s/%s" $dir $name | quote }}]
+    type = "archive"
+    url = "https://github.com/{{ $s.repo }}/archive/{{ $s.commit }}.tar.gz"
+    exact = true
+    stripComponents = {{ $strip }}
+{{-     if $s.path }}
+    include = [{{ printf "*/%s/**" $s.path | quote }}]
+{{-     end }}
+{{-     if hasKey $s "exclude" }}
+    exclude = [{{ range $i, $e := $s.exclude }}{{ if $i }}, {{ end }}{{ printf "*/%s" (list $s.path $e | compact | join "/") | quote }}{{ end }}]
+{{-     end }}
+{{-   end }}
+{{- end }}

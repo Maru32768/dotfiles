@@ -29,6 +29,7 @@ cm() {
     --config "$work/$name/chezmoi.toml" \
     --persistent-state "$work/$name/state.db" \
     --destination "$work/$name/home" \
+    --cache "$work/cache" \
     --no-tty \
     --override-data "{\"chezmoi\":{\"os\":\"$os\"}}"
 }
@@ -47,15 +48,59 @@ prepare() {
 scripts_of() { cm "$1" managed --include scripts | sort | paste -sd ' ' -; }
 files_of() { (cd "$work/$1/home" && find . -type f | sed 's|^\./||' | sort | paste -sd ' ' -); }
 
+# Codex が書いた設定が、マージの後も残ることを確かめるための既存の内容
+mkdir -p "$work/windows-main/home/.codex"
+cat >"$work/windows-main/home/.codex/config.toml" <<'EOF'
+model = "kept-model"
+
+[windows]
+sandbox = "unelevated"
+
+[projects.'C:\work\repo']
+trust_level = "trusted"
+EOF
+
 for name in linux-main linux-agent windows-main; do
   prepare "$name"
 done
+
+# 使い方: toml_json <os>-<profile> <ファイル>  (TOML を JSON にする。読めなければ失敗する)
+toml_json() { cm "$1" execute-template --with-stdin '{{ .chezmoi.stdin | fromToml | toJson }}' <"$2"; }
+# external はアーカイブを取ってきて中身まで並べるので、ここだけネットワークを使う
+externals_of() { cm "$1" managed --include externals; }
+expected_skills() {
+  cm "$1" execute-template '{{ $d := dict "claude" ".claude/skills" "codex" ".agents/skills" }}{{ range $n, $s := .skills }}{{ range $s.targets }}{{ printf "%s/%s/SKILL.md\n" (get $d .) $n }}{{ end }}{{ end }}' | sort | paste -sd ' ' -
+}
+actual_skills() { externals_of "$1" | grep -E '^\.(claude|agents)/skills/[^/]+/SKILL\.md$' | sort | paste -sd ' ' -; }
 
 # --- agent に置いてよいものは、ここに挙げたものだけ。足すときは隔離への影響を考える ---
 equals "linux-agent: 置かれるファイルが許可した一覧と一致" "$(files_of linux-agent)" \
   ".bash_profile .bashrc .config/git/ignore .config/mise/config.toml .config/mise/mise.lock .gitconfig .ideavimrc .tmux.conf"
 blocked "linux-agent: 署名の設定がない" 'grep -qE "signingkey|gpgsign" "$work/linux-agent/home/.gitconfig"'
 equals "linux-agent: 実行するスクリプト" "$(scripts_of linux-agent)" "10-mise-install.sh 40-claude-code.sh"
+equals "linux-agent: external がない (スキルを置かない)" "$(externals_of linux-agent | paste -sd ' ' -)" ""
+
+# --- スキル (home/.chezmoidata/skills.toml) ---
+# check に渡す文字列の中で使う
+# shellcheck disable=SC2034
+skills_json="$(cm linux-main execute-template '{{ .skills | toJson }}')"
+check "スキル: commit が 40 桁のハッシュ" 'jq -e "all(.[]; .commit | test(\"^[0-9a-f]{40}$\"))" <<<"$skills_json"'
+check "スキル: repo が owner/name" 'jq -e "all(.[]; .repo | test(\"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$\"))" <<<"$skills_json"'
+check "スキル: path の前後に / がない" 'jq -e "all(.[]; .path | test(\"^/|/$\") | not)" <<<"$skills_json"'
+for name in linux-main windows-main; do
+  expected="$(expected_skills "$name")"
+  check "$name: 置くスキルがある" '[ -n "$expected" ]'
+  equals "$name: どのスキルにも SKILL.md が取れる" "$(actual_skills "$name")" "$expected"
+done
+
+# --- Codex (Windows だけ) ---
+blocked "linux-main: .codex がない" '[ -e "$work/linux-main/home/.codex" ]'
+# shellcheck disable=SC2034
+codex_json="$(toml_json windows-main "$work/windows-main/home/.codex/config.toml")"
+check "windows-main: Codex の設定が TOML として読める" '[ -n "$codex_json" ]'
+check "windows-main: Codex の既存のキーが残る" 'jq -e ".model == \"kept-model\" and .projects[\"C:\\\\work\\\\repo\"].trust_level == \"trusted\"" <<<"$codex_json"'
+check "windows-main: Codex の共通設定が優先される" 'jq -e ".windows.sandbox == \"elevated\"" <<<"$codex_json"'
+check "Codex の設定がない環境でも共通設定から作れる" '[ "$(cm windows-main execute-template --with-stdin "$(cat "$root/home/dot_codex/modify_config.toml")" </dev/null | cm windows-main execute-template --with-stdin "{{ .chezmoi.stdin | fromToml | toJson }}")" = "$(toml_json windows-main "$root/home/.codex-config.toml")" ]'
 
 # --- 普段の環境 ---
 for file in .ssh/config .gnupg/gpg-agent.conf .claude/settings.json .claude/CLAUDE.md .tmux.conf .vimrc; do
