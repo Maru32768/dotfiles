@@ -57,6 +57,18 @@ chezmoi apply
 
 ## 更新する
 
+`.github/workflows/update-skills.yml` が週 1 回 (日曜 5:00 JST) `update-skills.sh` を実行し、新しいコミットがあれば `bot/update-skills` ブランチと PR を作る。PR の本文に compare の URL が並ぶので、中身を読む。CI は `GITHUB_TOKEN` の push では動かないので、ワークフローが `workflow_dispatch` で動かす。
+
+コミットは署名されていない。GitHub の画面からマージせず、署名の鍵がある端末で取り込む。`commit.gpgsign` で署名される。
+
+```bash
+cd ~/dotfiles && git pull --ff-only && git fetch origin bot/update-skills && git cherry-pick FETCH_HEAD && git push
+```
+
+PR は、次の実行ですべて最新になったと分かったときに閉じられる。すぐ閉じるなら `gh pr close bot/update-skills --delete-branch` を実行する。
+
+手元で確かめるときは、スクリプトを直接実行する。
+
 ```bash
 bash ~/dotfiles/provision/update-skills.sh --dry-run
 ```

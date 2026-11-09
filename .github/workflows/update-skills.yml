@@ -1,0 +1,66 @@
+# skills.toml で固定したコミットを上流の最新に上げる PR を作る。中身を読んでから手元で署名して取り込む (docs/skills.md)。
+name: スキルの更新
+
+on:
+  schedule:
+    # CI の定期実行 (日曜 6:00 JST) の 1 時間前
+    - cron: "0 20 * * 6"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write # ブランチを push する
+      pull-requests: write # PR を作る、閉じる
+      actions: write # CI を workflow_dispatch で動かす。GITHUB_TOKEN の push では CI が動かないため
+    env:
+      BRANCH: bot/update-skills
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: PR を作るか更新する
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          out="$(bash provision/update-skills.sh)"
+          printf '%s\n' "$out"
+          open_pr="$(gh pr list --head "$BRANCH" --state open --json number --jq '.[].number')"
+
+          if git diff --quiet; then
+            # 取り込み済みか、上流が進んでいない。残っている PR は役目を終えている
+            if [ -n "$open_pr" ]; then
+              gh pr close "$open_pr" --delete-branch --comment "master がすべて最新になったので閉じます。"
+            fi
+            exit 0
+          fi
+
+          # 前回と同じ中身なら push しない。毎週 PR と CI が動き直さないようにする
+          if git fetch --quiet --depth 1 origin "$BRANCH" 2>/dev/null && git diff --quiet FETCH_HEAD; then
+            echo "$BRANCH は最新です"
+            exit 0
+          fi
+
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+            commit --quiet -am "スキルを上流の最新のコミットに上げる"
+          gh auth setup-git
+          git push --force origin "HEAD:refs/heads/$BRANCH"
+
+          body="$(
+            printf '%s\n\n' "skills.toml で固定したコミットを上流の最新に上げます。compare で中身を読んでから、手元で署名して取り込みます (docs/skills.md の「更新する」)。"
+            printf '%s\n' "$out" | grep ': https://github.com/' | sed 's/^/- /'
+          )"
+          if [ -n "$open_pr" ]; then
+            gh pr edit "$open_pr" --body "$body"
+          else
+            gh pr create --head "$BRANCH" --base master --title "スキルを上流の最新のコミットに上げる" --body "$body"
+          fi
+          gh workflow run ci.yml --ref "$BRANCH"
