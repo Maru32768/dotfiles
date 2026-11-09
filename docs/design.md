@@ -14,6 +14,8 @@
 |---|---|---|
 | 設定ファイル | chezmoi (`home/`) | Windows にも実ファイルを置ける。環境の違いをテンプレートで表せる |
 | 開発ツール | mise (`home/dot_config/mise/`) | Windows と WSL でバージョンを揃えられる。`mise.lock` で固定する (`docs/tools.md`) |
+| エージェントのスキル | chezmoi の external (`home/.chezmoidata/skills.toml`) | 出どころとコミットだけを書き、中身は取ってくる (`docs/skills.md`) |
+| Claude Code と Codex の設定 | chezmoi の `modify_` | アプリも書き換えるので、共通の部分だけをマージする (`docs/claude.md`、`docs/codex.md`) |
 | OS パッケージ | `packages/apt.txt` | mise で入らないものだけに絞り、OS 更新の影響を減らす |
 | Windows アプリ | `packages/winget.json` | `winget import` で入れる |
 | インスタンスの作成と削除 | `lab/lab.ps1` | Windows 側にあるので、WSL が壊れていても動く |
@@ -29,6 +31,9 @@
 home/                    chezmoi のソース
   .chezmoi.toml.tmpl     プロファイルと共通の値
   .claude-settings.json  Claude Code の共通設定
+  .codex-config.toml     Codex の共通設定
+  .chezmoidata/          スキルの一覧
+  .chezmoiexternals/     スキルを取ってくる external
   .hooks-src/            フックのソース
   run_*                  ツールの導入やフックのビルド
 packages/                apt.txt と winget.json
@@ -55,6 +60,8 @@ powershell -ExecutionPolicy Bypass -File bootstrap.ps1
 | `.vimrc` | VS Code の Vim 拡張用 (`home/.vimrc-files/vscode.vimrc`)。Linux 用とは別 |
 | `.bashrc`, `.bash_profile` | Git Bash 用。mise を優先する |
 | PowerShell の profile | direnv と mise を有効にする。パスは OneDrive の `Documents` 前提 |
+| スキル | WSL と同じもの (`docs/skills.md`) |
+| Codex の設定 | Windows だけ (`docs/codex.md`) |
 | `.tmux.conf`, `.ssh`, `.gnupg` など | 管理しない (`home/.chezmoiignore`) |
 
 Windows ではシステムの `PATH` がユーザーの `PATH` より先に来るので、`C:\Program Files\Go` などが mise より優先される。Git Bash と PowerShell では profile で mise を優先するが、IDE のように profile を読まないプロセスにはシステムのものが見える。
@@ -90,7 +97,7 @@ wsl -d dev -u root passwd maru
 
 - `~/.ssh` と `~/.gitconfig` を Windows へのリンクにしない。WSL が単体で復元できなくなり、隔離とも両立しないため。
 - SSH キーは環境ごとに作り直せるので、バックアップしない。作り直したら古い鍵を GitHub から消す。
-- SSH キーのパスフレーズも gpg-agent で扱う。入力はポップアップで、キャッシュは GPG と同じ 8 時間。
+- SSH キーのパスフレーズも gpg-agent で扱う。入力はポップアップで、キャッシュは GPG と同じ (最後に使ってから 24 時間、最長 72 時間)。
 - 長く保管する秘密は GPG 鍵だけ (`docs/gpg.md`)。
 - パスワードマネージャーは構築の前提にしない。導入する場合も `agent` ではログインしない。
 

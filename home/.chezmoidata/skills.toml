@@ -1,0 +1,89 @@
+# エージェントのスキルの出どころ。中身はリポジトリに入れず、chezmoi が固定したコミットの
+# アーカイブから取り出す (home/.chezmoiexternals/skills.toml.tmpl)。更新は provision/update-skills.sh。
+#
+#   repo     GitHub の owner/name
+#   path     スキルのディレクトリ。リポジトリの直下なら ""
+#   commit   固定するコミット (40 桁)
+#   targets  置く先。claude は ~/.claude/skills、codex は ~/.agents/skills
+#   exclude  取り出さないファイル (スキルのディレクトリからの相対パス、省略可)。
+#            シンボリックリンクは、開発者モードでない Windows では作れないので外す
+
+[skills.deploy-to-vercel]
+repo = "vercel-labs/agent-skills"
+path = "skills/deploy-to-vercel"
+commit = "6ec269328bc400712ee225a173a14b6b29128df7"
+targets = ["claude", "codex"]
+
+[skills.find-skills]
+repo = "vercel-labs/skills"
+path = "skills/find-skills"
+commit = "3aa2fea1ad879325233096bfbee3eaa07deb5327"
+targets = ["claude"]
+
+[skills.rust-skills]
+repo = "leonardomso/rust-skills"
+path = ""
+commit = "fd2a861ab0406a4ac536a55274d14ea6fd1ca9c9"
+targets = ["claude", "codex"]
+# どちらも SKILL.md へのシンボリックリンク
+exclude = ["AGENTS.md", "CLAUDE.md"]
+
+[skills.translate-book]
+repo = "deusyu/translate-book"
+path = ""
+commit = "9a856d5e8bd5258774fcda89cb75058f390a5b27"
+targets = ["claude"]
+
+[skills.vercel-cli-with-tokens]
+repo = "vercel-labs/agent-skills"
+path = "skills/vercel-cli-with-tokens"
+commit = "1a2c79d4e6c4a2283dc2c614b6538cbe1ed5ca62"
+targets = ["claude", "codex"]
+
+[skills.vercel-composition-patterns]
+repo = "vercel-labs/agent-skills"
+path = "skills/composition-patterns"
+commit = "1a2c79d4e6c4a2283dc2c614b6538cbe1ed5ca62"
+targets = ["claude", "codex"]
+
+[skills.vercel-optimize]
+repo = "vercel-labs/agent-skills"
+path = "skills/vercel-optimize"
+commit = "1a2c79d4e6c4a2283dc2c614b6538cbe1ed5ca62"
+targets = ["claude", "codex"]
+
+[skills.vercel-react-best-practices]
+repo = "vercel-labs/agent-skills"
+path = "skills/react-best-practices"
+commit = "1a2c79d4e6c4a2283dc2c614b6538cbe1ed5ca62"
+targets = ["claude", "codex"]
+
+[skills.vercel-react-native-skills]
+repo = "vercel-labs/agent-skills"
+path = "skills/react-native-skills"
+commit = "1a2c79d4e6c4a2283dc2c614b6538cbe1ed5ca62"
+targets = ["claude", "codex"]
+
+[skills.vercel-react-view-transitions]
+repo = "vercel-labs/agent-skills"
+path = "skills/react-view-transitions"
+commit = "063bee94c3f4df8453406c830b0a7df0f2860278"
+targets = ["claude", "codex"]
+
+[skills.web-design-guidelines]
+repo = "vercel-labs/agent-skills"
+path = "skills/web-design-guidelines"
+commit = "1a2c79d4e6c4a2283dc2c614b6538cbe1ed5ca62"
+targets = ["claude", "codex"]
+
+[skills.writing-guidelines]
+repo = "vercel-labs/agent-skills"
+path = "skills/writing-guidelines"
+commit = "1a2c79d4e6c4a2283dc2c614b6538cbe1ed5ca62"
+targets = ["claude", "codex"]
+
+[skills.yomiyasu]
+repo = "nanaism/yomiyasu"
+path = "skills/yomiyasu"
+commit = "41e5aec228f080fe24e5f795efee2ac3fda61839"
+targets = ["claude", "codex"]

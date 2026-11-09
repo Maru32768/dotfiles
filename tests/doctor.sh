@@ -50,7 +50,10 @@ for tool in chezmoi go node rustc deno bun uv python java terraform aws gh ghq r
 done
 
 # settings.json は Claude Code 自身も書き換えるので比べない。フックの登録は下で確かめる
-check "chezmoi の管理ファイルに差分がない" '[ -z "$(chezmoi status --exclude=scripts | grep -v "\.claude/settings\.json$")" ]'
+# status が失敗すると何も出力しないので、終了コードも見る
+check "chezmoi の管理ファイルに差分がない" 'status="$(chezmoi status --exclude=scripts)" && [ -z "$(printf "%s\n" "$status" | grep -v "\.claude/settings\.json$")" ]'
+# Windows では開発者モードでないとリンクを作れず、chezmoi apply が失敗する。skills.toml の exclude で外す
+check "スキルにシンボリックリンクがない" '[ -z "$(find ~/.claude/skills ~/.agents/skills -path "*/skills/synced" -prune -o -type l -print 2>/dev/null)" ]'
 check ".gitconfig が実ファイル" '[ -f ~/.gitconfig ] && [ ! -L ~/.gitconfig ]'
 check ".ssh が実ディレクトリ" '[ -d ~/.ssh ] && [ ! -L ~/.ssh ]'
 check ".ssh の権限が 700" '[ "$(stat -c %a ~/.ssh)" = 700 ]'

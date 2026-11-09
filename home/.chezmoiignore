@@ -16,6 +16,8 @@
 .wslconfig
 OneDrive
 OneDrive/**
+.codex
+.codex/**
 10-mise-install.ps1
 20-build-hooks.ps1
 {{ end }}
@@ -26,6 +28,8 @@ OneDrive/**
 .gnupg/**
 .claude
 .claude/**
+.agents
+.agents/**
 .config/environment.d
 .config/environment.d/**
 .vim
