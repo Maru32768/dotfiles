@@ -57,7 +57,7 @@ chezmoi apply
 
 ## 更新する
 
-`.github/workflows/update-skills.yml` が週 1 回 (日曜 5:00 JST) `update-skills.sh` を実行し、新しいコミットがあれば `bot/update-skills` ブランチと PR を作る。PR の本文に compare の URL が並ぶので、中身を読む。CI は `GITHUB_TOKEN` の push では動かないので、ワークフローが `workflow_dispatch` で動かす。
+`.github/workflows/update-skills.yml` が週 1 回 (日曜 5:00 JST) `update-skills.sh` を実行し、新しいコミットがあれば `bot/update-skills` ブランチと PR を作る。PR の本文に compare の URL が並ぶので、中身を読む。CI は `GITHUB_TOKEN` の push では動かないので、ワークフローが `workflow_dispatch` で動かす。この CI の結果は PR のチェック欄に出ないので、本文の「CI:」のリンクから見る。
 
 コミットは署名されていない。GitHub の画面からマージせず、署名の鍵がある端末で取り込む。`commit.gpgsign` で署名される。
 

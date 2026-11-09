@@ -56,6 +56,8 @@ jobs:
 
           body="$(
             printf '%s\n\n' "skills.toml で固定したコミットを上流の最新に上げます。compare で中身を読んでから、手元で署名して取り込みます (docs/skills.md の「更新する」)。"
+            # workflow_dispatch の CI は PR のチェック欄に出ないので、結果への道を本文に置く
+            printf 'CI: %s\n\n' "https://github.com/$GITHUB_REPOSITORY/actions/workflows/ci.yml?query=branch%3A${BRANCH//\//%2F}"
             printf '%s\n' "$out" | grep ': https://github.com/' | sed 's/^/- /'
           )"
           if [ -n "$open_pr" ]; then
