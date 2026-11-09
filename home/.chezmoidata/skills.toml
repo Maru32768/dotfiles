@@ -11,13 +11,13 @@
 [skills.deploy-to-vercel]
 repo = "vercel-labs/agent-skills"
 path = "skills/deploy-to-vercel"
-commit = "6ec269328bc400712ee225a173a14b6b29128df7"
+commit = "1a2c79d4e6c4a2283dc2c614b6538cbe1ed5ca62"
 targets = ["claude", "codex"]
 
 [skills.find-skills]
 repo = "vercel-labs/skills"
 path = "skills/find-skills"
-commit = "3aa2fea1ad879325233096bfbee3eaa07deb5327"
+commit = "d3701c11b1101251af14c9d148f026e1a47ebe17"
 targets = ["claude"]
 
 [skills.rust-skills]
@@ -31,7 +31,7 @@ exclude = ["AGENTS.md", "CLAUDE.md"]
 [skills.translate-book]
 repo = "deusyu/translate-book"
 path = ""
-commit = "9a856d5e8bd5258774fcda89cb75058f390a5b27"
+commit = "cf3862d46e79dc89abe3de13f3839039f1d8a637"
 targets = ["claude"]
 
 [skills.vercel-cli-with-tokens]
@@ -67,7 +67,7 @@ targets = ["claude", "codex"]
 [skills.vercel-react-view-transitions]
 repo = "vercel-labs/agent-skills"
 path = "skills/react-view-transitions"
-commit = "063bee94c3f4df8453406c830b0a7df0f2860278"
+commit = "1a2c79d4e6c4a2283dc2c614b6538cbe1ed5ca62"
 targets = ["claude", "codex"]
 
 [skills.web-design-guidelines]
@@ -85,5 +85,5 @@ targets = ["claude", "codex"]
 [skills.yomiyasu]
 repo = "nanaism/yomiyasu"
 path = "skills/yomiyasu"
-commit = "41e5aec228f080fe24e5f795efee2ac3fda61839"
+commit = "8394e099486aaa2e28cf89992e46f5ebe5ed839d"
 targets = ["claude", "codex"]
