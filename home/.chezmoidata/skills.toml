@@ -8,6 +8,12 @@
 #   exclude  取り出さないファイル (スキルのディレクトリからの相対パス、省略可)。
 #            シンボリックリンクは、開発者モードでない Windows では作れないので外す
 
+[skills.clarity]
+repo = "addyosmani/clarity"
+path = ""
+commit = "e27ceeff60368cf6966b4ea00a5b9b36418ee9a0"
+targets = ["claude", "codex"]
+
 [skills.deploy-to-vercel]
 repo = "vercel-labs/agent-skills"
 path = "skills/deploy-to-vercel"

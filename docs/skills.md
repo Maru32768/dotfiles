@@ -17,6 +17,16 @@ GitHub で公開されているスキルを、Windows と `dev` に同じ版で�
 
 `agent` 環境には置かない。`render.sh` が確かめる。
 
+自分で書いたスキルは、中身ごと `home/dot_claude/skills/<名前>/` に置く。Claude Code 向けなので `~/.claude/skills` にだけ入り、上の一覧と更新の仕組みは使わない。
+
+`prose-polish` が使う humanizer ルール (`https://imoz.jp/humanizer.<ja|en>.txt`) はライセンスが分からないので、本文を入れずに `rules.sha256` で版を固定している。上流が更新されると推敲の途中で止まるので、差分を読んでから `rules.sha256` を書き換える。
+
+```bash
+bash ~/.claude/skills/prose-polish/scripts/fetch-rules.sh --check
+```
+
+差分は、前に照合した版の控え (`~/.cache/prose-polish/`) と比べる。控えが無い端末では差分を出せないので、控えのある端末で確かめる。
+
 ## 方針
 
 - **コミットで固定する:** スキルはエージェントへの指示なので、知らないうちに中身が変わらないようにする。
