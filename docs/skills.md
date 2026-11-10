@@ -19,13 +19,13 @@ GitHub で公開されているスキルを、Windows と `dev` に同じ版で�
 
 自分で書いたスキルは、中身ごと `home/dot_claude/skills/<名前>/` に置く。Claude Code 向けなので `~/.claude/skills` にだけ入り、上の一覧と更新の仕組みは使わない。
 
-`prose-polish` が使う humanizer ルール (`https://imoz.jp/humanizer.<ja|en>.txt`) はライセンスが分からないので、本文を入れずに `rules.sha256` で版を固定している。上流が更新されると推敲の途中で止まるので、差分を読んでから `rules.sha256` を書き換える。
+`imos-humanizer` が使ういもすさんのルール (`https://imoz.jp/humanizer.<ja|en>.txt`) はライセンスが分からないので、本文を入れずに `home/dot_claude/skills/imos-humanizer/rules.sha256` で版を固定している。`prose-polish` もこのスキルを呼ぶ。上流が更新されると imos-humanizer の段が飛ばされるので、差分を読んでから `rules.sha256` を書き換える。
 
 ```bash
-bash ~/.claude/skills/prose-polish/scripts/fetch-rules.sh --check
+bash ~/.claude/skills/imos-humanizer/scripts/fetch-rules.sh --check
 ```
 
-差分は、前に照合した版の控え (`~/.cache/prose-polish/`) と比べる。控えが無い端末では差分を出せないので、控えのある端末で確かめる。
+差分は、前に照合した版の控え (`~/.cache/imos-humanizer/`) と比べる。控えが無い端末では差分を出せないので、控えのある端末で確かめる。
 
 ## 方針
 

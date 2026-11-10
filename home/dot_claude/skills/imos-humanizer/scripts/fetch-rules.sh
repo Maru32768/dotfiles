@@ -7,7 +7,7 @@
 set -euo pipefail
 
 pins="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/rules.sha256"
-cache="${XDG_CACHE_HOME:-$HOME/.cache}/prose-polish"
+cache="${XDG_CACHE_HOME:-$HOME/.cache}/imos-humanizer"
 mkdir -p "$cache"
 
 pinned() { awk -v f="$1" '$2 == f { print $1 }' "$pins"; }
@@ -48,7 +48,7 @@ if [ ! -f "$cache/$name" ] || [ "$(sha "$cache/$name")" != "$want" ]; then
   curl -fsSL "https://imoz.jp/$name" -o "$tmp"
   if [ "$(sha "$tmp")" != "$want" ]; then
     rm -f "$tmp"
-    echo "$name が固定した版 ($want) と違う。fetch-rules.sh --check で差分を見て、dotfiles の rules.sha256 を更新する" >&2
+    echo "$name が固定した版 ($want) と違う。fetch-rules.sh --check で差分を見て、dotfiles の home/dot_claude/skills/imos-humanizer/rules.sha256 を更新する" >&2
     exit 1
   fi
   mv "$tmp" "$cache/$name"
