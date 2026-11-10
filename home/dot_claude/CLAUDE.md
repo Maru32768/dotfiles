@@ -15,4 +15,9 @@
 - レビューの指摘を直すときは、修正ごとに 1 コミットにする。レビューの回ごとにまとめない。1 つの変更で直る指摘はまとめて 1 コミットでよい
 - 指摘を記録に残すときは、それぞれに修正したコミットを書く
 
+# レビュー
+
+- review-loop は 4 で ponytail-review、simplify、prose-polish まで回す。review-loop を使うときは、prose-polish を別にかけない
+- poteto-mode と review-loop を一緒に使うときは、コードの片づけ (deslop、no-comments) と文書の推敲を review-loop の 4 に任せる。poteto-mode の technical-writing と unslop は、返信とコミットメッセージにだけかける
+
 @~/.claude/pstack-models.md
