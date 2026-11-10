@@ -22,12 +22,18 @@ function Show-Usage {
     exit 2
 }
 
+# 0.<access token id>.<secret>:<encryption key (base64)>
+function Test-Token([string]$Token) {
+    return $Token -cmatch '^[0-9]+\.[0-9a-fA-F-]{36}\.[A-Za-z0-9]+:[A-Za-z0-9+/]+=*$'
+}
+
 function Set-Token {
     $recipient = & git config --global user.signingkey
     if (-not $recipient) { Stop-WithError 'git user.signingkey is not set (it is the GPG recipient)' }
-    $secure = Read-Host -AsSecureString 'Machine account access token'
-    $token = [System.Net.NetworkCredential]::new('', $secure).Password
+    $secure = Read-Host -AsSecureString 'Machine account access token (not shown; paste it once, then Enter)'
+    $token = [System.Net.NetworkCredential]::new('', $secure).Password.Trim()
     if (-not $token) { Stop-WithError 'the token is empty' }
+    if (-not (Test-Token $token)) { Stop-WithError 'the token is malformed (was it pasted twice, or mixed with other keys?)' }
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $TokenFile) | Out-Null
     $token | & gpg --quiet --yes --encrypt --recipient $recipient --output "$TokenFile.tmp"
     if ($LASTEXITCODE -ne 0) { Stop-WithError 'gpg could not encrypt the token' }
@@ -42,6 +48,7 @@ function Read-Token {
     }
     $token = ((& gpg --quiet --decrypt $TokenFile) -join '').Trim()
     if ($LASTEXITCODE -ne 0 -or -not $token) { Stop-WithError "could not decrypt the token: $TokenFile" }
+    if (-not (Test-Token $token)) { Stop-WithError "the stored token is malformed: $TokenFile (store it again with bws-run --set-token)" }
     return $token
 }
 

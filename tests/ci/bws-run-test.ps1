@@ -16,9 +16,10 @@ function Pass([string]$Name) { Write-Host "PASS $Name" }
 function Fail([string]$Name) { Write-Host "FAIL $Name"; $script:failures++ }
 function Check([string]$Name, [bool]$Ok) { if ($Ok) { Pass $Name } else { Fail $Name } }
 
-$token = "test-token-$PID"
+$token = "0.11111111-2222-3333-4444-555555555555.secret$($PID):a2V5=="
 Set-Content -LiteralPath (Join-Path $work 'token.gpg') -Value 'encrypted'
-Set-Content -LiteralPath (Join-Path $bin 'gpg.cmd') -Encoding Ascii -Value "@echo $token"
+# Decrypting returns the token, or FAKE_TOKEN when it is set
+Set-Content -LiteralPath (Join-Path $bin 'gpg.cmd') -Encoding Ascii -Value "@if defined FAKE_TOKEN (echo %FAKE_TOKEN%) else (echo $token)"
 # Fails when the token is wrong. Returns secrets for any id and records the id it was asked for.
 Set-Content -LiteralPath (Join-Path $bin 'bws.cmd') -Encoding Ascii -Value @"
 @echo off
@@ -101,9 +102,16 @@ try {
     $env:BWS_TOKEN_FILE = Join-Path $work 'token.gpg'
 
     Check 'a missing command fails' ((Invoke-BwsRun @('noodlemap', '--')).Code -ne 0)
+
+    Remove-Item -LiteralPath $marker -ErrorAction SilentlyContinue
+    $env:FAKE_TOKEN = "$token$token"
+    $err = (& pwsh -NoProfile -ExecutionPolicy Bypass -File $script @(@('noodlemap', '--') + $touch) 2>&1) -join "`n"
+    $code = $LASTEXITCODE
+    Remove-Item Env:FAKE_TOKEN
+    Check 'a malformed stored token fails with that reason, and the command does not run' ($code -ne 0 -and $err -like '*token is malformed*' -and -not (Test-Path -LiteralPath $marker))
 } finally {
     $env:Path = $savedPath
-    Remove-Item Env:BWS_TOKEN_FILE, Env:FAKE_PROJECTS, Env:FAKE_SECRETS -ErrorAction SilentlyContinue
+    Remove-Item Env:BWS_TOKEN_FILE, Env:FAKE_PROJECTS, Env:FAKE_SECRETS, Env:FAKE_TOKEN -ErrorAction SilentlyContinue
     Remove-Item -Recurse -Force -LiteralPath $work -ErrorAction SilentlyContinue
 }
 

@@ -15,15 +15,16 @@ fail() { printf 'FAIL %s\n' "$1"; failures=$((failures + 1)); }
 check() { if eval "$2" >/dev/null 2>&1; then pass "$1"; else fail "$1"; fi; }
 blocked() { if eval "$2" >/dev/null 2>&1; then fail "$1"; else pass "$1"; fi; }
 
-token="test-token-$$"
+token="0.11111111-2222-3333-4444-555555555555.secret$$:a2V5=="
 mkdir -p "$work/bin"
 printf 'encrypted' >"$work/token.gpg"
 
-# 偽の gpg: 復号するとトークンを返す
+# 偽の gpg: 暗号化では入力をそのまま --output に書き、復号ではトークン (FAKE_TOKEN があればそれ) を返す
 cat >"$work/bin/gpg" <<EOF
 #!/bin/bash
+if [[ " \$* " == *" --encrypt "* ]]; then cat >"\${*: -1}"; exit 0; fi
 [ "\${*: -1}" = "$work/token.gpg" ] || exit 2
-printf '%s\n' "$token"
+printf '%s\n' "\${FAKE_TOKEN:-$token}"
 EOF
 
 # 偽の bws: トークンが合わなければ失敗する。どの ID にも秘密情報を返し、求められた ID を記録する。
@@ -73,6 +74,14 @@ blocked "そのときコマンドは実行しない" '[ -e "$marker" ]'
 blocked "同じ名前の秘密情報が複数あれば失敗する" 'FAKE_SECRETS="$work/secrets-dup.json" run bash "$script" noodlemap -- true'
 blocked "トークンのファイルがなければ失敗する" 'env PATH="$work/bin:$PATH" BWS_TOKEN_FILE="$work/missing.gpg" bash "$script" noodlemap -- true'
 blocked "コマンドがなければ失敗する" 'run bash "$script" noodlemap --'
+rm -f "$marker"
+check "保存したトークンの形式が違えば、そう伝えて失敗する" '! FAKE_TOKEN="$token$token" run bash "$script" noodlemap -- touch "$marker" 2>"$work/err" && grep -q "トークンの形式が違う" "$work/err"'
+blocked "そのときコマンドは実行しない" '[ -e "$marker" ]'
+
+# --set-token は端末から読むので、script で疑似端末を用意する
+set_token() { printf '%s\n' "$1" | env PATH="$work/bin:$PATH" BWS_GPG_RECIPIENT=TESTKEY BWS_TOKEN_FILE="$work/new/token.gpg" script -qec "bash '$script' --set-token" /dev/null; }
+blocked "--set-token は形式の違うトークンを保存しない" 'set_token "$token$token" && [ -e "$work/new/token.gpg" ]'
+check "--set-token は前後の空白を除いて保存する" 'set_token " $token " && [ "$(cat "$work/new/token.gpg")" = "$token" ]'
 
 if [ "$failures" -gt 0 ]; then
   printf '\n%s 件の問題があります\n' "$failures"

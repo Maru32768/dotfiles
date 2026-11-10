@@ -15,6 +15,9 @@ die() {
   exit 1
 }
 
+# 0.<アクセストークンの ID>.<秘密>:<暗号鍵 (base64)>
+valid_token() { [[ "$1" =~ ^[0-9]+\.[0-9a-fA-F-]{36}\.[A-Za-z0-9]+:[A-Za-z0-9+/]+=*$ ]]; }
+
 usage() {
   sed -n 's/^#   //p' "${BASH_SOURCE[0]}" >&2
   exit 2
@@ -22,11 +25,14 @@ usage() {
 
 set_token() {
   local recipient token dir
-  recipient="$(git config --global user.signingkey)" || die "git の user.signingkey がない (暗号化の宛先に使う)"
+  # 宛先は署名の鍵。BWS_GPG_RECIPIENT はテストが使う
+  recipient="${BWS_GPG_RECIPIENT:-}"
+  [ -n "$recipient" ] || recipient="$(git config --global user.signingkey)" || die "git の user.signingkey がない (暗号化の宛先に使う)"
   [ -t 0 ] || die "--set-token は端末から実行する"
-  read -rsp 'マシンアカウントのアクセストークン: ' token
+  read -rsp 'マシンアカウントのアクセストークン (入力は表示されない。1 回だけ貼り付けて Enter): ' token
   printf '\n' >&2
   [ -n "$token" ] || die "トークンが空"
+  valid_token "$token" || die "トークンの形式が違う (2 回貼り付けたり、ほかのキーが混ざったりしていないか確かめる)"
   dir="$(dirname "$token_file")"
   mkdir -p "$dir"
   chmod 700 "$dir"
@@ -42,6 +48,7 @@ read_token() {
   token="$(gpg --quiet --decrypt "$token_file")" || die "トークンを復号できない: $token_file"
   token="${token//[$'\t\r\n ']/}"
   [ -n "$token" ] || die "トークンが空: $token_file"
+  valid_token "$token" || die "トークンの形式が違う: $token_file (bws-run --set-token で保存し直す)"
   printf '%s' "$token"
 }
 

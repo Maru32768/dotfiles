@@ -41,7 +41,7 @@ Windows では mise のタスクが `cmd /c` で動くので、`bws-run.cmd` が
    bws-run --set-token
    ```
 
-   入力したトークンは `git config --global user.signingkey` の鍵で暗号化される。発行の画面に表示されたトークンは、ほかに残さない。
+   入力は画面に表示されないので、1 回だけ貼り付けて Enter を押す。形式が違うトークン (2 回貼り付けたものなど) は保存しない。入力したトークンは `git config --global user.signingkey` の鍵で暗号化される。発行の画面に表示されたトークンは、ほかに残さない。
 
 3. `doctor` の「Bitwarden Secrets Manager のトークン」が PASS になることを確かめる。
 
@@ -65,5 +65,5 @@ Web 画面で、そのプロジェクトに秘密情報を足す。名前は環�
 
 ## 確かめていること
 
-- `tests/ci/bws-run-test.sh` と `tests/ci/bws-run-test.ps1` が、偽の `gpg` と `bws` で試す。秘密情報が渡ること、トークンが渡らないこと、名前の検査、終了コード、Windows で `cmd` を通しても引数が崩れないこと。
+- `tests/ci/bws-run-test.sh` と `tests/ci/bws-run-test.ps1` が、偽の `gpg` と `bws` で試す。秘密情報が渡ること、トークンが渡らないこと、トークンと名前の検査、終了コード、Windows で `cmd` を通しても引数が崩れないこと。
 - 本物の Secrets Manager とは CI で通信しない。
