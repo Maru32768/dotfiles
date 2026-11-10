@@ -23,14 +23,29 @@ bws-run noodlemap -- terraform plan
 
 渡す変数の名前だけを確かめるには `bws-run --list noodlemap` を使う。値は表示しない。
 
-プロジェクトでは、キーが要る mise のタスクにだけ使う。`[env]` には書かない。`[env]` に書くと、そのディレクトリで動くすべてのプロセス (Claude も含む) に渡り、ディレクトリを移るたびに `bws` がネットワークにつながる。
+### プロジェクトで使う
+
+プロジェクトのリポジトリには `bws-run` を書かない。OSS として公開しているので、ほかの人の環境では動かない。リポジトリは環境変数からキーを読むだけにしておき、手元で外から包む。mise のタスクも `mise exec` も、呼び出し元の環境変数を引き継ぐ。
+
+手で包む代わりに、そのリポジトリの `mise.local.toml` (Git が無視するもの) に、包むためのタスクを 1 つ置く。値は書かない。
 
 ```toml
-[tasks.jev-review]
-run = "bws-run commandlib -- jev-lint review --base {{usage.base}}"
+[tasks.bws]
+description = "Run a task with the keys of the Bitwarden project commandlib"
+run = "bws-run commandlib -- mise run"
 ```
 
-Windows では mise のタスクが `cmd /c` で動くので、`bws-run.cmd` が呼ばれる。
+```bash
+mise run bws jev-review main
+```
+
+`mise run bws` の後の引数は、そのまま中の `mise run` に渡る。`mise exec` で動かすリポジトリでは、`run` を `bws-run <プロジェクト> -- mise exec --` にする。
+
+- 同じ名前のタスクを `mise.local.toml` に書いて上書きしない。mise はタスクを丸ごと置き換えるので、`usage` や `description` が消え、リポジトリ側の変更にも追従しない。
+- `[env]` から `bws-run` を呼ばない。そのディレクトリで動くすべてのプロセス (Claude も含む) にキーが渡り、ディレクトリを移るたびに `bws` がネットワークにつながる。
+- `.env` や `mise.local.toml` にキーの行が残っていると、mise がそちらの値で上書きする。移したら消す。
+
+PowerShell からは `bws-run.ps1` が、`cmd` からは `bws-run.cmd` が呼ばれる。
 
 ## 端末ごとの準備
 
