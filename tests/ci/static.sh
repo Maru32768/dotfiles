@@ -28,7 +28,7 @@ repo_files() {
 }
 
 run_shellcheck() {
-  repo_files '*.sh' 'home/private_dot_gnupg/modify_gpg-agent.conf' | xargs shellcheck -s bash
+  repo_files '*.sh' | xargs shellcheck -s bash
 }
 
 run_go() {

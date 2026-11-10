@@ -2,8 +2,6 @@
 .tmux.conf
 .ssh
 .ssh/**
-.gnupg
-.gnupg/**
 .config/environment.d
 .config/environment.d/**
 .vim

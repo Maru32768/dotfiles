@@ -73,11 +73,12 @@ WSL では `pinentry-gtk2` を使い、WSLg のポップアップで入力する
 
 ## キャッシュ時間
 
-パスフレーズのキャッシュは WSL で、最後に使ってから 24 時間、入力してから最長 72 時間にしている。Windows 側の値に揃えた。変えるときは `home/private_dot_gnupg/modify_gpg-agent.conf` の `CACHE_TTL_SECONDS` と `MAX_CACHE_TTL_SECONDS` を直して `chezmoi apply` する。新しい値は gpg-agent を起動し直すと効く。
+パスフレーズのキャッシュは、WSL でも Windows (Git の gpg) でも、最後に使ってから 24 時間、入力してから最長 72 時間にしている。変えるときは `home/private_dot_gnupg/modify_gpg-agent.conf` の `$ttl` と `$max` を直して `chezmoi apply` する。新しい値は gpg-agent を起動し直すと効く。
 
 - キャッシュが有効な間は、Claude を含む同じユーザーのプロセスがパスフレーズなしで署名できる。
 - 再読み込みするとキャッシュは消える。WSL が停止したときも消える。
-- Windows 側の `gpg-agent` には適用していない。
+- Windows で管理するのはキャッシュ時間の行だけ。`enable-ssh-support` と `disable-scdaemon` は WSL だけに書く。
+- Windows で新しい値を効かせるには、PowerShell で `& 'C:\Program Files\Git\usr\bin\gpgconf.exe' --kill gpg-agent` を実行する。次に署名するときにパスフレーズを求められる。
 
 ## トラブルシュート
 

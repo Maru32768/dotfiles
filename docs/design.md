@@ -63,7 +63,8 @@ powershell -ExecutionPolicy Bypass -File bootstrap.ps1
 | PowerShell の profile | mise を有効にする。プロジェクトの環境変数も direnv ではなく mise で扱う。パスは OneDrive の `Documents` 前提 |
 | スキル | WSL と同じもの (`docs/skills.md`) |
 | Codex の設定 | Windows だけ (`docs/codex.md`) |
-| `.tmux.conf`, `.ssh`, `.gnupg` など | 管理しない (`home/.chezmoiignore`) |
+| `.gnupg/gpg-agent.conf` | キャッシュ時間の行だけ。WSL と同じ値 (`docs/gpg.md`) |
+| `.tmux.conf`, `.ssh` など | 管理しない (`home/.chezmoiignore`) |
 
 Windows ではシステムの `PATH` がユーザーの `PATH` より先に来るので、`C:\Program Files\Go` などが mise より優先される。Git Bash と PowerShell では profile で mise を優先するが、IDE のように profile を読まないプロセスにはシステムのものが見える。
 

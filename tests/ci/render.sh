@@ -60,6 +60,10 @@ sandbox = "unelevated"
 trust_level = "trusted"
 EOF
 
+# gpg-agent.conf も、管理しない行は残る。Windows の Git の gpg は CRLF で書くこともある
+mkdir -p "$work/windows-main/home/.gnupg"
+printf 'default-cache-ttl 34560000\r\nmax-cache-ttl 34560000\r\npinentry-program C:\\pinentry.exe\r\n' >"$work/windows-main/home/.gnupg/gpg-agent.conf"
+
 for name in linux-main linux-agent windows-main; do
   prepare "$name"
 done
@@ -110,6 +114,12 @@ check "linux-main: bws-run が実行できる" '[ -x "$work/linux-main/home/.loc
 for file in .local/bin/bws-run.ps1 .local/bin/bws-run.cmd; do
   blocked "linux-main: $file がない" '[ -e "$work/linux-main/home/$file" ]'
 done
+equals "linux-main: gpg-agent.conf" "$(cat "$work/linux-main/home/.gnupg/gpg-agent.conf")" 'default-cache-ttl 86400
+max-cache-ttl 259200
+default-cache-ttl-ssh 86400
+max-cache-ttl-ssh 259200
+enable-ssh-support
+disable-scdaemon'
 check "linux-main: コミット署名が有効" 'grep -q "gpgsign = true" "$work/linux-main/home/.gitconfig"'
 check "linux-main: Claude の設定にフックがある" 'jq -e ".hooks.PreToolUse[0].hooks[0].command | test(\"block-signing-bypass\")" "$work/linux-main/home/.claude/settings.json"'
 equals "linux-main: 実行するスクリプト" "$(scripts_of linux-main)" "10-mise-install.sh 20-build-hooks.sh 30-vim-plugins.sh 40-claude-code.sh"
@@ -118,9 +128,14 @@ equals "linux-main: 実行するスクリプト" "$(scripts_of linux-main)" "10-
 for file in .wslconfig OneDrive/Documents/PowerShell/Microsoft.PowerShell_profile.ps1 .claude/settings.json .claude/CLAUDE.md .vimrc .local/bin/bws-run.ps1 .local/bin/bws-run.cmd; do
   check "windows-main: $file がある" '[ -f "$work/windows-main/home/$file" ]'
 done
-for file in .tmux.conf .ssh .gnupg .config/environment.d .local/bin/bws-run; do
+for file in .tmux.conf .ssh .config/environment.d .local/bin/bws-run; do
   blocked "windows-main: $file がない" '[ -e "$work/windows-main/home/$file" ]'
 done
+equals "windows-main: gpg-agent.conf は既存の行を残し、キャッシュを WSL と同じにする" "$(cat "$work/windows-main/home/.gnupg/gpg-agent.conf")" 'pinentry-program C:\pinentry.exe
+default-cache-ttl 86400
+max-cache-ttl 259200
+default-cache-ttl-ssh 86400
+max-cache-ttl-ssh 259200'
 check "windows-main: .vimrc が VS Code 用" 'cmp -s "$work/windows-main/home/.vimrc" "$root/home/.vimrc-files/vscode.vimrc"'
 equals "windows-main: 実行するスクリプト" "$(scripts_of windows-main)" "10-mise-install.ps1 20-build-hooks.ps1"
 
