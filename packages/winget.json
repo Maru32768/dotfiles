@@ -11,7 +11,6 @@
       "Packages": [
         { "PackageIdentifier": "Git.Git" },
         { "PackageIdentifier": "jdx.mise" },
-        { "PackageIdentifier": "direnv.direnv" },
         { "PackageIdentifier": "Microsoft.PowerShell" },
         { "PackageIdentifier": "Microsoft.WindowsTerminal" },
         { "PackageIdentifier": "Microsoft.VisualStudioCode" },
@@ -19,6 +18,7 @@
         { "PackageIdentifier": "Docker.DockerDesktop" },
         { "PackageIdentifier": "Amazon.AWSCLI" },
         { "PackageIdentifier": "Anthropic.Claude" },
+        { "PackageIdentifier": "Bitwarden.Bitwarden" },
         { "PackageIdentifier": "7zip.7zip" }
       ]
     }

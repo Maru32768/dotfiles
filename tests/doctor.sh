@@ -45,7 +45,7 @@ lock_versions() {
     "$HOME/.config/mise/mise.lock" | sort
 }
 check "ツールのバージョンが mise.lock と一致" 'diff <(lock_versions) <(mise ls --current | awk "{print \$1, \$2}" | sort)'
-for tool in chezmoi go node rustc deno bun uv python java terraform aws gh ghq rg fd shellcheck yt-dlp goimports; do
+for tool in chezmoi go node rustc deno bun uv python java terraform aws bws gh ghq rg fd shellcheck yt-dlp goimports; do
   check "ツール: $tool" "command -v $tool"
 done
 
@@ -110,6 +110,12 @@ if [ -f ~/.ssh/github ]; then
   check "SSH キーが gpg-agent に登録されている" 'SSH_AUTH_SOCK="$(gpgconf --list-dirs agent-ssh-socket)" ssh-add -l'
 else
   todo "SSH キー: provision/setup-credentials.sh を実行"
+fi
+
+if [ -s ~/.config/bws/token.gpg ]; then
+  pass "Bitwarden Secrets Manager のトークン"
+else
+  todo "Bitwarden Secrets Manager のトークン: bws-run --set-token を実行 (docs/secrets.md)"
 fi
 
 if claude auth status >/dev/null 2>&1; then

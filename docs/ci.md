@@ -4,9 +4,9 @@
 
 | ジョブ | スクリプト | 内容 |
 |---|---|---|
-| `static` | `tests/ci/static.sh` | shellcheck、フックのテスト、不変条件、chezmoi のレンダリング、gitleaks、actionlint |
+| `static` | `tests/ci/static.sh` | shellcheck、フックと `bws-run` のテスト、不変条件、chezmoi のレンダリング、gitleaks、actionlint |
 | `container` | `tests/ci/container.sh <main\|agent>` | `ubuntu:26.04` で環境を作り、確認と再適用まで行う |
-| `windows` | `tests/ci/windows.ps1` | Windows PowerShell 5.1 での構文と PSScriptAnalyzer |
+| `windows` | `tests/ci/windows.ps1`、`tests/ci/bws-run-test.ps1` | Windows PowerShell 5.1 での構文、Windows 版の `bws-run` のテスト、PSScriptAnalyzer |
 
 定期実行は、固定していないもの (apt、インストーラー、Vim プラグイン) の破損に気づくためにある。
 

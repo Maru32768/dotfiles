@@ -21,6 +21,7 @@
 | インスタンスの作成と削除 | `lab/lab.ps1` | Windows 側にあるので、WSL が壊れていても動く |
 | 確認 | `tests/doctor.sh`、CI (`docs/ci.md`) | 作り直せたことを機械的に確かめる |
 | 秘密情報 | リポジトリに入れない | 公開リポジトリのため |
+| API キー | Bitwarden Secrets Manager と `bws-run` | 使うコマンドにだけ渡す (`docs/secrets.md`) |
 
 作業データは対象外。
 
@@ -59,7 +60,7 @@ powershell -ExecutionPolicy Bypass -File bootstrap.ps1
 | `.gitconfig`, `.ideavimrc`, mise の設定 | WSL と同じ内容 |
 | `.vimrc` | VS Code の Vim 拡張用 (`home/.vimrc-files/vscode.vimrc`)。Linux 用とは別 |
 | `.bashrc`, `.bash_profile` | Git Bash 用。mise を優先する |
-| PowerShell の profile | direnv と mise を有効にする。パスは OneDrive の `Documents` 前提 |
+| PowerShell の profile | mise を有効にする。プロジェクトの環境変数も direnv ではなく mise で扱う。パスは OneDrive の `Documents` 前提 |
 | スキル | WSL と同じもの (`docs/skills.md`) |
 | Codex の設定 | Windows だけ (`docs/codex.md`) |
 | `.tmux.conf`, `.ssh`, `.gnupg` など | 管理しない (`home/.chezmoiignore`) |
@@ -99,7 +100,8 @@ wsl -d dev -u root passwd maru
 - SSH キーは環境ごとに作り直せるので、バックアップしない。作り直したら古い鍵を GitHub から消す。
 - SSH キーのパスフレーズも gpg-agent で扱う。入力はポップアップで、キャッシュは GPG と同じ (最後に使ってから 24 時間、最長 72 時間)。
 - 長く保管する秘密は GPG 鍵だけ (`docs/gpg.md`)。
-- パスワードマネージャーは構築の前提にしない。導入する場合も `agent` ではログインしない。
+- パスワードマネージャーは Bitwarden。構築の前提にはしない。`agent` ではログインしない。
+- API キーは Secrets Manager に置き、`bws-run` で渡す。`.env` や `mise.local.toml` に平文で書かない (`docs/secrets.md`)。
 
 ## エージェント用の環境
 

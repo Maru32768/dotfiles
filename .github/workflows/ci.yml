@@ -58,6 +58,9 @@ jobs:
       - name: Windows PowerShell 5.1 の構文
         shell: powershell
         run: .\tests\ci\windows.ps1
+      - name: bws-run のテスト
+        shell: pwsh
+        run: .\tests\ci\bws-run-test.ps1
       - name: PSScriptAnalyzer
         shell: pwsh
         run: |

@@ -37,6 +37,7 @@ run_go() {
 
 section "shellcheck" run_shellcheck
 section "フックのテスト" run_go
+section "bws-run のテスト" bash tests/ci/bws-run-test.sh
 section "不変条件" bash tests/ci/invariants.sh
 section "chezmoi のレンダリング" bash tests/ci/render.sh
 section "秘密情報の検出 (履歴すべて)" mise exec "gitleaks@$GITLEAKS_VERSION" -- gitleaks git --redact --no-banner .

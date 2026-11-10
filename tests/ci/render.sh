@@ -103,18 +103,22 @@ check "windows-main: Codex の共通設定が優先される" 'jq -e ".windows.s
 check "Codex の設定がない環境でも共通設定から作れる" '[ "$(cm windows-main execute-template --with-stdin "$(cat "$root/home/dot_codex/modify_config.toml")" </dev/null | cm windows-main execute-template --with-stdin "{{ .chezmoi.stdin | fromToml | toJson }}")" = "$(toml_json windows-main "$root/home/.codex-config.toml")" ]'
 
 # --- 普段の環境 ---
-for file in .ssh/config .gnupg/gpg-agent.conf .claude/settings.json .claude/CLAUDE.md .tmux.conf .vimrc; do
+for file in .ssh/config .gnupg/gpg-agent.conf .claude/settings.json .claude/CLAUDE.md .tmux.conf .vimrc .local/bin/bws-run; do
   check "linux-main: $file がある" '[ -f "$work/linux-main/home/$file" ]'
+done
+check "linux-main: bws-run が実行できる" '[ -x "$work/linux-main/home/.local/bin/bws-run" ]'
+for file in .local/bin/bws-run.ps1 .local/bin/bws-run.cmd; do
+  blocked "linux-main: $file がない" '[ -e "$work/linux-main/home/$file" ]'
 done
 check "linux-main: コミット署名が有効" 'grep -q "gpgsign = true" "$work/linux-main/home/.gitconfig"'
 check "linux-main: Claude の設定にフックがある" 'jq -e ".hooks.PreToolUse[0].hooks[0].command | test(\"block-signing-bypass\")" "$work/linux-main/home/.claude/settings.json"'
 equals "linux-main: 実行するスクリプト" "$(scripts_of linux-main)" "10-mise-install.sh 20-build-hooks.sh 30-vim-plugins.sh 40-claude-code.sh"
 
 # --- Windows ---
-for file in .wslconfig OneDrive/Documents/PowerShell/Microsoft.PowerShell_profile.ps1 .claude/settings.json .claude/CLAUDE.md .vimrc; do
+for file in .wslconfig OneDrive/Documents/PowerShell/Microsoft.PowerShell_profile.ps1 .claude/settings.json .claude/CLAUDE.md .vimrc .local/bin/bws-run.ps1 .local/bin/bws-run.cmd; do
   check "windows-main: $file がある" '[ -f "$work/windows-main/home/$file" ]'
 done
-for file in .tmux.conf .ssh .gnupg .config/environment.d; do
+for file in .tmux.conf .ssh .gnupg .config/environment.d .local/bin/bws-run; do
   blocked "windows-main: $file がない" '[ -e "$work/windows-main/home/$file" ]'
 done
 check "windows-main: .vimrc が VS Code 用" 'cmp -s "$work/windows-main/home/.vimrc" "$root/home/.vimrc-files/vscode.vimrc"'

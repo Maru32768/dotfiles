@@ -58,6 +58,14 @@ if (& gpg --list-secret-keys $GpgFingerprint 2>$null) {
     Todo 'GPG signing key: restore it, see docs/gpg.md'
 }
 
+$bwsToken = Join-Path $HOME '.config\bws\token.gpg'
+if ((Test-Path -LiteralPath $bwsToken) -and (Get-Item -LiteralPath $bwsToken).Length -gt 0) {
+    Pass 'Bitwarden Secrets Manager token'
+} else {
+    Todo 'Bitwarden Secrets Manager token: run bws-run --set-token, see docs/secrets.md'
+}
+Check 'bws-run on PATH' { Get-Command bws-run.cmd -ErrorAction Stop }
+
 $settings = Get-Content -Raw (Join-Path $HOME '.claude\settings.json') | ConvertFrom-Json
 $hookCommand = $settings.hooks.PreToolUse[0].hooks[0].command
 Check 'Claude settings: hook registered' { $hookCommand -match 'block-signing-bypass' }

@@ -1,0 +1,101 @@
+#!/bin/bash
+# Bitwarden Secrets Manager の 1 つのプロジェクトの秘密情報を、指定したコマンドにだけ環境変数で渡す。
+# マシンアカウントのトークンは GPG で暗号化して置き、実行のたびに復号する (docs/secrets.md)。
+# Windows では bws-run.cmd と bws-run.ps1 が同じことをする。
+#
+#   bws-run <プロジェクト名> [--] <コマンド> [引数...]
+#   bws-run --list <プロジェクト名>   渡す環境変数の名前だけを表示する (値は出さない)
+#   bws-run --set-token               トークンを入力し、GPG で暗号化して保存する
+set -euo pipefail
+
+token_file="${BWS_TOKEN_FILE:-$HOME/.config/bws/token.gpg}"
+
+die() {
+  printf 'bws-run: %s\n' "$1" >&2
+  exit 1
+}
+
+usage() {
+  sed -n 's/^#   //p' "${BASH_SOURCE[0]}" >&2
+  exit 2
+}
+
+set_token() {
+  local recipient token dir
+  recipient="$(git config --global user.signingkey)" || die "git の user.signingkey がない (暗号化の宛先に使う)"
+  [ -t 0 ] || die "--set-token は端末から実行する"
+  read -rsp 'マシンアカウントのアクセストークン: ' token
+  printf '\n' >&2
+  [ -n "$token" ] || die "トークンが空"
+  dir="$(dirname "$token_file")"
+  mkdir -p "$dir"
+  chmod 700 "$dir"
+  printf '%s' "$token" | gpg --quiet --yes --encrypt --recipient "$recipient" --output "$token_file.tmp"
+  mv "$token_file.tmp" "$token_file"
+  printf '保存しました: %s\n' "$token_file" >&2
+}
+
+# 復号したトークンを出力する。キャッシュが切れていれば gpg がパスフレーズを求める
+read_token() {
+  [ -f "$token_file" ] || die "トークンがない: $token_file (bws-run --set-token で保存する)"
+  local token
+  token="$(gpg --quiet --decrypt "$token_file")" || die "トークンを復号できない: $token_file"
+  token="${token//[$'\t\r\n ']/}"
+  [ -n "$token" ] || die "トークンが空: $token_file"
+  printf '%s' "$token"
+}
+
+# 使い方: project_secrets <トークン> <プロジェクト名>  (秘密情報の一覧を JSON で出力する)
+project_secrets() {
+  local token="$1" name="$2" projects id count
+  projects="$(BWS_ACCESS_TOKEN="$token" bws project list --output json)" || die "プロジェクトの一覧を取得できない"
+  count="$(jq --arg name "$name" '[.[] | select(.name == $name)] | length' <<<"$projects")" || die "プロジェクトの一覧を読めない"
+  [ "$count" = 1 ] || die "プロジェクト $name が $count 個ある (このトークンで読めるものの中で、ちょうど 1 個である必要がある)"
+  id="$(jq -r --arg name "$name" '.[] | select(.name == $name) | .id' <<<"$projects")"
+  BWS_ACCESS_TOKEN="$token" bws secret list "$id" --output json || die "プロジェクト $name の秘密情報を取得できない"
+}
+
+# 名前が環境変数として使えて、重複がないこと
+validate() {
+  jq -e 'type == "array"' >/dev/null <<<"$1" || die "秘密情報の一覧を読めない"
+  local bad
+  bad="$(jq -r '.[].key | select(test("^[A-Za-z_][A-Za-z0-9_]*$") | not)' <<<"$1")"
+  [ -z "$bad" ] || die "環境変数にできない名前がある: $(printf '%s' "$bad" | paste -sd ' ' -)"
+  jq -e '[.[].key] | length == (unique | length)' >/dev/null <<<"$1" || die "同じ名前の秘密情報が複数ある"
+}
+
+[ "$#" -gt 0 ] || usage
+case "$1" in
+  --set-token)
+    [ "$#" -eq 1 ] || usage
+    set_token
+    exit 0
+    ;;
+  --list)
+    [ "$#" -eq 2 ] || usage
+    token="$(read_token)"
+    secrets="$(project_secrets "$token" "$2")"
+    validate "$secrets"
+    jq -r '.[].key' <<<"$secrets" | sort
+    exit 0
+    ;;
+  -*) usage ;;
+esac
+
+project="$1"
+shift
+[ "${1:-}" = -- ] && shift
+[ "$#" -gt 0 ] || usage
+
+# 失敗を拾えるよう、トークンの復号と取得は別の行で行う
+token="$(read_token)"
+secrets="$(project_secrets "$token" "$project")"
+unset token
+validate "$secrets"
+# 呼び出し元が持っていたトークンも、コマンドには渡さない
+unset BWS_ACCESS_TOKEN
+while IFS= read -r -d '' pair; do
+  export "${pair?}"
+done < <(jq -j '.[] | .key, "=", .value, "\u0000"' <<<"$secrets")
+unset secrets
+exec "$@"

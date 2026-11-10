@@ -12,12 +12,15 @@
 20-build-hooks.sh
 30-vim-plugins.sh
 40-claude-code.sh
+.local/bin/bws-run
 {{ else }}
 .wslconfig
 OneDrive
 OneDrive/**
 .codex
 .codex/**
+.local/bin/bws-run.ps1
+.local/bin/bws-run.cmd
 10-mise-install.ps1
 20-build-hooks.ps1
 {{ end }}
@@ -30,6 +33,7 @@ OneDrive/**
 .claude/**
 .agents
 .agents/**
+.local/bin/bws-run
 .config/environment.d
 .config/environment.d/**
 .vim
