@@ -2,7 +2,7 @@
 name: knowledge-capture
 description: 開発中に分かった技術的な知見を、Privateリポジトリmarulabs-knowledgeの調査記録に残す。利用者が/knowledge-captureを実行したとき、または記録を頼んだときに使う。
 argument-hint: "[記録する内容のメモ]"
-allowed-tools: Bash(git remote -v) Read(~/work/blog/marulabs-knowledge/**) Edit(~/work/blog/marulabs-knowledge/knowledge/**) Bash(git -C ~/work/blog/marulabs-knowledge add *) Bash(git -C ~/work/blog/marulabs-knowledge commit *) Bash(git -C ~/work/blog/marulabs-knowledge status *)
+allowed-tools: Bash(git remote -v) Read(~/work/blog/marulabs-knowledge/**) Edit(~/work/blog/marulabs-knowledge/knowledge/**) Bash(git -C ~/work/blog/marulabs-knowledge add *) Bash(git -C ~/work/blog/marulabs-knowledge commit *) Bash(git -C ~/work/blog/marulabs-knowledge status *) Bash(mise exec gitleaks@8.30.1 -- gitleaks dir *)
 ---
 
 # 調査記録を残す
@@ -18,5 +18,5 @@ allowed-tools: Bash(git remote -v) Read(~/work/blog/marulabs-knowledge/**) Edit(
    - 使うのは、この会話に残っている事実だけ。圧縮などで細部が曖昧なら、読み取りだけのコマンド、ファイルの読み直し、`git log`で確かめ直す。状態を変えうるコマンドと、承認を求められるコマンドは再実行しない。確かめられない事実は「記録の時点で確認できなかった」と書くか、`[推論]`か`[仮説]`にする
    - 載せてよいか迷う情報は省き、省いたことを返信に書く
    - `article`を決め、理由を「公開の検討」に書く
-5. **コミットする。** `<記録のパス>`はリポジトリからの相対パス。`git -C ~/work/blog/marulabs-knowledge add <記録のパス>`を実行し、続けて`git -C ~/work/blog/marulabs-knowledge commit -m "<記録の内容を表す英語の1文>" -- <記録のパス>`でコミットする。パスを付けるのは、前からステージされていた変更をコミットに入れないため。`git -C ~/work/blog/marulabs-knowledge status --short`の出力に記録のパスがなければ終わり。プッシュは利用者の指示を待つ
+5. **コミットする。** `<記録のパス>`はリポジトリからの相対パス。先に`mise exec gitleaks@8.30.1 -- gitleaks dir --no-banner ~/work/blog/marulabs-knowledge/<記録のパス>`を実行する。終了コードが1(秘密情報らしき文字列がある)なら、見つかった値を`[REDACTED]`に置き換え、0になるまで繰り返す。次に`git -C ~/work/blog/marulabs-knowledge add <記録のパス>`を実行し、続けて`git -C ~/work/blog/marulabs-knowledge commit -m "<記録の内容を表す英語の1文>" -- <記録のパス>`でコミットする。パスを付けるのは、前からステージされていた変更をコミットに入れないため。`git -C ~/work/blog/marulabs-knowledge status --short`の出力に記録のパスがなければ終わり。プッシュは利用者の指示を待つ
 6. **返す。** 1〜3行で、記録のパス、`article`の判断、確かめられなかったことや省いたことを書く
