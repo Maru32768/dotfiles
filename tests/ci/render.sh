@@ -126,7 +126,7 @@ equals "linux-main: 実行するスクリプト" "$(scripts_of linux-main)" "10-
 
 # --- knowledge-capture (docs/skills.md) ---
 # 許可を広げるときは、何を許すことになるかを確かめてから、期待する値を直す
-knowledge_tools='Bash(git remote -v) Read(~/work/blog/marulabs-knowledge/**) Edit(~/work/blog/marulabs-knowledge/knowledge/**) Bash(git -C ~/work/blog/marulabs-knowledge add *) Bash(git -C ~/work/blog/marulabs-knowledge commit *) Bash(git -C ~/work/blog/marulabs-knowledge status *)'
+knowledge_tools='Bash(git remote -v) Read(~/work/blog/marulabs-knowledge/**) Edit(~/work/blog/marulabs-knowledge/knowledge/**) Bash(git -C ~/work/blog/marulabs-knowledge add *) Bash(git -C ~/work/blog/marulabs-knowledge commit *)'
 for name in linux-main windows-main; do
   skill="$work/$name/home/.claude/skills/knowledge-capture/SKILL.md"
   check "$name: knowledge-capture がある" '[ -f "$skill" ]'
