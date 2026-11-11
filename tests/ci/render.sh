@@ -135,6 +135,8 @@ for name in linux-main windows-main; do
 argument-hint: \"[記録する内容のメモ]\"
 allowed-tools: $knowledge_tools"
   check "$name: knowledge-capture がコミットの前に gitleaks で調べる" 'grep -qF "先に\`mise -C ~/work/blog/marulabs-knowledge exec -- gitleaks dir --no-banner --redact -v --exit-code 3 <記録のパス>\`を" "$skill"'
+  check "$name: knowledge-capture で gitleaks の手順がコミットより前にある" '[ "$(grep -oE "exec -- gitleaks dir|commit -m" "$skill" | head -1)" = "exec -- gitleaks dir" ]'
+  check "$name: knowledge-capture は gitleaks を実行できないときコミットしない" 'grep -qF "gitleaksを実行できなかったとき(許可されなかったときも)は、コミットせずに" "$skill"'
   check "$name: CLAUDE.md に記録の提案の形がある" 'grep -qF "記録候補: <タイトル案>(/knowledge-capture)" "$work/$name/home/.claude/CLAUDE.md"'
 done
 
