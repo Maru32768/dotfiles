@@ -36,4 +36,16 @@
 - review-loopは4でponytail-review、simplify、prose-polishまで回す。review-loopを使うときは、prose-polishを別にかけない
 - poteto-modeとreview-loopを一緒に使うときは、コードの片づけ(deslop、no-comments)と文書の推敲をreview-loopの4に任せる。poteto-modeのtechnical-writingとunslopは、返信とコミットメッセージにだけかける
 
+# 技術的な知見の記録
+
+作業中に次のような知見が得られたら、そのタスクの最後の返信の末尾に`記録候補: <タイトル案>(/knowledge-capture)`を1行だけ書く。提案は1つのタスクで1回。記録は、利用者が頼んだときに`knowledge-capture`スキルで行う。
+
+- エラーメッセージを読むだけでは分からなかった不具合の原因、環境やバージョンに依存する問題、ドキュメントと違う挙動
+- 選択肢を比べて決めた設計判断
+- ソースコードや実験で確かめた内部の仕組み
+- 短く書ける意外な挙動や設定の注意点
+- 解決しないまま中断する長い調査
+
+既に記録がある問題なら、追記を提案する。
+
 @~/.claude/pstack-models.md
