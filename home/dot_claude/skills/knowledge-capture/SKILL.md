@@ -2,7 +2,7 @@
 name: knowledge-capture
 description: 開発中に分かった技術的な知見を、Privateリポジトリmarulabs-knowledgeの調査記録に残す。利用者が/knowledge-captureを実行したとき、または記録を頼んだときに使う。
 argument-hint: "[記録する内容のメモ]"
-allowed-tools: Bash(git remote -v) Read(~/work/blog/marulabs-knowledge/**) Edit(~/work/blog/marulabs-knowledge/knowledge/**) Bash(git -C ~/work/blog/marulabs-knowledge add *) Bash(git -C ~/work/blog/marulabs-knowledge commit *) Bash(git -C ~/work/blog/marulabs-knowledge status *) Bash(mise exec gitleaks@8.30.1 -- gitleaks dir *)
+allowed-tools: Bash(git remote -v) Read(~/work/blog/marulabs-knowledge/**) Edit(~/work/blog/marulabs-knowledge/knowledge/**) Bash(git -C ~/work/blog/marulabs-knowledge add *) Bash(git -C ~/work/blog/marulabs-knowledge commit *) Bash(git -C ~/work/blog/marulabs-knowledge status *)
 ---
 
 # 調査記録を残す
