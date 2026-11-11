@@ -40,7 +40,7 @@ bash ~/.claude/skills/imos-humanizer/scripts/fetch-rules.sh --check
 | `pstack:poteto-mode`、`pstack:technical-writing` | ship-task、prose-polish | プラグイン (`pstack`) |
 | `ponytail:ponytail-review` | review-loop | プラグイン (`ponytail`) |
 | `codex review` (Codex の CLI) | review-loop | Linux は mise (`docs/codex.md`)、Windows は Codex のアプリ |
-| `~/work/blog/marulabs-knowledge` (Private のリポジトリ `Maru32768/marulabs-knowledge`) | knowledge-capture | 管理しない。使う端末で手で clone する。WSL の main にはある。Windows には無いので、スキルは clone の仕方を返して止まる。Windows でも clone すると、記録は端末ごとのリポジトリにコミットされ、もう一方へは push と pull で移す |
+| `~/work/blog/marulabs-knowledge` (Private のリポジトリ `Maru32768/marulabs-knowledge`) | knowledge-capture | 管理しない。使う端末で手で clone する。WSL の main にはある。Windows には無いので、スキルは clone の仕方を返して止まる。Windows でも clone すると、記録は端末ごとのリポジトリにコミットされ、もう一方へは push と pull で移す。記録を調べる gitleaks は、このリポジトリの `.mise.toml` と `mise.lock` が固定する |
 | `explain-before-shorten` | prose-polish | 管理しない。記事 (`https://zenn.dev/microsoft/articles/explain-before-shorten`) に本文があるだけで、リポジトリもライセンスも無い。使う端末に手で置く |
 
 `update-skills.sh` は gh の拡張のタグを上げない。gh-stack の `commit` を上げたら、`run_onchange_after_50-gh-extensions.sh` と `.ps1` のタグも上流の最新のリリースに揃える。
