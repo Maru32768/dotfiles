@@ -7,7 +7,7 @@ allowed-tools: Bash(git remote -v) Read(~/work/blog/marulabs-knowledge/**) Edit(
 
 # 調査記録を残す
 
-この会話で分かった知見を、`~/work/blog/marulabs-knowledge`の調査記録に書いてコミットする。記録はPrivateで、記事化と公開は別の作業。Draftは作らない。
+この会話で分かった知見を、`~/work/blog/marulabs-knowledge`の調査記録に書いてコミットする。Draftは作らない。
 
 コマンドは、`~`を展開せず、`$(...)`や変数を入れずに、ここに書いた形のまま実行する。`allowed-tools`の許可がこの文字列に合い、許可の判定もできるようにするため。
 
