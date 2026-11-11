@@ -11,7 +11,7 @@ allowed-tools: Bash(git remote -v) Read(~/work/blog/marulabs-knowledge/**) Edit(
 
 コマンドは、`~`を展開せず、`$(...)`や変数を入れずに、ここに書いた形のまま実行する。`allowed-tools`の許可がこの文字列に合い、許可の判定もできるようにするため。
 
-1. **所属を確かめる。** 今のリポジトリで`git remote -v`を、ほかのコマンドとつなげずに実行する(`allowed-tools`の許可がこの文字列に合う)。remoteが`github.com/Maru32768/`のもの、上流が公開されているOSSのclone、remoteのないリポジトリのどれかなら次へ進む。どれでもなければ、所属を利用者に1回だけ確かめ、答えを待つ。`~/work/blog/marulabs-knowledge`がなければ、そう返して止まる
+1. **所属を確かめる。** 今のディレクトリで`git remote -v`を実行する。remoteが`github.com/Maru32768/`のもの、上流が公開されているOSSのclone、remoteのないリポジトリ、gitのリポジトリでない場所のどれかなら次へ進む。どれでもなければ、所属を利用者に1回だけ尋ねて、このターンを終える。続けてよいと答えが来たら、Skillツールで`knowledge-capture`をもう一度呼んでから2へ進む。`allowed-tools`の許可は、利用者が次のメッセージを送ると消えるため。`~/work/blog/marulabs-knowledge`がなければ、そう返して止まる
 2. **書式を読む。** `~/work/blog/marulabs-knowledge/CLAUDE.md`の「調査ログの記録方法」と`templates/knowledge.md`。frontmatter、見出し、根拠のラベルは、この2つに従う
 3. **既存の記録を探す。** Grepツールで`~/work/blog/marulabs-knowledge/knowledge/`を、`^project: <リポジトリ名>`と、エラーメッセージや関数名で探す。同じ問題の記録があれば、それに追記して`updated`を今日にする。なければ`knowledge/<area>/YYYY-MM-DD-<リポジトリ名>-<topic>.md`を作る
 4. **書く。** `type`を選び、その種類の見出しで書く。主張のすべてに根拠のラベルが付き、`[観測]`、`[出典]`、`[再現]`の根拠が同じ記録に貼ってあれば、このステップは終わり
