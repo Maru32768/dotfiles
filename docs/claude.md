@@ -6,7 +6,7 @@ Windows と WSL で同じ設定を使うため、共通部分を chezmoi で管�
 |---|---|
 | `home/.claude-settings.json` | 共通の設定 (プラグイン、マーケットプレイス、フックなど) |
 | `home/dot_claude/modify_settings.json` | 共通の設定を `settings.json` へマージする (chezmoi のテンプレートなので両 OS で動く) |
-| `home/dot_claude/CLAUDE.md` | 設定を dotfiles で管理していることを Claude に伝える。指示として読まれるだけで、強制はしない。`agent` には置かない |
+| `home/dot_claude/CLAUDE.md` | ユーザー全体の指示。dotfiles で設定を管理していることのほか、日本語の表記、タスクの進め方、コミットとレビュー、技術的な知見の記録の提案の決まりを書く。指示として読まれるだけで、強制はしない。`agent` には置かない |
 | `home/dot_claude/pstack-models.md` | pstack のロールごとのモデル。`/setup-pstack` が書き、`CLAUDE.md` の `@` 行で読み込む |
 | `home/dot_claude/skills/` | 自分で書いたスキル (`docs/skills.md`) |
 | `home/.hooks-src/block-signing-bypass/` | 署名の回避を止めるフック (Go) |
