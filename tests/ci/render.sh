@@ -130,7 +130,10 @@ knowledge_tools='Bash(git remote -v) Read(~/work/blog/marulabs-knowledge/**) Edi
 for name in linux-main windows-main; do
   skill="$work/$name/home/.claude/skills/knowledge-capture/SKILL.md"
   check "$name: knowledge-capture がある" '[ -f "$skill" ]'
-  equals "$name: knowledge-capture の allowed-tools" "$(sed -n 's/^allowed-tools: //p' "$skill" 2>/dev/null)" "$knowledge_tools"
+  # description を除く frontmatter の完全一致。hooks などのキーを足して許可を広げる変更も落ちる
+  equals "$name: knowledge-capture の frontmatter" "$(sed -n '1{/^---$/!q;d};/^---$/q;/^description: /d;p' "$skill" 2>/dev/null)" "name: knowledge-capture
+argument-hint: \"[記録する内容のメモ]\"
+allowed-tools: $knowledge_tools"
   check "$name: CLAUDE.md に記録の提案がある" 'grep -q "記録候補:" "$work/$name/home/.claude/CLAUDE.md"'
 done
 
