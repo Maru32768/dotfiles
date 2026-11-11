@@ -16,7 +16,7 @@ allowed-tools: Bash(git remote -v) Read(~/work/blog/marulabs-knowledge/**) Edit(
 3. **既存の記録を探す。** Grepツールで`~/work/blog/marulabs-knowledge/knowledge/`を、`project`の値と、エラーメッセージや関数名で探す。同じ問題の記録があれば、それに追記する。なければ新しく作る
 4. **書く。** `type`を選び、その種類の見出しで書く。主張のすべてに根拠のラベルが付き、`[観測]`、`[出典]`、`[再現]`の根拠が同じ記録に貼ってあれば、このステップは終わり
    - 使うのは、この会話に残っている事実だけ。圧縮などで細部が曖昧なら、今のディレクトリと`~/work/blog/marulabs-knowledge`の中を、Read、Grep、`ls`、`rg`で読み直すか、今のディレクトリで`git log`か`git rev-parse`を実行するだけで確かめ直す。ほかのコマンドは、承認を求められたり副作用を繰り返したりしうるので再実行しない。確かめられない事実は、CLAUDE.mdの書き方に従って書く
-   - 載せてよいか迷う情報は省き、省いたことを返信に書く
+   - 載せてよいか迷う情報は省き、返信で、省いたものを載せてよいか尋ねる(CLAUDE.mdの「絶対のルール」6)
    - `article`を決め、理由を「公開の検討」に書く
 5. **コミットする。** `<記録のパス>`はリポジトリからの相対パス。先に`mise -C ~/work/blog/marulabs-knowledge exec -- gitleaks dir --no-banner --redact -v --exit-code 3 <記録のパス>`を、ほかのコマンドをつなげずに実行する。終了コードはBashツールの結果に出る。gitleaksの版はmarulabs-knowledgeの`.mise.toml`と`mise.lock`で決まる。終了コードが0なら次へ進む。0の後に記録を直したら、もう一度実行する。3なら、出力の`Line`と`RuleID`が示す値を`[REDACTED]`に置き換えて、もう一度実行する。誤検出だと判断した値は、CLAUDE.mdの書き方に従って印を付けて残し、もう一度実行して0になるのを確かめ、そのことを返信に書く。それ以外の終了コードのときと、gitleaksを実行できなかったとき(許可されなかったときも)は、コミットせずに止まり、理由と、記録のパスがコミットされないまま残っていることを返す。次に`git -C ~/work/blog/marulabs-knowledge add <記録のパス>`を実行し、続けて`git -C ~/work/blog/marulabs-knowledge commit -m "<記録の内容を表す英語の1文>" -- <記録のパス>`でコミットする。パスを付けるのは、前からステージされていた変更をコミットに入れないため。`git -C ~/work/blog/marulabs-knowledge status --short`の出力に記録のパスがなければ終わり。addかcommitが失敗したときと、出力に記録のパスが残っているときは、出力を返して止まる。プッシュは利用者の指示を待つ
 6. **返す。** 1〜3行で、記録のパス、`article`の判断、確かめられなかったことや省いたことを書く
