@@ -12,7 +12,7 @@ allowed-tools: Bash(git remote -v) Read(~/work/blog/marulabs-knowledge/**) Edit(
 コマンドは、`~`を展開せず、`$(...)`や変数を入れずに、ここに書いた形のまま実行する。`allowed-tools`の許可がこの文字列に合い、許可の判定もできるようにするため。
 
 1. **所属を確かめる。** `~/work/blog/marulabs-knowledge`がなければ、`git clone git@github.com:Maru32768/marulabs-knowledge.git ~/work/blog/marulabs-knowledge`で用意できると返して止まる。WSLのmainにはあり、Windowsには別にcloneしない限りない。あれば、今のディレクトリで`git remote -v`を実行する。remoteが`github.com/Maru32768/`のもの、上流が公開されているOSSのclone、remoteのないリポジトリ、gitのリポジトリでない場所のどれかなら次へ進む。どれでもなければ、所属を利用者に1回だけ尋ねて、このターンを終える。続けてよいと答えが来たら、Skillツールで`knowledge-capture`をもう一度呼んでから2へ進む。`allowed-tools`の許可は、利用者が次のメッセージを送ると消えるため
-2. **書式を読む。** `~/work/blog/marulabs-knowledge/CLAUDE.md`の「絶対のルール」と「調査ログの記録方法」、それに`templates/knowledge.md`。ファイル名、frontmatter、見出し、根拠のラベル、参照の書き方、秘密情報の伏せ方は、これらに従う
+2. **書式を読む。** `~/work/blog/marulabs-knowledge/CLAUDE.md`の全体と`templates/knowledge.md`を読む。ファイル名、`<area>`、frontmatter、見出し、根拠のラベル、参照の書き方、秘密情報の伏せ方は、これらに従う
 3. **既存の記録を探す。** Grepツールで`~/work/blog/marulabs-knowledge/knowledge/`を、`project`の値と、エラーメッセージや関数名で探す。同じ問題の記録があれば、それに追記する。なければ新しく作る
 4. **書く。** `type`を選び、その種類の見出しで書く。主張のすべてに根拠のラベルが付き、`[観測]`、`[出典]`、`[再現]`の根拠が同じ記録に貼ってあれば、このステップは終わり
    - 使うのは、この会話に残っている事実だけ。圧縮などで細部が曖昧なら、今のディレクトリと`~/work/blog/marulabs-knowledge`の中を読むコマンドとファイルの読み直しだけで確かめ直す。その外を読むコマンドは承認を求められ、状態を変えうるコマンドは副作用を繰り返すので、どちらも再実行しない。確かめられない事実は「記録の時点で確認できなかった」と書くか、`[推論]`か`[仮説]`にする
