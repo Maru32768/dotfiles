@@ -47,6 +47,11 @@ Check 'chezmoi: no differences' {
     ($LASTEXITCODE -eq 0) -and -not ($status | Where-Object { $_ -notmatch '(\.claude/settings\.json|\.codex/config\.toml)$' })
 }
 
+Check 'gh extension: gh-stack' {
+    & mise exec gh -- gh stack --version 2>$null | Out-Null
+    $LASTEXITCODE -eq 0
+}
+
 Check 'git: commit signing on' { (& git config --global commit.gpgsign) -eq 'true' }
 Check 'git: gpg.program has no path' { (& git config --global gpg.program) -eq 'gpg' }
 Check 'git: signing key set' { (& git config --global user.signingkey) -eq $GpgFingerprint.Substring(24) }

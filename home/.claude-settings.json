@@ -7,7 +7,8 @@
     "pstack@pstack-claude": true,
     "pstack@cursor-plugins": false,
     "mattpocock-skills@mattpocock": true,
-    "humanizer@humanizer": true
+    "humanizer@humanizer": true,
+    "ronny@mcode-stack": true
   },
   "extraKnownMarketplaces": {
     "ponytail": {
@@ -38,6 +39,12 @@
       "source": {
         "source": "git",
         "url": "https://github.com/blader/humanizer.git"
+      }
+    },
+    "mcode-stack": {
+      "source": {
+        "source": "github",
+        "repo": "MiniMax-AI/mcode-stack"
       }
     }
   },

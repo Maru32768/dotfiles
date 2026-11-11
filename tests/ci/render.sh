@@ -122,7 +122,7 @@ enable-ssh-support
 disable-scdaemon'
 check "linux-main: コミット署名が有効" 'grep -q "gpgsign = true" "$work/linux-main/home/.gitconfig"'
 check "linux-main: Claude の設定にフックがある" 'jq -e ".hooks.PreToolUse[0].hooks[0].command | test(\"block-signing-bypass\")" "$work/linux-main/home/.claude/settings.json"'
-equals "linux-main: 実行するスクリプト" "$(scripts_of linux-main)" "10-mise-install.sh 20-build-hooks.sh 30-vim-plugins.sh 40-claude-code.sh"
+equals "linux-main: 実行するスクリプト" "$(scripts_of linux-main)" "10-mise-install.sh 20-build-hooks.sh 30-vim-plugins.sh 40-claude-code.sh 50-gh-extensions.sh"
 
 # --- Windows ---
 for file in .wslconfig OneDrive/Documents/PowerShell/Microsoft.PowerShell_profile.ps1 .claude/settings.json .claude/CLAUDE.md .vimrc .local/bin/bws-run.ps1 .local/bin/bws-run.cmd; do
@@ -137,7 +137,7 @@ max-cache-ttl 259200
 default-cache-ttl-ssh 86400
 max-cache-ttl-ssh 259200'
 check "windows-main: .vimrc が VS Code 用" 'cmp -s "$work/windows-main/home/.vimrc" "$root/home/.vimrc-files/vscode.vimrc"'
-equals "windows-main: 実行するスクリプト" "$(scripts_of windows-main)" "10-mise-install.ps1 20-build-hooks.ps1"
+equals "windows-main: 実行するスクリプト" "$(scripts_of windows-main)" "10-mise-install.ps1 20-build-hooks.ps1 50-gh-extensions.ps1"
 
 # --- プロファイル ---
 profile_of() { sed -n 's/^ *profile = "\(.*\)"$/\1/p' "$work/$1/chezmoi.toml"; }

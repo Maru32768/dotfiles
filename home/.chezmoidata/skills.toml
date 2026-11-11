@@ -26,6 +26,12 @@ path = "skills/find-skills"
 commit = "d3701c11b1101251af14c9d148f026e1a47ebe17"
 targets = ["claude"]
 
+[skills.gh-stack]
+repo = "github/gh-stack"
+path = "skills/gh-stack"
+commit = "2a49e6751238633db504655d8a8eba3e433e827d"
+targets = ["claude", "codex"]
+
 [skills.rust-skills]
 repo = "leonardomso/rust-skills"
 path = ""

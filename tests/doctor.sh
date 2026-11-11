@@ -54,6 +54,7 @@ done
 check "chezmoi の管理ファイルに差分がない" 'status="$(chezmoi status --exclude=scripts)" && [ -z "$(printf "%s\n" "$status" | grep -v "\.claude/settings\.json$")" ]'
 # Windows では開発者モードでないとリンクを作れず、chezmoi apply が失敗する。skills.toml の exclude で外す
 check "スキルにシンボリックリンクがない" '[ -z "$(find ~/.claude/skills ~/.agents/skills -path "*/skills/synced" -prune -o -type l -print 2>/dev/null)" ]'
+check "gh の拡張: gh-stack" 'gh stack --version'
 check ".gitconfig が実ファイル" '[ -f ~/.gitconfig ] && [ ! -L ~/.gitconfig ]'
 check ".ssh が実ディレクトリ" '[ -d ~/.ssh ] && [ ! -L ~/.ssh ]'
 check ".ssh の権限が 700" '[ "$(stat -c %a ~/.ssh)" = 700 ]'

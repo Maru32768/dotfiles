@@ -27,6 +27,22 @@ bash ~/.claude/skills/imos-humanizer/scripts/fetch-rules.sh --check
 
 差分は、前に照合した版の控え (`~/.cache/imos-humanizer/`) と比べる。控えが無い端末では差分を出せないので、控えのある端末で確かめる。
 
+## 自作のスキルが呼ぶもの
+
+| 呼ぶもの | 呼ぶスキル | 入れ方 |
+|---|---|---|
+| `gh-stack` | split-pr-stack | `skills.toml` |
+| `gh stack` (gh の拡張) | gh-stack | `home/run_onchange_after_50-gh-extensions.*` がタグを固定して入れる |
+| `yomiyasu` | prose-polish、imos-humanizer | `skills.toml` |
+| `clarity` | prose-polish | `skills.toml` |
+| `ronny:engineering-small-prs` | ship-task、split-pr-stack | プラグイン (`home/.claude-settings.json`) |
+| `grill-me`、`grill-with-docs` | ship-task | プラグイン (`mattpocock-skills`) |
+| `pstack:poteto-mode`、`pstack:technical-writing` | ship-task、prose-polish | プラグイン (`pstack`) |
+| `ponytail:ponytail-review` | review-loop | プラグイン (`ponytail`) |
+| `explain-before-shorten` | prose-polish | 管理しない。記事 (`https://zenn.dev/microsoft/articles/explain-before-shorten`) に本文があるだけで、リポジトリもライセンスも無い。使う端末に手で置く |
+
+`update-skills.sh` は gh の拡張のタグを上げない。gh-stack の `commit` を上げたら、`run_onchange_after_50-gh-extensions.sh` と `.ps1` のタグも上流の最新のリリースに揃える。
+
 ## 方針
 
 - **コミットで固定する:** スキルはエージェントへの指示なので、知らないうちに中身が変わらないようにする。
