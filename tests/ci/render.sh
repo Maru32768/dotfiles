@@ -124,6 +124,16 @@ check "linux-main: コミット署名が有効" 'grep -q "gpgsign = true" "$work
 check "linux-main: Claude の設定にフックがある" 'jq -e ".hooks.PreToolUse[0].hooks[0].command | test(\"block-signing-bypass\")" "$work/linux-main/home/.claude/settings.json"'
 equals "linux-main: 実行するスクリプト" "$(scripts_of linux-main)" "10-mise-install.sh 20-build-hooks.sh 30-vim-plugins.sh 40-claude-code.sh 50-gh-extensions.sh"
 
+# --- knowledge-capture (docs/skills.md) ---
+# 許可を広げるときは、何を許すことになるかを確かめてから、期待する値を直す
+knowledge_tools='Bash(git remote -v) Read(~/work/blog/marulabs-knowledge/**) Edit(~/work/blog/marulabs-knowledge/knowledge/**) Bash(git -C ~/work/blog/marulabs-knowledge add *) Bash(git -C ~/work/blog/marulabs-knowledge commit *) Bash(git -C ~/work/blog/marulabs-knowledge status *) Bash(mise exec gitleaks@8.30.1 -- gitleaks dir *)'
+for name in linux-main windows-main; do
+  skill="$work/$name/home/.claude/skills/knowledge-capture/SKILL.md"
+  check "$name: knowledge-capture がある" '[ -f "$skill" ]'
+  equals "$name: knowledge-capture の allowed-tools" "$(sed -n 's/^allowed-tools: //p' "$skill" 2>/dev/null)" "$knowledge_tools"
+  check "$name: CLAUDE.md に記録の提案がある" 'grep -q "記録候補:" "$work/$name/home/.claude/CLAUDE.md"'
+done
+
 # --- Windows ---
 for file in .wslconfig OneDrive/Documents/PowerShell/Microsoft.PowerShell_profile.ps1 .claude/settings.json .claude/CLAUDE.md .vimrc .local/bin/bws-run.ps1 .local/bin/bws-run.cmd; do
   check "windows-main: $file がある" '[ -f "$work/windows-main/home/$file" ]'
