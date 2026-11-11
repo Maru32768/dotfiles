@@ -134,7 +134,8 @@ for name in linux-main windows-main; do
   equals "$name: knowledge-capture の frontmatter" "$(sed -n '1{/^---$/!q;d};/^---$/q;/^description: /d;p' "$skill" 2>/dev/null)" "name: knowledge-capture
 argument-hint: \"[記録する内容のメモ]\"
 allowed-tools: $knowledge_tools"
-  check "$name: CLAUDE.md に記録の提案がある" 'grep -q "記録候補:" "$work/$name/home/.claude/CLAUDE.md"'
+  check "$name: knowledge-capture がコミットの前に gitleaks で調べる" 'grep -qF "exec -- gitleaks dir --no-banner --redact -v --exit-code 3" "$skill"'
+  check "$name: CLAUDE.md に記録の提案の形がある" 'grep -qF "記録候補: <タイトル案>(/knowledge-capture)" "$work/$name/home/.claude/CLAUDE.md"'
 done
 
 # --- Windows ---
