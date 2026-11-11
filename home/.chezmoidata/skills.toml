@@ -23,13 +23,13 @@ targets = ["claude", "codex"]
 [skills.find-skills]
 repo = "vercel-labs/skills"
 path = "skills/find-skills"
-commit = "d3701c11b1101251af14c9d148f026e1a47ebe17"
+commit = "e781cb4d07433dfe1d19e924ed45cc61738c55ec"
 targets = ["claude"]
 
 [skills.gh-stack]
 repo = "github/gh-stack"
 path = "skills/gh-stack"
-commit = "2a49e6751238633db504655d8a8eba3e433e827d"
+commit = "bd0a32504f9ae9f795875a9e6bb90ff7408fda08"
 targets = ["claude", "codex"]
 
 [skills.rust-skills]
@@ -97,5 +97,5 @@ targets = ["claude", "codex"]
 [skills.yomiyasu]
 repo = "nanaism/yomiyasu"
 path = "skills/yomiyasu"
-commit = "8394e099486aaa2e28cf89992e46f5ebe5ed839d"
+commit = "2318a6d0820a58d3f8cfadc75af86978bb739185"
 targets = ["claude", "codex"]
