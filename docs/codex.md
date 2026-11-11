@@ -1,6 +1,8 @@
 # Codex の設定
 
-Codex は今のところ Windows だけで使う。Linux には `~/.codex` を置かない。
+Codex は今のところ Windows で使う。Windows の CLI は Codex のアプリが入れる。
+
+Linux (main と agent) には、review-loop の codex review に使う CLI だけを mise で入れる。`~/.codex` の設定は管理しない。使う前に、main で 1 度 `codex login` する。agent ではログインしないので、CLI があっても動かない。
 
 | ファイル | 内容 |
 |---|---|

@@ -22,6 +22,8 @@ terraform = "1"
 aws-cli = { version = "2", os = ["linux", "macos"] }
 # Bitwarden Secrets Manager の CLI。API キーは bws-run で、使うコマンドにだけ渡す (docs/secrets.md)
 bitwarden-secrets-manager = "2"
+# Windows は Codex のアプリが入れる。Linux は review-loop の codex review に使う (docs/codex.md)
+codex = { version = "latest", os = ["linux"] }
 gh = "latest"
 ghq = "latest"
 ripgrep = "latest"

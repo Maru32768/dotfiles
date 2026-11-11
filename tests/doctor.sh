@@ -45,7 +45,7 @@ lock_versions() {
     "$HOME/.config/mise/mise.lock" | sort
 }
 check "ツールのバージョンが mise.lock と一致" 'diff <(lock_versions) <(mise ls --current | awk "{print \$1, \$2}" | sort)'
-for tool in chezmoi go node rustc deno bun uv python java terraform aws bws gh ghq rg fd shellcheck yt-dlp goimports; do
+for tool in chezmoi go node rustc deno bun uv python java terraform aws bws codex gh ghq rg fd shellcheck yt-dlp goimports; do
   check "ツール: $tool" "command -v $tool"
 done
 

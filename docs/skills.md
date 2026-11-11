@@ -39,6 +39,7 @@ bash ~/.claude/skills/imos-humanizer/scripts/fetch-rules.sh --check
 | `grill-me`、`grill-with-docs` | ship-task | プラグイン (`mattpocock-skills`) |
 | `pstack:poteto-mode`、`pstack:technical-writing` | ship-task、prose-polish | プラグイン (`pstack`) |
 | `ponytail:ponytail-review` | review-loop | プラグイン (`ponytail`) |
+| `codex review` (Codex の CLI) | review-loop | Linux は mise (`docs/codex.md`)、Windows は Codex のアプリ |
 | `explain-before-shorten` | prose-polish | 管理しない。記事 (`https://zenn.dev/microsoft/articles/explain-before-shorten`) に本文があるだけで、リポジトリもライセンスも無い。使う端末に手で置く |
 
 `update-skills.sh` は gh の拡張のタグを上げない。gh-stack の `commit` を上げたら、`run_onchange_after_50-gh-extensions.sh` と `.ps1` のタグも上流の最新のリリースに揃える。

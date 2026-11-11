@@ -74,6 +74,17 @@ url = "https://github.com/twpayne/chezmoi/releases/download/v2.74.0/chezmoi_2.74
 url_api = "https://api.github.com/repos/twpayne/chezmoi/releases/assets/698495241"
 provenance = "cosign"
 
+[[tools.codex]]
+version = "0.163.0"
+backend = "aqua:openai/codex"
+specifiers = ["latest"]
+
+[tools.codex."platforms.linux-x64"]
+checksum = "sha256:582646c6bf0561eb0de540f7fc85b9121b0091a826bc6e96830b7f1722122182"
+checksum_source = "mise-versions"
+url = "https://github.com/openai/codex/releases/download/rust-v0.163.0/codex-package-x86_64-unknown-linux-musl.tar.gz"
+url_api = "https://api.github.com/repos/openai/codex/releases/assets/645227523"
+
 [[tools.deno]]
 version = "2.9.8"
 backend = "core:deno"
