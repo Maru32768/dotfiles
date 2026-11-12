@@ -107,11 +107,12 @@ check "windows-main: Codex の共通設定が優先される" 'jq -e ".windows.s
 check "Codex の設定がない環境でも共通設定から作れる" '[ "$(cm windows-main execute-template --with-stdin "$(cat "$root/home/dot_codex/modify_config.toml")" </dev/null | cm windows-main execute-template --with-stdin "{{ .chezmoi.stdin | fromToml | toJson }}")" = "$(toml_json windows-main "$root/home/.codex-config.toml")" ]'
 
 # --- 普段の環境 ---
-for file in .ssh/config .gnupg/gpg-agent.conf .claude/settings.json .claude/CLAUDE.md .tmux.conf .vimrc .local/bin/bws-run; do
+for file in .ssh/config .gnupg/gpg-agent.conf .claude/settings.json .claude/CLAUDE.md .tmux.conf .vimrc .local/bin/bws-run .local/bin/split-pdf; do
   check "linux-main: $file がある" '[ -f "$work/linux-main/home/$file" ]'
 done
 check "linux-main: bws-run が実行できる" '[ -x "$work/linux-main/home/.local/bin/bws-run" ]'
-for file in .local/bin/bws-run.ps1 .local/bin/bws-run.cmd; do
+check "linux-main: split-pdf が実行できる" '[ -x "$work/linux-main/home/.local/bin/split-pdf" ]'
+for file in .local/bin/bws-run.ps1 .local/bin/bws-run.cmd .local/bin/split-pdf.cmd; do
   blocked "linux-main: $file がない" '[ -e "$work/linux-main/home/$file" ]'
 done
 equals "linux-main: gpg-agent.conf" "$(cat "$work/linux-main/home/.gnupg/gpg-agent.conf")" 'default-cache-ttl 86400
@@ -141,7 +142,7 @@ allowed-tools: $knowledge_tools"
 done
 
 # --- Windows ---
-for file in .wslconfig OneDrive/Documents/PowerShell/Microsoft.PowerShell_profile.ps1 .claude/settings.json .claude/CLAUDE.md .vimrc .local/bin/bws-run.ps1 .local/bin/bws-run.cmd; do
+for file in .wslconfig OneDrive/Documents/PowerShell/Microsoft.PowerShell_profile.ps1 .claude/settings.json .claude/CLAUDE.md .vimrc .local/bin/bws-run.ps1 .local/bin/bws-run.cmd .local/bin/split-pdf .local/bin/split-pdf.cmd; do
   check "windows-main: $file がある" '[ -f "$work/windows-main/home/$file" ]'
 done
 for file in .tmux.conf .ssh .config/environment.d .local/bin/bws-run; do
