@@ -11,10 +11,10 @@
     split-pdf book.pdf --list          # print the ranges, write nothing
 
 Files go to a folder next to the PDF, named after it (--out to change). A bookmark file runs
-from its page to the page before the next bookmark at that depth or shallower, keeps the
-bookmarks inside it, and takes the bookmark's title as its /Title. With --level 1, a
-top-level bookmark without children (Preface, Appendix, Index) is a file too, and the pages
-of a Part before its first chapter go in no file.
+from its page to the page before the next bookmark at the split depth or shallower, keeps the
+bookmarks inside it, and takes the bookmark's title as its /Title. Above the split depth, a
+bookmark without children (a Preface, Appendix or Index beside the Parts) is a file too, and
+the pages of one with children before its first child (a Part's title page) go in no file.
 """
 
 import argparse
@@ -80,6 +80,8 @@ def main() -> None:
     args = ap.parse_args()
     if args.every is not None and args.every < 1:
         ap.error("--every must be at least 1")
+    if args.level < 0:
+        ap.error("--level must be 0 or more")
 
     reader = PdfReader(args.pdf)
     if reader.is_encrypted and not reader.decrypt(""):
