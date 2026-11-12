@@ -2,7 +2,7 @@
 name: knowledge-capture
 description: 開発中に分かった技術的な知見を、Privateリポジトリmarulabs-knowledgeの調査記録に残す。利用者が/knowledge-captureを実行したとき、または記録を頼んだときに使う。
 argument-hint: "[記録する内容のメモ]"
-allowed-tools: Bash(git remote -v) Read(~/work/blog/marulabs-knowledge/**) Edit(~/work/blog/marulabs-knowledge/knowledge/**) Bash(git -C ~/work/blog/marulabs-knowledge add *) Bash(git -C ~/work/blog/marulabs-knowledge commit *)
+allowed-tools: Bash(git remote -v) Read(~/work/blog/marulabs-knowledge/**) Edit(~/work/blog/marulabs-knowledge/knowledge/**) Bash(git -C ~/work/blog/marulabs-knowledge add *) Bash(git -C ~/work/blog/marulabs-knowledge commit *) Bash(gh repo clone Maru32768/marulabs-knowledge ~/work/blog/marulabs-knowledge)
 ---
 
 # 調査記録を残す
@@ -11,7 +11,7 @@ allowed-tools: Bash(git remote -v) Read(~/work/blog/marulabs-knowledge/**) Edit(
 
 コマンドは、`~`を展開せず、`$(...)`や変数を入れずに、ここに書いた形のまま実行する。`allowed-tools`の許可がこの文字列に合い、許可の判定もできるようにするため。
 
-1. **所属を確かめる。** `~/work/blog/marulabs-knowledge`がなければ、`git clone git@github.com:Maru32768/marulabs-knowledge.git ~/work/blog/marulabs-knowledge`で用意できると返して止まる。あれば、今のディレクトリで`git remote -v`を実行する。remoteがGitHubの`Maru32768`のもの(`git@github.com:Maru32768/…`か`https://github.com/Maru32768/…`)、上流が公開されているOSSのclone、remoteのないリポジトリ、gitのリポジトリでない場所のどれかなら次へ進む。どれでもなければ、所属を利用者に1回だけ尋ねて、このターンを終える。続けてよいと答えが来たら、Skillツールで`knowledge-capture`をもう一度呼んでから2へ進む。`allowed-tools`の許可は、利用者が次のメッセージを送ると消えるため
+1. **所属を確かめる。** `~/work/blog/marulabs-knowledge`がなければ、`gh repo clone Maru32768/marulabs-knowledge ~/work/blog/marulabs-knowledge`でcloneする。cloneできなければ、出力を返して止まる。あれば、今のディレクトリで`git remote -v`を実行する。remoteがGitHubの`Maru32768`のもの(`git@github.com:Maru32768/…`か`https://github.com/Maru32768/…`)、上流が公開されているOSSのclone、remoteのないリポジトリ、gitのリポジトリでない場所のどれかなら次へ進む。どれでもなければ、所属を利用者に1回だけ尋ねて、このターンを終える。続けてよいと答えが来たら、Skillツールで`knowledge-capture`をもう一度呼んでから2へ進む。`allowed-tools`の許可は、利用者が次のメッセージを送ると消えるため
 2. **書式を読む。** `~/work/blog/marulabs-knowledge/CLAUDE.md`の全体と`templates/knowledge.md`を読む。書式はこれらに従う
 3. **既存の記録を探す。** Grepツールで`~/work/blog/marulabs-knowledge/knowledge/`を、`project`の値と、エラーメッセージや関数名で探す。同じ問題の記録があれば、それに追記する。なければ新しく作る
 4. **書く。** `type`を選び、その種類の見出しで書く。主張のすべてに根拠のラベルが付き、CLAUDE.mdのラベルの表が求める根拠が同じ記録に貼ってあれば、このステップは終わり
