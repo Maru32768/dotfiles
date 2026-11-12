@@ -39,10 +39,11 @@ while read -r pkg; do
 done < <(grep -vE '^(#|$)' "$HOME/dotfiles/packages/apt.txt")
 
 check "mise" 'mise --version'
+# Windows だけのツール(config.toml の os)は、Linux の mise ls --current に出ない
 lock_versions() {
   awk '/^\[\[tools\./ { name = $0; gsub(/^\[\[tools\.|\]\]$|"/, "", name) }
        /^version = / { version = $3; gsub(/"/, "", version); print name, version }' \
-    "$HOME/.config/mise/mise.lock" | sort
+    "$HOME/.config/mise/mise.lock" | grep -v '^github:ggml-org/llama.cpp ' | sort
 }
 check "ツールのバージョンが mise.lock と一致" 'diff <(lock_versions) <(mise ls --current | awk "{print \$1, \$2}" | sort)'
 for tool in chezmoi go node rustc deno bun uv python java terraform aws bws codex gh ghq rg fd shellcheck yt-dlp goimports; do
