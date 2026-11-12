@@ -55,4 +55,5 @@ chezmoiが`~/.local/bin`に置く。
 
 | コマンド | 内容 |
 |---|---|
+| `bws-run` | Secrets ManagerのAPIキーを、そのコマンドにだけ環境変数として渡す(`docs/secrets.md`) |
 | `split-pdf` | PDFを、しおりごとか(`--level`)、Nページごと(`--every N`)のファイルに分ける。uvのスクリプトなので、初回にpypdfを取得する。Windowsでは`split-pdf.cmd`から動かす |
