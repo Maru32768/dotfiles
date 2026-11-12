@@ -1,7 +1,7 @@
 #!/usr/bin/env -S uv run --script
 # /// script
 # requires-python = ">=3.12"
-# dependencies = ["pypdf>=5"]
+# dependencies = ["pypdf[crypto]>=5"]
 # ///
 """Split a PDF into one file per bookmark, or into runs of N pages.
 
@@ -77,6 +77,8 @@ def main() -> None:
         ap.error("--every must be at least 1")
 
     reader = PdfReader(args.pdf)
+    if reader.is_encrypted and not reader.decrypt(""):
+        raise SystemExit(f"{args.pdf} needs a password to open")
     if args.every:
         book = (reader.metadata and reader.metadata.title or "").strip() or args.pdf.stem
         parts = by_pages(len(reader.pages), args.every, book)
