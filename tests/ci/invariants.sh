@@ -9,11 +9,11 @@ failures=0
 pass() { printf 'PASS %s\n' "$1"; }
 fail() { printf 'FAIL %s\n' "$1"; failures=$((failures + 1)); }
 
-# Windows PowerShell 5.1 は BOM なしの UTF-8 を読み違える
-non_ascii="$(git ls-files -co --exclude-standard '*.ps1' '*.ps1.tmpl' | while IFS= read -r file; do
+# Windows PowerShell 5.1 は BOM なしの UTF-8 を、cmd はコードページの違う文字を読み違える
+non_ascii="$(git ls-files -co --exclude-standard '*.ps1' '*.ps1.tmpl' '*.cmd' | while IFS= read -r file; do
   [ -e "$file" ] && LC_ALL=C grep -lP '[^\x00-\x7F]' "$file"
 done)"
-if [ -z "$non_ascii" ]; then pass "PowerShell のスクリプトが ASCII だけ"; else fail "PowerShell のスクリプトが ASCII 以外を含む: $non_ascii"; fi
+if [ -z "$non_ascii" ]; then pass "PowerShell と cmd のスクリプトが ASCII だけ"; else fail "PowerShell と cmd のスクリプトが ASCII 以外を含む: $non_ascii"; fi
 
 # 表記は v の有無が違う (docs/tools.md)
 mise_linux="$(sed -n 's/^MISE_VERSION="v\(.*\)"$/\1/p' provision/user.sh)"

@@ -34,7 +34,7 @@ chezmoi diff && chezmoi apply           # ホームへの反映
 
 ## 守ること
 
-- `tests/ci/invariants.sh` が検査している約束: PowerShell のスクリプトは ASCII だけ (Windows PowerShell 5.1 が BOM なしの UTF-8 を読み違える)。mise 本体のバージョンは `provision/user.sh` の `MISE_VERSION` と `bootstrap.ps1` の `$MiseVersion` で揃える。GPG のフィンガープリントは各スクリプトで揃える。
+- `tests/ci/invariants.sh` が検査している約束: PowerShell と cmd のスクリプトは ASCII だけ (Windows PowerShell 5.1 は BOM なしの UTF-8 を、cmd はコードページの違う文字を読み違える)。mise 本体のバージョンは `provision/user.sh` の `MISE_VERSION` と `bootstrap.ps1` の `$MiseVersion` で揃える。GPG のフィンガープリントは各スクリプトで揃える。
 - PowerShell のスクリプトは Windows PowerShell 5.1 でも動くように書く。
 - 改行は LF (`.gitattributes`)。
 - 公開リポジトリなので、秘密情報を入れない (gitleaks が履歴すべてを調べる)。API キーは Bitwarden Secrets Manager と `bws-run` で渡す (`docs/secrets.md`)。
