@@ -146,6 +146,7 @@ for file in .wslconfig OneDrive/Documents/PowerShell/Microsoft.PowerShell_profil
   check "windows-main: $file がある" '[ -f "$work/windows-main/home/$file" ]'
 done
 check "windows-main: plamo-server.cmd がある" '[ -f "$work/windows-main/home/.local/bin/plamo-server.cmd" ]'
+check "windows-main: plamo-server は 127.0.0.1 だけで待ち受け、CORS を localhost に絞る" 'grep -qF -- "--host 127.0.0.1 --port 8077 --cors-origins localhost --no-cors-credentials" "$work/windows-main/home/.local/bin/plamo-server.cmd"'
 for file in .tmux.conf .ssh .config/environment.d .local/bin/bws-run; do
   blocked "windows-main: $file がない" '[ -e "$work/windows-main/home/$file" ]'
 done
