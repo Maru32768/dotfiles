@@ -149,6 +149,20 @@ checksum_source = "mise-versions"
 url = "https://github.com/x-motemen/ghq/releases/download/v1.12.0/ghq_windows_amd64.zip"
 url_api = "https://api.github.com/repos/x-motemen/ghq/releases/assets/706006431"
 
+[[tools."github:ggml-org/llama.cpp"]]
+version = "b12317"
+backend = "github:ggml-org/llama.cpp"
+specifiers = ["b12317"]
+
+[tools."github:ggml-org/llama.cpp".options]
+asset_pattern = "llama-*-bin-win-vulkan-x64.zip"
+
+[tools."github:ggml-org/llama.cpp"."platforms.windows-x64"]
+checksum = "sha256:968a487604622f4194d0451d77a92b6a7cff1c29338e88841dd38472c81013ca"
+url = "https://github.com/ggml-org/llama.cpp/releases/download/b12317/llama-b12317-bin-win-vulkan-x64.zip"
+url_api = "https://api.github.com/repos/ggml-org/llama.cpp/releases/assets/738431890"
+provenance = "github-attestations"
+
 [[tools.go]]
 version = "1.27.3"
 backend = "core:go"

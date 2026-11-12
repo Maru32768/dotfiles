@@ -18,6 +18,7 @@ OneDrive
 OneDrive/**
 .codex
 .codex/**
+.local/bin/plamo-server.cmd
 .local/bin/bws-run.ps1
 .local/bin/bws-run.cmd
 10-mise-install.ps1

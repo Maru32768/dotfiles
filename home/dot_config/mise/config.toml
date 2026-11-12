@@ -31,3 +31,7 @@ fd = "latest"
 shellcheck = "latest"
 vale = "3"
 yt-dlp = "latest"
+# 翻訳用のPLaMo 3 Translateを動かす(plamo-server、docs/tools.md)。GPUはWindows側にあるのでWindowsだけ
+# Windows向けのビルドはプレリリースにしかなく、latestでは引けないのでタグで固定する
+# CUDA版は本体とcudartが別のzipで、miseでは片方しか入らない。Vulkan版は1つで済み、GTX 1080では生成の速さも変わらない
+"github:ggml-org/llama.cpp" = { version = "b12317", os = ["windows"], asset_pattern = "llama-*-bin-win-vulkan-x64.zip" }

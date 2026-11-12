@@ -114,6 +114,7 @@ check "linux-main: bws-run が実行できる" '[ -x "$work/linux-main/home/.loc
 for file in .local/bin/bws-run.ps1 .local/bin/bws-run.cmd; do
   blocked "linux-main: $file がない" '[ -e "$work/linux-main/home/$file" ]'
 done
+blocked "linux-main: plamo-server.cmd がない" '[ -e "$work/linux-main/home/.local/bin/plamo-server.cmd" ]'
 equals "linux-main: gpg-agent.conf" "$(cat "$work/linux-main/home/.gnupg/gpg-agent.conf")" 'default-cache-ttl 86400
 max-cache-ttl 259200
 default-cache-ttl-ssh 86400
@@ -144,6 +145,7 @@ done
 for file in .wslconfig OneDrive/Documents/PowerShell/Microsoft.PowerShell_profile.ps1 .claude/settings.json .claude/CLAUDE.md .vimrc .local/bin/bws-run.ps1 .local/bin/bws-run.cmd; do
   check "windows-main: $file がある" '[ -f "$work/windows-main/home/$file" ]'
 done
+check "windows-main: plamo-server.cmd がある" '[ -f "$work/windows-main/home/.local/bin/plamo-server.cmd" ]'
 for file in .tmux.conf .ssh .config/environment.d .local/bin/bws-run; do
   blocked "windows-main: $file がない" '[ -e "$work/windows-main/home/$file" ]'
 done

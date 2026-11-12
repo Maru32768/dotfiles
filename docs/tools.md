@@ -45,6 +45,21 @@ mise 本体は `MISE_VERSION` と `$MiseVersion` を書き換える。ずれて�
 | エージェントのスキル | コミットで固定するが、チェックサムはない (`docs/skills.md`) |
 | `apt.txt` のパッケージ | Ubuntu の更新に任せる |
 
+## PLaMo 3 Translate
+
+翻訳専用のLLMのPLaMo 3 Translateを、Windowsのllama.cppで動かす。`plamo-server`(既定は2B、`plamo-server 8b`で8B)が、OpenAI互換のAPIを`http://127.0.0.1:8077`で開く。モデルは初回の起動でHugging Faceから`~/.cache/huggingface/hub`に取得する(2Bは1.8GB、8Bは5.3GB)。使い方(翻訳の向き、用語集、文体の指定)はモデルカード(https://huggingface.co/pfnet/plamo-3-translate-2b-GGUF)にある。
+
+- llama.cppのWindows向けのビルドはプレリリースにしかなく、`latest`では引けない。上げるときは`config.toml`のタグ(`b12317`など)を書き換えて`mise lock --global`する
+- CUDA版は本体とcudartが別のzipで、miseでは片方しか入らないので、Vulkan版にしている。GTX 1080で測った速さ(Q4_K_M、トークン/秒)は次のとおりで、翻訳の時間のほとんどを占める生成は変わらない(約6,900字を2Bで25秒)
+
+| ビルド | 2Bの読み込み | 2Bの生成 | 8Bの読み込み | 8Bの生成 |
+|---|---:|---:|---:|---:|
+| CUDA 12.4 | 1863 | 85 | 638 | 35 |
+| Vulkan | 883 | 94 | 263 | 36 |
+
+- 8Bは16kの文脈でVRAMを7.7GB使うので、ほかのアプリがGPUを使っていると足りなくなる
+- CORSは既定ですべてのオリジンを許すので、ブラウザで開いたページから応答を読めないように`--cors-origins localhost`で絞る
+
 ## Windows
 
 `aws-cli` は mise では Windows に入らないので、`config.toml` で Linux と macOS に限定し、Windows では `winget` で入れる。
