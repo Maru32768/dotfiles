@@ -142,6 +142,11 @@ check "作業ツリーに未コミットの変更があると始めず、前回�
 rm -f "$repo/junk"
 check "ログのディレクトリがworktreeの中で無視されていなければ始めない" '! verify "layer B1 stack/B . true" "$repo/vlog" 2>/dev/null'
 rm -rf "$repo/vlog"
+g config status.showUntrackedFiles no
+touch "$repo/junk"
+check "status.showUntrackedFilesがnoでも、未追跡のファイルを見つけて始めない" '! verify "layer B1 stack/B . true" "$work/vlog4" 2>/dev/null && [ -e "$repo/junk" ]'
+rm -f "$repo/junk"
+g config status.showUntrackedFiles normal
 
 # 偽のghはPRをJSONに記録する。GH_FAIL_HEADのブランチのPRは作れない
 git init -q --bare "$work/origin.git"
