@@ -3,11 +3,11 @@
 # requires-python = ">=3.12"
 # dependencies = ["pypdf[crypto]>=5"]
 # ///
-"""Split a PDF into one file per bookmark, or into runs of N pages.
+"""Split a PDF into one file per bookmark, or at the pages where its chapters start.
 
     split-pdf book.pdf                 # one file per top-level bookmark
     split-pdf book.pdf --level 1       # one file per second-level bookmark (books with Parts)
-    split-pdf book.pdf --every 30      # 30 pages per file
+    split-pdf book.pdf --at 1,33,65    # split before these pages (a book without bookmarks)
     split-pdf book.pdf --list          # print the ranges, write nothing
 
 Files go to a folder next to the PDF, named after it (--out to change). A bookmark file runs
@@ -16,6 +16,11 @@ bookmarks inside it, and takes the bookmark's title as its /Title. Above the spl
 bookmark without children (a Preface, Appendix or Index beside the Parts) is a file too, and
 the pages of one with children before its first child (a Part's title page) go in no file.
 Pages before the first bookmark (a cover without one) go in a file named after their range.
+
+--at takes the page numbers printed in the book, as in its table of contents, when the PDF
+records them (page labels: its first pages may be Cover, i, ii, and 1 may be the 25th page),
+and the PDF's own page numbers otherwise. The ranges printed and used in file names are the
+PDF's page numbers.
 """
 
 import argparse
@@ -61,8 +66,17 @@ def by_outline(reader: PdfReader, level: int) -> list[Part]:
     return parts
 
 
-def by_pages(pages: int, every: int, book: str) -> list[Part]:
-    return [(s, min(s + every, pages), f"{book} (p.{s + 1}-{min(s + every, pages)})") for s in range(0, pages, every)]
+def by_starts(reader: PdfReader, at: list[str], book: str) -> list[Part]:
+    labels = reader.page_labels  # "1", "2", ... when the PDF has no page labels
+    starts = {0}  # the pages before the first chapter are a file too
+    for value in at:
+        found = [i for i, label in enumerate(labels) if label == value]
+        if len(found) != 1:
+            # Splitting at a guessed page would cut a chapter in two without a word.
+            raise SystemExit(f"--at {value}: {'no page carries' if not found else f'{len(found)} pages carry'} that number")
+        starts.add(found[0])
+    bounds = sorted(starts) + [len(labels)]
+    return [(s, e, f"{book} (p.{s + 1}-{e})") for s, e in zip(bounds, bounds[1:])]
 
 
 def safe_name(title: str) -> str:
@@ -78,29 +92,30 @@ def main() -> None:
     ap.add_argument("pdf", type=Path)
     how = ap.add_mutually_exclusive_group()
     how.add_argument("--level", type=int, default=0, help="bookmark depth to split at (0 = top level, the default)")
-    how.add_argument("--every", type=int, metavar="N", help="split into runs of N pages instead of by bookmark")
+    how.add_argument("--at", metavar="PAGES", help="split before these pages, comma-separated, as numbered in the book (see above)")
     ap.add_argument("--out", type=Path, help="output folder (default: next to the PDF, named after it)")
     ap.add_argument("--list", action="store_true", help="print the ranges without writing files")
     args = ap.parse_args()
-    if args.every is not None and args.every < 1:
-        ap.error("--every must be at least 1")
+    at = [v.strip() for v in (args.at or "").split(",") if v.strip()]
+    if args.at is not None and not at:
+        ap.error("--at needs at least one page")
     if args.level < 0:
         ap.error("--level must be 0 or more")
 
     reader = PdfReader(args.pdf)
     if reader.is_encrypted and not reader.decrypt(""):
         raise SystemExit(f"{args.pdf} needs a password to open")
-    if args.every:
+    if at:
         book = (reader.metadata and reader.metadata.title or "").strip() or args.pdf.stem
-        parts = by_pages(len(reader.pages), args.every, book)
+        parts = by_starts(reader, at, book)
     else:
         parts = by_outline(reader, args.level)
     if not parts:
-        raise SystemExit(f"no bookmarks at level {args.level}; try --every N")
+        raise SystemExit(f"no bookmarks at level {args.level}; try --at PAGES")
 
     out = args.out or args.pdf.with_suffix("")
     width = len(str(len(parts)))
-    paths = [out / f"{n:0{width}d} {(not args.every and safe_name(title)) or f'p.{start + 1}-{end}'}.pdf" for n, (start, end, title) in enumerate(parts, 1)]
+    paths = [out / f"{n:0{width}d} {(not at and safe_name(title)) or f'p.{start + 1}-{end}'}.pdf" for n, (start, end, title) in enumerate(parts, 1)]
     if not args.list:
         # With --out next to the source, "1 Chapter.pdf" would overwrite a source of that name (or a link to it); check before writing any file.
         if any(p.exists() and p.samefile(args.pdf) for p in paths):

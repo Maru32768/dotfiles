@@ -21,18 +21,22 @@ title() { uv run --quiet --no-project --with "pypdf[crypto]" python -I -c 'impor
 
 # book.pdf (14 ページ): 序文 p1、Part I p2 (Ch1 p2 とその節 p3、Ch2 p4)、Part II p7 (Ch3 p8、Ch4 p10)、
 # 付録 p12 と同じページの奥付。unordered.pdf (10 ページ): しおりがページ順でない (p6、p3、p9)。
-# names.pdf: ASCII にないダッシュ、空白だけ、100 字の日本語の名前。aes.pdf: AES-256 で閲覧の制限だけをかけた PDF
+# names.pdf: ASCII にないダッシュ、空白だけ、100 字の日本語の名前。aes.pdf: AES-256 で閲覧の制限だけをかけた PDF。
+# labeled.pdf (8 ページ、しおりなし): 印刷されたページ番号が i、ii、1、2、…6
 uv run --quiet --no-project --with "pypdf[crypto]" python -I - "$work" <<'EOF'
 import sys
 from pypdf import PdfWriter
 
-def pdf(path, n, marks, encrypt=False):
+def pdf(path, n, marks, encrypt=False, roman=0):
     w = PdfWriter()
     for _ in range(n):
         w.add_blank_page(100, 100)
     made = {}
     for title, page, parent in marks:
         made[title] = w.add_outline_item(title, page - 1, parent=made.get(parent))
+    if roman:
+        w.set_page_label(0, roman - 1, style="/r")
+        w.set_page_label(roman, n - 1, style="/D")
     if encrypt:
         w.encrypt(user_password="", owner_password="owner", algorithm="AES-256")
     w.write(f"{sys.argv[1]}/{path}")
@@ -48,6 +52,7 @@ pdf("front.pdf", 10, [("Ch1", 5, None), ("Ch2", 8, None)])
 pdf("cover.pdf", 6, [("Part I", 2, None), ("Ch1", 3, "Part I"), ("Ch2", 5, "Part I")])
 pdf("names.pdf", 3, [("A — B", 1, None), ("   ", 2, None), ("あ" * 100, 3, None)])
 pdf("aes.pdf", 2, [("A", 1, None)], encrypt=True)
+pdf("labeled.pdf", 8, [], roman=2)
 EOF
 
 book="$work/book.pdf"
@@ -74,19 +79,22 @@ equals "--level 1 の表紙のファイルに、Part の扉のページを入れ
 check "--list ではフォルダを作らない" '[ ! -e "$work/book" ]'
 
 before="$(sha1sum <"$book")"
-split "$book" --every 4 --out "$work/every" >/dev/null
-equals "--every 4 のファイル名" "$(cd "$work/every" && ls)" "1 p.1-4.pdf
+split "$book" --at 9,5 --out "$work/at" >/dev/null
+equals "--at の前のページで分け、最初の指定より前もファイルにする" "$(cd "$work/at" && ls)" "1 p.1-4.pdf
 2 p.5-8.pdf
-3 p.9-12.pdf
-4 p.13-14.pdf"
-equals "--every のファイルを合わせると元のページ数になる" "$(pages "$work"/every/*.pdf)" "14"
+3 p.9-14.pdf"
+equals "--at のファイルを合わせると元のページ数になる" "$(pages "$work"/at/*.pdf)" "14"
+equals "--at は、PDF にある印刷されたページ番号で指定する" "$(split "$work/labeled.pdf" --at 1,4 --list)" "1  p.1-2  labeled (p.1-2)
+2  p.3-5  labeled (p.3-5)
+3  p.6-8  labeled (p.6-8)"
+check "--at に、どのページにもない番号を指定すると止まる" '[[ "$(split "$work/labeled.pdf" --at 8 2>&1)" == *"--at 8: no page carries that number"* ]]'
 split "$book" --out "$work/chapters" >/dev/null
 equals "しおりごとのファイルが、一覧のとおりのページを持つ" "$(pages "$work/chapters/2 Part I.pdf") $(pages "$work/chapters/4 Appendix.pdf")" "5 3"
 equals "元の PDF を書き換えない" "$(sha1sum <"$book")" "$before"
 equals "しおりごとのファイルに、しおりの名前がタイトルとして入る" "$(title "$work/chapters/4 Appendix.pdf")" "Appendix"
 mkdir "$work/same" && cp "$book" "$work/same/1 Preface.pdf"
 check "出力が元の PDF と同じ名前になるときは、何も書かずに止まる" '[[ "$(split "$work/same/1 Preface.pdf" --out "$work/same" 2>&1)" == *"would overwrite"* ]] && [ "$(sha1sum <"$work/same/1 Preface.pdf")" = "$before" ] && [ "$(ls "$work/same" | wc -l)" -eq 1 ]'
-check "--every 0 を拒む" '[[ "$(split "$book" --every 0 2>&1)" == *"--every must be at least 1"* ]]'
+check "空の --at を拒む" '[[ "$(split "$book" --at , 2>&1)" == *"--at needs at least one page"* ]]'
 
 # ASCII で書けない名前でも止まらない。空の名前はページ範囲に、長い名前は Linux の上限に収める。
 # Git Bash は 255 バイトを超える名前を切って見せるので、長さの確認は Linux (CI) でだけ効く
