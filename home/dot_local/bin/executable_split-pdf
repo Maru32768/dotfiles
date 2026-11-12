@@ -18,6 +18,7 @@ when a file's first page has no larger heading.
 
 import argparse
 import re
+import sys
 from pathlib import Path
 
 from pypdf import PdfReader, PdfWriter
@@ -62,7 +63,9 @@ def safe_name(title: str) -> str:
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    # Piped on Windows, stdout is cp932, and a title with an em dash would stop the run midway.
+    sys.stdout.reconfigure(errors="replace")
+    ap =argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("pdf", type=Path)
     how = ap.add_mutually_exclusive_group()
     how.add_argument("--level", type=int, default=0, help="bookmark depth to split at (0 = top level, the default)")
