@@ -40,6 +40,8 @@ def by_outline(reader: PdfReader, level: int) -> list[Part]:
                     marks.append((depth, page, it.title.strip()))
 
     walk(reader.outline, 0)
+    # Outline order need not be page order; a bookmark listed after a later page would otherwise run past it.
+    marks.sort(key=lambda m: m[1])
     parts: list[Part] = []
     for i, (depth, start, title) in enumerate(marks):
         # A shallower bookmark (a Part) only ends the previous file. One on the same page as the
