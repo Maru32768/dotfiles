@@ -1,0 +1,100 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.12"
+# dependencies = ["pypdf>=5"]
+# ///
+"""Split a PDF into one file per bookmark, or into runs of N pages.
+
+    split-pdf book.pdf                 # one file per top-level bookmark
+    split-pdf book.pdf --level 1       # one file per second-level bookmark (books with Parts)
+    split-pdf book.pdf --every 30      # 30 pages per file
+    split-pdf book.pdf --list          # print the ranges, write nothing
+
+Files go to a folder next to the PDF, named after it (--out to change). A bookmark file runs
+from its page to the page before the next bookmark at that depth or shallower, keeps the
+bookmarks inside it, and takes the bookmark's title as its /Title. Lattice uses that title
+when a file's first page has no larger heading.
+"""
+
+import argparse
+import re
+from pathlib import Path
+
+from pypdf import PdfReader, PdfWriter
+
+# (first page, page after the last, title); pages are 0-based.
+Part = tuple[int, int, str]
+
+
+def by_outline(reader: PdfReader, level: int) -> list[Part]:
+    marks: list[tuple[int, int, str]] = []
+
+    def walk(items, depth):
+        for it in items:
+            if isinstance(it, list):
+                if depth < level:
+                    walk(it, depth + 1)
+            else:
+                page = reader.get_destination_page_number(it)
+                if page is not None and page >= 0:
+                    marks.append((depth, page, it.title.strip()))
+
+    walk(reader.outline, 0)
+    parts: list[Part] = []
+    for i, (depth, start, title) in enumerate(marks):
+        # A shallower bookmark (a Part) only ends the previous file. One on the same page as the
+        # previous file's start (About the Authors, then Colophon) would repeat that file.
+        if depth != level or (parts and parts[-1][0] == start):
+            continue
+        end = next((p for _, p, _ in marks[i + 1 :] if p > start), len(reader.pages))
+        parts.append((start, end, title))
+    return parts
+
+
+def by_pages(pages: int, every: int, book: str) -> list[Part]:
+    return [(s, min(s + every, pages), f"{book} (p.{s + 1}-{min(s + every, pages)})") for s in range(0, pages, every)]
+
+
+def safe_name(title: str) -> str:
+    return re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", title).strip(" .")[:120]
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("pdf", type=Path)
+    how = ap.add_mutually_exclusive_group()
+    how.add_argument("--level", type=int, default=0, help="bookmark depth to split at (0 = top level, the default)")
+    how.add_argument("--every", type=int, metavar="N", help="split into runs of N pages instead of by bookmark")
+    ap.add_argument("--out", type=Path, help="output folder (default: next to the PDF, named after it)")
+    ap.add_argument("--list", action="store_true", help="print the ranges without writing files")
+    args = ap.parse_args()
+    if args.every is not None and args.every < 1:
+        ap.error("--every must be at least 1")
+
+    reader = PdfReader(args.pdf)
+    if args.every:
+        book = (reader.metadata and reader.metadata.title or "").strip() or args.pdf.stem
+        parts = by_pages(len(reader.pages), args.every, book)
+    else:
+        parts = by_outline(reader, args.level)
+    if not parts:
+        raise SystemExit(f"no bookmarks at level {args.level}; try --every N")
+
+    out = args.out or args.pdf.with_suffix("")
+    if not args.list:
+        out.mkdir(parents=True, exist_ok=True)
+    width = len(str(len(parts)))
+    for n, (start, end, title) in enumerate(parts, 1):
+        print(f"{n:>{width}}  p.{start + 1}-{end}  {title}")
+        if args.list:
+            continue
+        writer = PdfWriter()
+        writer.append(reader, pages=(start, end))
+        writer.add_metadata({"/Title": title})
+        name = f"p.{start + 1}-{end}" if args.every else safe_name(title)
+        with open(out / f"{n:0{width}d} {name}.pdf", "wb") as f:
+            writer.write(f)
+
+
+if __name__ == "__main__":
+    main()

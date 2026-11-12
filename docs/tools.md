@@ -48,3 +48,11 @@ mise 本体は `MISE_VERSION` と `$MiseVersion` を書き換える。ずれて�
 ## Windows
 
 `aws-cli` は mise では Windows に入らないので、`config.toml` で Linux と macOS に限定し、Windows では `winget` で入れる。
+
+## 自作のコマンド
+
+chezmoiが`~/.local/bin`に置く。
+
+| コマンド | 内容 |
+|---|---|
+| `split-pdf` | PDFを、しおりごとか(`--level`)、Nページごと(`--every N`)のファイルに分ける。uvのスクリプトなので、初回にpypdfを取得する。Windowsでは`split-pdf.cmd`から動かす |
