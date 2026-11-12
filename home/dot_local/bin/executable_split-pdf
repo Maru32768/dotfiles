@@ -12,8 +12,9 @@
 
 Files go to a folder next to the PDF, named after it (--out to change). A bookmark file runs
 from its page to the page before the next bookmark at that depth or shallower, keeps the
-bookmarks inside it, and takes the bookmark's title as its /Title. Lattice uses that title
-when a file's first page has no larger heading.
+bookmarks inside it, and takes the bookmark's title as its /Title. With --level 1, a
+top-level bookmark without children (Preface, Appendix, Index) is a file too, and the pages
+of a Part before its first chapter go in no file.
 """
 
 import argparse
@@ -28,28 +29,30 @@ Part = tuple[int, int, str]
 
 
 def by_outline(reader: PdfReader, level: int) -> list[Part]:
-    marks: list[tuple[int, int, str]] = []
+    # (page, title, whether it starts a file); a bookmark with children above `level` (a Part) only ends the previous file.
+    marks: list[tuple[int, str, bool]] = []
 
     def walk(items, depth):
-        for it in items:
+        for i, it in enumerate(items):
             if isinstance(it, list):
                 if depth < level:
                     walk(it, depth + 1)
-            else:
-                page = reader.get_destination_page_number(it)
-                if page is not None and page >= 0:
-                    marks.append((depth, page, it.title.strip()))
+                continue
+            page = reader.get_destination_page_number(it)
+            if page is not None and page >= 0:
+                # An Appendix or Index beside the Parts has no chapters under it, so it is a file of its own.
+                has_children = i + 1 < len(items) and isinstance(items[i + 1], list)
+                marks.append((page, it.title.strip(), depth == level or not has_children))
 
     walk(reader.outline, 0)
     # Outline order need not be page order; a bookmark listed after a later page would otherwise run past it.
-    marks.sort(key=lambda m: m[1])
+    marks.sort(key=lambda m: m[0])
     parts: list[Part] = []
-    for i, (depth, start, title) in enumerate(marks):
-        # A shallower bookmark (a Part) only ends the previous file. One on the same page as the
-        # previous file's start (About the Authors, then Colophon) would repeat that file.
-        if depth != level or (parts and parts[-1][0] == start):
+    for i, (start, title, starts_file) in enumerate(marks):
+        # One on the same page as the previous file's start (About the Authors, then Colophon) would repeat that file.
+        if not starts_file or (parts and parts[-1][0] == start):
             continue
-        end = next((p for _, p, _ in marks[i + 1 :] if p > start), len(reader.pages))
+        end = next((p for p, _, _ in marks[i + 1 :] if p > start), len(reader.pages))
         parts.append((start, end, title))
     return parts
 
@@ -65,7 +68,7 @@ def safe_name(title: str) -> str:
 def main() -> None:
     # Piped on Windows, stdout is cp932, and a title with an em dash would stop the run midway.
     sys.stdout.reconfigure(errors="replace")
-    ap =argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("pdf", type=Path)
     how = ap.add_mutually_exclusive_group()
     how.add_argument("--level", type=int, default=0, help="bookmark depth to split at (0 = top level, the default)")
