@@ -202,7 +202,7 @@ else:
 EOF
 
 mkdir -p "$work/bodies" "$work/verify-md"
-printf '{{PR:A}} {{PR:B}}\n' > "$work/bodies/BASE.md"
+printf '{{PR:A}} {{PR:B}}\nGitHub Actionsの式はプレースホルダではない: ${{ secrets.TOKEN }}\n' > "$work/bodies/BASE.md"
 printf 'moved to {{BASE}}\n' > "$work/bodies/CLOSE.md"
 for layer in A B; do
   printf '%s below={{BELOW}} prereq={{PREREQ}} next={{NEXT}}\n{{VERIFY}}\n' "$layer" > "$work/bodies/$layer.md"

@@ -118,7 +118,7 @@ gh pr edit "$base_pr" --repo "$REPO" --body-file "$OUT/live_base.md" > /dev/null
 unresolved=0
 while read -r _ num _; do
   line=$(gh pr view "$num" --repo "$REPO" --json number,baseRefName,headRefName,isDraft,changedFiles,assignees,body \
-    --jq '"#\(.number) draft=\(.isDraft) \(.headRefName) -> \(.baseRefName) files=\(.changedFiles) assignees=\([.assignees[].login] | join(",")) unresolved=\(.body | test("\\{\\{"))"' < /dev/null)
+    --jq '"#\(.number) draft=\(.isDraft) \(.headRefName) -> \(.baseRefName) files=\(.changedFiles) assignees=\([.assignees[].login] | join(",")) unresolved=\(.body | test("[{][{][A-Z]+(:[^{}]*)?[}][}]"))"' < /dev/null)
   echo "$line"
   if [[ $line == *unresolved=true ]]; then unresolved=$((unresolved + 1)); fi
 done < "$OUT/numbers.txt"
