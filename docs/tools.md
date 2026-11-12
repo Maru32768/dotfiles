@@ -63,3 +63,12 @@ mise 本体は `MISE_VERSION` と `$MiseVersion` を書き換える。ずれて�
 ## Windows
 
 `aws-cli` は mise では Windows に入らないので、`config.toml` で Linux と macOS に限定し、Windows では `winget` で入れる。
+
+## 自作のコマンド
+
+chezmoiが`~/.local/bin`に置く。agentの環境には置かない。
+
+| コマンド | 内容 |
+|---|---|
+| `bws-run` | Secrets Managerに置いたAPIキーを、指定したコマンドにだけ環境変数として渡す(`docs/secrets.md`) |
+| `split-pdf` | PDFを、しおりごとか、指定したページの前(`--at`)で切ったファイルに分ける。しおりの深さは`--level`で選ぶ。`--at`のページは、本に印刷された番号がPDFに記録されていれば、その番号で指定する。PDFのページ番号で指定するときは`#N`と書く。uvのスクリプトなので、初回にpypdfを取得する。Windowsでは`split-pdf.cmd`を通して動く |

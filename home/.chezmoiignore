@@ -21,6 +21,7 @@ OneDrive/**
 .local/bin/plamo-server.cmd
 .local/bin/bws-run.ps1
 .local/bin/bws-run.cmd
+.local/bin/split-pdf.cmd
 10-mise-install.ps1
 20-build-hooks.ps1
 50-gh-extensions.ps1
@@ -35,6 +36,7 @@ OneDrive/**
 .agents
 .agents/**
 .local/bin/bws-run
+.local/bin/split-pdf
 .config/environment.d
 .config/environment.d/**
 .vim

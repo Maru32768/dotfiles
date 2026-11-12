@@ -1,0 +1,129 @@
+#!/bin/bash
+# split-pdf (home/dot_local/bin/executable_split-pdf) を、pypdf で作った PDF で試す。初回は pypdf を PyPI から取得する。
+# check に渡す文字列の中で変数を展開するので、SC2016 を抑える
+# shellcheck disable=SC2016
+set -uo pipefail
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+script="$root/home/dot_local/bin/executable_split-pdf"
+work="$(mktemp -d)"
+trap 'rm -rf "$work"' EXIT
+
+failures=0
+pass() { printf 'PASS %s\n' "$1"; }
+fail() { printf 'FAIL %s\n' "$1"; failures=$((failures + 1)); }
+check() { if eval "$2" >/dev/null 2>&1; then pass "$1"; else fail "$1"; fi; }
+equals() { if [ "$2" = "$3" ]; then pass "$1"; else fail "$1"; printf '  want: %s\n  got:  %s\n' "$3" "$2"; fi; }
+# Windows の Python はパイプに CRLF で書く
+split() { uv run --quiet --script "$script" "$@" | tr -d '\r'; }
+pages() { uv run --quiet --no-project --with "pypdf[crypto]" python -I -c 'import sys; from pypdf import PdfReader; print(sum(len(PdfReader(f).pages) for f in sys.argv[1:]))' "$@"; }
+title() { uv run --quiet --no-project --with "pypdf[crypto]" python -I -c 'import sys; from pypdf import PdfReader; print(PdfReader(sys.argv[1]).metadata.title)' "$1" | tr -d '\r'; }
+
+# book.pdf (14 ページ): 序文 p1、Part I p2 (Ch1 p2 とその節 p3、Ch2 p4)、Part II p7 (Ch3 p8、Ch4 p10)、
+# 付録 p12 と同じページの奥付。unordered.pdf (10 ページ): しおりがページ順でない (p6、p3、p9)。
+# names.pdf: ASCII にないダッシュ、空白だけ、100 字の日本語の名前。aes.pdf: AES-256 で閲覧の制限だけをかけた PDF。
+# labeled.pdf (8 ページ、しおりなし、題は Book): 印刷されたページ番号が i、ii、1…4、A-1、A-2。
+# repeat.pdf (6 ページ): 番号が 1…3 を 2 回くり返す。kids.pdf (12 ページ): 番号の対応を /Kids の木で持つ
+uv run --quiet --no-project --with "pypdf[crypto]" python -I - "$work" <<'EOF'
+import sys
+from pypdf import PdfWriter
+
+def pdf(path, n, marks, encrypt=False, labels=(), title=None):
+    w = PdfWriter()
+    for _ in range(n):
+        w.add_blank_page(100, 100)
+    made = {}
+    for title, page, parent in marks:
+        made[title] = w.add_outline_item(title, page - 1, parent=made.get(parent))
+    for first, last, style, prefix in labels:
+        w.set_page_label(first, last, style=style, prefix=prefix)
+    if title:
+        w.add_metadata({"/Title": title})
+    if encrypt:
+        w.encrypt(user_password="", owner_password="owner", algorithm="AES-256")
+    w.write(f"{sys.argv[1]}/{path}")
+
+pdf("book.pdf", 14, [
+    ("Preface", 1, None),
+    ("Part I", 2, None), ("Ch1", 2, "Part I"), ("Ch1.1", 3, "Ch1"), ("Ch2", 4, "Part I"),
+    ("Part II", 7, None), ("Ch3", 8, "Part II"), ("Ch4", 10, "Part II"),
+    ("Appendix", 12, None), ("Colophon", 12, None),
+])
+pdf("unordered.pdf", 10, [("B", 6, None), ("A", 3, None), ("C", 9, None)])
+pdf("front.pdf", 10, [("Ch1", 5, None), ("Ch2", 8, None)])
+pdf("cover.pdf", 6, [("Part I", 2, None), ("Ch1", 3, "Part I"), ("Ch2", 5, "Part I")])
+pdf("names.pdf", 3, [("A — B", 1, None), ("   ", 2, None), ("あ" * 100, 3, None)])
+pdf("aes.pdf", 2, [("A", 1, None)], encrypt=True)
+pdf("labeled.pdf", 8, [], labels=[(0, 1, "/r", None), (2, 5, "/D", None), (6, 7, "/D", "A-")], title="Book")
+pdf("repeat.pdf", 6, [], labels=[(0, 2, "/D", None), (3, 5, "/D", None)])
+
+# pypdf の set_page_label は /Kids の木を作らないので、組み立てる
+from pypdf.generic import ArrayObject, DictionaryObject, NameObject, NumberObject
+w = PdfWriter()
+for _ in range(12):
+    w.add_blank_page(100, 100)
+def kid(first, last, nums):
+    return w._add_object(DictionaryObject({NameObject("/Limits"): ArrayObject([NumberObject(first), NumberObject(last)]), NameObject("/Nums"): ArrayObject(nums)}))
+roman = DictionaryObject({NameObject("/S"): NameObject("/r")})
+decimal = DictionaryObject({NameObject("/S"): NameObject("/D")})
+w._root_object[NameObject("/PageLabels")] = w._add_object(DictionaryObject({NameObject("/Kids"): ArrayObject([kid(0, 2, [NumberObject(0), roman, NumberObject(2), decimal]), kid(10, 10, [NumberObject(10), decimal])])}))
+w.write(f"{sys.argv[1]}/kids.pdf")
+EOF
+
+book="$work/book.pdf"
+equals "最上位のしおりごとに分ける。同じページの奥付は付録に含める" "$(split "$book" --list)" "1  p.1-1  Preface
+2  p.2-6  Part I
+3  p.7-11  Part II
+4  p.12-14  Appendix"
+equals "--level 1 は章ごとに分け、Part の外の序文と付録もファイルにする" "$(split "$book" --level 1 --list)" "1  p.1-1  Preface
+2  p.2-3  Ch1
+3  p.4-6  Ch2
+4  p.8-9  Ch3
+5  p.10-11  Ch4
+6  p.12-14  Appendix"
+equals "しおりがページ順でなくても範囲が重ならない" "$(split "$work/unordered.pdf" --list | cut -c4-)" "p.1-2  p.1-2
+p.3-5  A
+p.6-8  B
+p.9-10  C"
+equals "最初のしおりより前のページも、ページ範囲の名前のファイルにする" "$(split "$work/front.pdf" --list)" "1  p.1-4  p.1-4
+2  p.5-7  Ch1
+3  p.8-10  Ch2"
+equals "--level 1 の表紙のファイルに、Part の扉のページを入れない" "$(split "$work/cover.pdf" --level 1 --list)" "1  p.1-1  p.1-1
+2  p.3-4  Ch1
+3  p.5-6  Ch2"
+check "--list ではフォルダを作らない" '[ ! -e "$work/book" ]'
+
+before="$(sha1sum <"$book")"
+split "$book" --at 9,5 --out "$work/at" >/dev/null
+equals "--at の前のページで分け、最初の指定より前もファイルにする" "$(cd "$work/at" && ls)" "1 p.1-4.pdf
+2 p.5-8.pdf
+3 p.9-14.pdf"
+equals "--at のファイルを合わせると元のページ数になる" "$(pages "$work"/at/*.pdf)" "14"
+equals "--at は印刷されたページ番号で探し、大文字と小文字や前後の空白は区別しない" "$(split "$work/labeled.pdf" --at " 1 , a-1 " --list)" "1  p.1-2  Book (p.1-2)
+2  p.3-6  Book (p.3-6)
+3  p.7-8  Book (p.7-8)"
+check "--at に、どのページにもない番号を指定すると止まる" '[[ "$(split "$work/labeled.pdf" --at 8 2>&1)" == *"--at 8: no page carries that number (here they run i to A-2)"* ]]'
+check "--at に、複数のページにある番号を指定すると止まる" '[[ "$(split "$work/repeat.pdf" --at 2 2>&1)" == *"PDF pages #2, #5 all carry it"* ]]'
+equals "--at の #N は PDF のページ番号で指定する" "$(split "$work/repeat.pdf" --at "#5" --list)" "1  p.1-4  repeat (p.1-4)
+2  p.5-6  repeat (p.5-6)"
+check "--at の #N は PDF にあるページだけを受ける" '[[ "$(split "$work/repeat.pdf" --at "#7" 2>&1)" == *"the PDF has pages #1 to #6"* ]]'
+check "番号の対応が /Kids の木の PDF では、印刷された番号で切らずに止まる" '[[ "$(split "$work/kids.pdf" --at 4 2>&1)" == *"be read reliably"* ]]'
+split "$book" --out "$work/chapters" >/dev/null
+equals "しおりごとのファイルが、一覧のとおりのページを持つ" "$(pages "$work/chapters/2 Part I.pdf") $(pages "$work/chapters/4 Appendix.pdf")" "5 3"
+equals "元の PDF を書き換えない" "$(sha1sum <"$book")" "$before"
+equals "しおりごとのファイルに、しおりの名前がタイトルとして入る" "$(title "$work/chapters/4 Appendix.pdf")" "Appendix"
+mkdir "$work/same" && cp "$book" "$work/same/1 Preface.pdf"
+check "出力が元の PDF と同じ名前になるときは、何も書かずに止まる" '[[ "$(split "$work/same/1 Preface.pdf" --out "$work/same" 2>&1)" == *"would overwrite"* ]] && [ "$(sha1sum <"$work/same/1 Preface.pdf")" = "$before" ] && [ "$(ls "$work/same" | wc -l)" -eq 1 ]'
+check "空の --at を拒む" '[[ "$(split "$book" --at , 2>&1)" == *"--at needs at least one page"* ]]'
+
+# ASCII で書けない名前でも止まらない。空の名前はページ範囲に、長い名前は Linux の上限に収める。
+# Git Bash は 255 バイトを超える名前を切って見せるので、長さの確認は Linux (CI) でだけ効く
+check "出力の文字コードで書けない名前でも止まらない" 'PYTHONIOENCODING=ascii split "$work/names.pdf" --out "$work/names"'
+check "空白だけの名前は、ページ範囲をファイル名にする" '[ -f "$work/names/2 p.2-2.pdf" ]'
+check "長い名前は 255 バイトに収める" '[ "$(cd "$work/names" && ls | LC_ALL=C awk "{ print length }" | sort -n | tail -1)" -le 255 ]'
+check "閲覧の制限だけをかけた AES の PDF を分けられる" 'split "$work/aes.pdf" --list'
+
+if [ "$failures" -gt 0 ]; then
+  printf '\n%d 件の問題があります\n' "$failures"
+  exit 1
+fi
