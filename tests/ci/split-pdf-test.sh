@@ -44,6 +44,7 @@ pdf(f"{sys.argv[1]}/book.pdf", 14, [
 ])
 pdf(f"{sys.argv[1]}/unordered.pdf", 10, [("B", 6, None), ("A", 3, None), ("C", 9, None)])
 pdf(f"{sys.argv[1]}/front.pdf", 10, [("Ch1", 5, None), ("Ch2", 8, None)])
+pdf(f"{sys.argv[1]}/cover.pdf", 6, [("Part I", 2, None), ("Ch1", 3, "Part I"), ("Ch2", 5, "Part I")])
 pdf(f"{sys.argv[1]}/names.pdf", 3, [("A — B", 1, None), ("   ", 2, None), ("あ" * 100, 3, None)])
 pdf(f"{sys.argv[1]}/aes.pdf", 2, [("A", 1, None)], encrypt=True)
 EOF
@@ -66,6 +67,9 @@ p.9-10  C"
 equals "最初のしおりより前のページも、ページ範囲の名前のファイルにする" "$(split "$work/front.pdf" --list)" "1  p.1-4  p.1-4
 2  p.5-7  Ch1
 3  p.8-10  Ch2"
+equals "--level 1 の表紙のファイルに、Part の扉のページを入れない" "$(split "$work/cover.pdf" --level 1 --list)" "1  p.1-1  p.1-1
+2  p.3-4  Ch1
+3  p.5-6  Ch2"
 check "--list ではフォルダを作らない" '[ ! -e "$work/book" ]'
 
 before="$(sha1sum <"$book")"
