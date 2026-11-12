@@ -16,7 +16,8 @@ check() { if eval "$2" >/dev/null 2>&1; then pass "$1"; else fail "$1"; fi; }
 equals() { if [ "$2" = "$3" ]; then pass "$1"; else fail "$1"; printf '  want: %s\n  got:  %s\n' "$3" "$2"; fi; }
 # Windows の Python はパイプに CRLF で書く
 split() { uv run --quiet --script "$script" "$@" | tr -d '\r'; }
-pages() { uv run --quiet --no-project --with pypdf python -I -c 'import sys; from pypdf import PdfReader; print(sum(len(PdfReader(f).pages) for f in sys.argv[1:]))' "$@"; }
+pages() { uv run --quiet --no-project --with "pypdf[crypto]" python -I -c 'import sys; from pypdf import PdfReader; print(sum(len(PdfReader(f).pages) for f in sys.argv[1:]))' "$@"; }
+title() { uv run --quiet --no-project --with "pypdf[crypto]" python -I -c 'import sys; from pypdf import PdfReader; print(PdfReader(sys.argv[1]).metadata.title)' "$1" | tr -d '\r'; }
 
 # book.pdf (14 ページ): 序文 p1、Part I p2 (Ch1 p2 とその節 p3、Ch2 p4)、Part II p7 (Ch3 p8、Ch4 p10)、
 # 付録 p12 と同じページの奥付。unordered.pdf (10 ページ): しおりがページ順でない (p6、p3、p9)。
@@ -34,19 +35,19 @@ def pdf(path, n, marks, encrypt=False):
         made[title] = w.add_outline_item(title, page - 1, parent=made.get(parent))
     if encrypt:
         w.encrypt(user_password="", owner_password="owner", algorithm="AES-256")
-    w.write(path)
+    w.write(f"{sys.argv[1]}/{path}")
 
-pdf(f"{sys.argv[1]}/book.pdf", 14, [
+pdf("book.pdf", 14, [
     ("Preface", 1, None),
     ("Part I", 2, None), ("Ch1", 2, "Part I"), ("Ch1.1", 3, "Ch1"), ("Ch2", 4, "Part I"),
     ("Part II", 7, None), ("Ch3", 8, "Part II"), ("Ch4", 10, "Part II"),
     ("Appendix", 12, None), ("Colophon", 12, None),
 ])
-pdf(f"{sys.argv[1]}/unordered.pdf", 10, [("B", 6, None), ("A", 3, None), ("C", 9, None)])
-pdf(f"{sys.argv[1]}/front.pdf", 10, [("Ch1", 5, None), ("Ch2", 8, None)])
-pdf(f"{sys.argv[1]}/cover.pdf", 6, [("Part I", 2, None), ("Ch1", 3, "Part I"), ("Ch2", 5, "Part I")])
-pdf(f"{sys.argv[1]}/names.pdf", 3, [("A — B", 1, None), ("   ", 2, None), ("あ" * 100, 3, None)])
-pdf(f"{sys.argv[1]}/aes.pdf", 2, [("A", 1, None)], encrypt=True)
+pdf("unordered.pdf", 10, [("B", 6, None), ("A", 3, None), ("C", 9, None)])
+pdf("front.pdf", 10, [("Ch1", 5, None), ("Ch2", 8, None)])
+pdf("cover.pdf", 6, [("Part I", 2, None), ("Ch1", 3, "Part I"), ("Ch2", 5, "Part I")])
+pdf("names.pdf", 3, [("A — B", 1, None), ("   ", 2, None), ("あ" * 100, 3, None)])
+pdf("aes.pdf", 2, [("A", 1, None)], encrypt=True)
 EOF
 
 book="$work/book.pdf"
@@ -82,7 +83,7 @@ equals "--every のファイルを合わせると元のページ数になる" "$
 split "$book" --out "$work/chapters" >/dev/null
 equals "しおりごとのファイルが、一覧のとおりのページを持つ" "$(pages "$work/chapters/2 Part I.pdf") $(pages "$work/chapters/4 Appendix.pdf")" "5 3"
 equals "元の PDF を書き換えない" "$(sha1sum <"$book")" "$before"
-check "しおりごとのファイルに、しおりの名前がタイトルとして入る" '[ "$(uv run --quiet --no-project --with pypdf python -I -c "import sys; from pypdf import PdfReader; print(PdfReader(sys.argv[1]).metadata.title)" "$work/chapters/4 Appendix.pdf")" = Appendix ]'
+equals "しおりごとのファイルに、しおりの名前がタイトルとして入る" "$(title "$work/chapters/4 Appendix.pdf")" "Appendix"
 mkdir "$work/same" && cp "$book" "$work/same/1 Preface.pdf"
 check "出力が元の PDF と同じ名前になるときは、何も書かずに止まる" '[[ "$(split "$work/same/1 Preface.pdf" --out "$work/same" 2>&1)" == *"would overwrite"* ]] && [ "$(sha1sum <"$work/same/1 Preface.pdf")" = "$before" ] && [ "$(ls "$work/same" | wc -l)" -eq 1 ]'
 check "--every 0 を拒む" '[[ "$(split "$book" --every 0 2>&1)" == *"--every must be at least 1"* ]]'
