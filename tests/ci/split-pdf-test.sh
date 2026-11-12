@@ -43,6 +43,7 @@ pdf(f"{sys.argv[1]}/book.pdf", 14, [
     ("Appendix", 12, None), ("Colophon", 12, None),
 ])
 pdf(f"{sys.argv[1]}/unordered.pdf", 10, [("B", 6, None), ("A", 3, None), ("C", 9, None)])
+pdf(f"{sys.argv[1]}/front.pdf", 10, [("Ch1", 5, None), ("Ch2", 8, None)])
 pdf(f"{sys.argv[1]}/names.pdf", 3, [("A — B", 1, None), ("   ", 2, None), ("あ" * 100, 3, None)])
 pdf(f"{sys.argv[1]}/aes.pdf", 2, [("A", 1, None)], encrypt=True)
 EOF
@@ -58,9 +59,13 @@ equals "--level 1 は章ごとに分け、Part の外の序文と付録もファ
 4  p.8-9  Ch3
 5  p.10-11  Ch4
 6  p.12-14  Appendix"
-equals "しおりがページ順でなくても範囲が重ならない" "$(split "$work/unordered.pdf" --list | cut -c4-)" "p.3-5  A
+equals "しおりがページ順でなくても範囲が重ならない" "$(split "$work/unordered.pdf" --list | cut -c4-)" "p.1-2  p.1-2
+p.3-5  A
 p.6-8  B
 p.9-10  C"
+equals "最初のしおりより前のページも、ページ範囲の名前のファイルにする" "$(split "$work/front.pdf" --list)" "1  p.1-4  p.1-4
+2  p.5-7  Ch1
+3  p.8-10  Ch2"
 check "--list ではフォルダを作らない" '[ ! -e "$work/book" ]'
 
 before="$(sha1sum <"$book")"
@@ -71,6 +76,7 @@ equals "--every 4 のファイル名" "$(cd "$work/every" && ls)" "1 p.1-4.pdf
 4 p.13-14.pdf"
 equals "--every のファイルを合わせると元のページ数になる" "$(pages "$work"/every/*.pdf)" "14"
 split "$book" --out "$work/chapters" >/dev/null
+equals "しおりごとのファイルが、一覧のとおりのページを持つ" "$(pages "$work/chapters/2 Part I.pdf") $(pages "$work/chapters/4 Appendix.pdf")" "5 3"
 equals "元の PDF を書き換えない" "$(sha1sum <"$book")" "$before"
 check "しおりごとのファイルに、しおりの名前がタイトルとして入る" '[ "$(uv run --quiet --no-project --with pypdf python -I -c "import sys; from pypdf import PdfReader; print(PdfReader(sys.argv[1]).metadata.title)" "$work/chapters/4 Appendix.pdf")" = Appendix ]'
 mkdir "$work/same" && cp "$book" "$work/same/1 Preface.pdf"

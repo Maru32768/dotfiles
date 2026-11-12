@@ -15,6 +15,7 @@ from its page to the page before the next bookmark at the split depth or shallow
 bookmarks inside it, and takes the bookmark's title as its /Title. Above the split depth, a
 bookmark without children (a Preface, Appendix or Index beside the Parts) is a file too, and
 the pages of one with children before its first child (a Part's title page) go in no file.
+Pages before the first bookmark (a cover without one) go in a file named after their range.
 """
 
 import argparse
@@ -54,6 +55,9 @@ def by_outline(reader: PdfReader, level: int) -> list[Part]:
             continue
         end = next((p for p, _, _ in marks[i + 1 :] if p > start), len(reader.pages))
         parts.append((start, end, title))
+    # A cover or contents without a bookmark would otherwise be in no file.
+    if parts and parts[0][0] > 0:
+        parts.insert(0, (0, parts[0][0], f"p.1-{parts[0][0]}"))
     return parts
 
 
