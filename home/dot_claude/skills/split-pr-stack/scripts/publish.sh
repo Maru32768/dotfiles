@@ -127,8 +127,11 @@ if [ "$unresolved" -gt 0 ]; then
   exit 1
 fi
 
-if [ -n "${ORIGINAL_PR:-}" ] && [ "$(gh pr view "$ORIGINAL_PR" --repo "$REPO" --json state --jq .state)" = OPEN ]; then
-  render "$BODY_DIR/CLOSE.md" "$OUT/CLOSE.md" "BASE=#$base_pr"
-  gh pr close "$ORIGINAL_PR" --repo "$REPO" --comment "$(cat "$OUT/CLOSE.md")"
+if [ -n "${ORIGINAL_PR:-}" ]; then
+  state=$(gh pr view "$ORIGINAL_PR" --repo "$REPO" --json state --jq .state)
+  if [ "$state" = OPEN ]; then
+    render "$BODY_DIR/CLOSE.md" "$OUT/CLOSE.md" "BASE=#$base_pr"
+    gh pr close "$ORIGINAL_PR" --repo "$REPO" --comment "$(cat "$OUT/CLOSE.md")"
+  fi
 fi
 echo PUBLISHED

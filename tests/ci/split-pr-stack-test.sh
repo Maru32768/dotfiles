@@ -210,7 +210,7 @@ for layer in A B; do
 done
 printf 'A\tstack/A\t-\nB\tstack/B\tA\n' > "$work/layers.tsv"
 
-# $1は記録するJSON、$2は本文のディレクトリ。元のPRは#1
+# $1は記録するJSON、$2は本文のディレクトリ、$3は閉じる元のPRの番号(既定は#1。記録にあるのは#1だけ)
 publish() {
   printf '[{"number": 1, "baseRefName": "main", "headRefName": "feature", "state": "OPEN"}]' > "$1"
   cat > "$1.config" <<EOF
@@ -223,7 +223,7 @@ LAYERS_TSV="$work/layers.tsv"
 BODY_DIR="$2"
 VERIFY_DIR="$work/verify-md"
 CHILD_DRAFT=false
-ORIGINAL_PR=1
+ORIGINAL_PR=${3:-1}
 OUT="$1.out"
 EOF
   rerun "$1"
@@ -249,6 +249,11 @@ state="$work/state2.json"
 publish "$state" "$work/bodies-typo" > "$work/publish3.log" 2>&1
 rc=$?
 check "未置換のプレースホルダが残ると0以外で止まり、元のPRを閉じない" '[ "$rc" -ne 0 ] && [ "$(q "$state" ".[0].state")" = OPEN ]'
+
+state="$work/state3.json"
+publish "$state" "$work/bodies" 99 > "$work/publish4.log" 2>&1
+rc=$?
+check "元のPRの状態を読めないと0以外で止まる" '[ "$rc" -ne 0 ] && ! grep -q PUBLISHED "$work/publish4.log"'
 
 if [ "$failures" -gt 0 ]; then
   printf '\n%d件の問題があります\n' "$failures"
