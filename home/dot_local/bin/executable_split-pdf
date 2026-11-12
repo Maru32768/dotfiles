@@ -62,7 +62,9 @@ def by_pages(pages: int, every: int, book: str) -> list[Part]:
 
 
 def safe_name(title: str) -> str:
-    return re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", title).strip(" .")[:120]
+    # Linux limits a file name to 255 bytes, and a Japanese character takes 3.
+    name = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", title).encode()[:200].decode(errors="ignore")
+    return name.strip(" .")
 
 
 def main() -> None:
@@ -101,7 +103,7 @@ def main() -> None:
         writer = PdfWriter()
         writer.append(reader, pages=(start, end))
         writer.add_metadata({"/Title": title})
-        name = f"p.{start + 1}-{end}" if args.every else safe_name(title)
+        name = (not args.every and safe_name(title)) or f"p.{start + 1}-{end}"
         with open(out / f"{n:0{width}d} {name}.pdf", "wb") as f:
             writer.write(f)
 
