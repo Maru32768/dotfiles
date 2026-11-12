@@ -49,14 +49,15 @@ pr_of() { awk -v l="$1" '$1 == l {print $2}' "$OUT/numbers.txt"; }
 open_pr() {
   local base=$1 head=$2 url
   shift 2
-  url=$(gh pr list --repo "$REPO" --state open --base "$base" --head "$head" --json url --jq '.[0].url // empty') || return
+  url=$(gh pr list --repo "$REPO" --state open --base "$base" --head "$head" --json url,isCrossRepository \
+    --jq '[.[] | select(.isCrossRepository | not)][0].url // empty') || return
   [ -n "$url" ] || url=$(gh pr create --repo "$REPO" --assignee "$ASSIGNEE" --base "$base" --head "$head" "$@") || return
   echo "$url"
 }
 
 layers=()
 branches=("$BASE_BRANCH")
-while IFS=$'\t' read -r layer branch prereq; do
+while IFS=$'\t' read -r layer branch prereq || [ -n "$layer" ]; do
   [ -z "$layer" ] && continue
   layers+=("$layer")
   branches+=("$branch")
@@ -103,8 +104,9 @@ done
 count=${#layers[@]}
 for i in "${!layers[@]}"; do
   num=$(pr_of "${layers[$i]}")
-  if [ $((i + 1)) -lt "$count" ]; then next="#$(pr_of "${layers[$((i + 1))]}")"; else next="なし（スタックの一番上）"; fi
   gh pr view "$num" --repo "$REPO" --json body --jq .body > "$OUT/live_$num.md"
+  grep -qF '{{NEXT}}' "$OUT/live_$num.md" || continue
+  if [ $((i + 1)) -lt "$count" ]; then next="#$(pr_of "${layers[$((i + 1))]}")"; else next="なし（スタックの一番上）"; fi
   render "$OUT/live_$num.md" "$OUT/live_$num.md" "NEXT=$next"
   gh pr edit "$num" --repo "$REPO" --body-file "$OUT/live_$num.md" > /dev/null
 done
@@ -112,8 +114,10 @@ done
 pairs=()
 for layer in "${layers[@]}"; do pairs+=("PR:$layer=#$(pr_of "$layer")"); done
 gh pr view "$base_pr" --repo "$REPO" --json body --jq .body > "$OUT/live_base.md"
-render "$OUT/live_base.md" "$OUT/live_base.md" "${pairs[@]}"
-gh pr edit "$base_pr" --repo "$REPO" --body-file "$OUT/live_base.md" > /dev/null
+if grep -qF '{{PR:' "$OUT/live_base.md"; then
+  render "$OUT/live_base.md" "$OUT/live_base.md" "${pairs[@]}"
+  gh pr edit "$base_pr" --repo "$REPO" --body-file "$OUT/live_base.md" > /dev/null
+fi
 
 unresolved=0
 while read -r _ num _; do

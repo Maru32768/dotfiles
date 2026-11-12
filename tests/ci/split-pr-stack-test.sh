@@ -198,13 +198,14 @@ cmd = args[1]
 if cmd == "create":
     base, head = opt("--base"), opt("--head")
     if head == os.environ.get("GH_FAIL_HEAD") or any(
-        p["state"] == "OPEN" and p["baseRefName"] == base and p["headRefName"] == head for p in prs
+        p["state"] == "OPEN" and p["baseRefName"] == base and p["headRefName"] == head and not p["isCrossRepository"]
+        for p in prs
     ):
         sys.exit(f"cannot create a pull request for {head} into {base}")
     n = max(p["number"] for p in prs) + 1
     prs.append({"number": n, "url": f"https://github.com/o/r/pull/{n}", "baseRefName": base, "headRefName": head,
-                "isDraft": "--draft" in args, "state": "OPEN", "changedFiles": 1,
-                "assignees": [{"login": opt("--assignee")}], "body": body()})
+                "isDraft": "--draft" in args, "state": "OPEN", "changedFiles": 1, "isCrossRepository": False,
+                "assignees": [{"login": opt("--assignee")}], "body": body(), "edits": 0})
     save()
     sys.stdout.buffer.write(f"https://github.com/o/r/pull/{n}\n".encode())
 elif cmd == "list":
@@ -212,7 +213,9 @@ elif cmd == "list":
 elif cmd == "view":
     out(find(args[2]))
 elif cmd == "edit":
-    find(args[2])["body"] = body()
+    pr = find(args[2])
+    pr["body"] = body()
+    pr["edits"] += 1
     save()
 elif cmd == "close":
     find(args[2])["state"] = "CLOSED"
@@ -228,11 +231,14 @@ for layer in A B; do
   printf '%s below={{BELOW}} prereq={{PREREQ}} next={{NEXT}}\n{{VERIFY}}\n' "$layer" > "$work/bodies/$layer.md"
   printf -- '- ok\n' > "$work/verify-md/$layer.md"
 done
-printf 'A\tstack/A\t-\nB\tstack/B\tA\n' > "$work/layers.tsv"
+printf 'A\tstack/A\t-\nB\tstack/B\tA' > "$work/layers.tsv"
 
-# $1は記録するJSON、$2は本文のディレクトリ、$3は閉じる元のPRの番号(既定は#1。記録にあるのは#1だけ)
+# $1は記録するJSON、$2は本文のディレクトリ、$3は閉じる元のPRの番号(既定は#1)。
+# 記録には、元のPRの#1と、forkの同じ名前のブランチからmainへ開いた#2がある
 publish() {
-  printf '[{"number": 1, "baseRefName": "main", "headRefName": "feature", "state": "OPEN"}]' > "$1"
+  printf '[%s, %s]' \
+    '{"number": 1, "baseRefName": "main", "headRefName": "feature", "state": "OPEN", "isCrossRepository": false}' \
+    '{"number": 2, "url": "https://github.com/fork/r/pull/2", "baseRefName": "main", "headRefName": "stack/base", "state": "OPEN", "isCrossRepository": true, "body": "fork", "edits": 0}' > "$1"
   cat > "$1.config" <<EOF
 WT="$repo"
 REPO=o/r
@@ -257,11 +263,14 @@ rc=$?
 check "子PRを作れないと0以外で止まり、元のPRを閉じない" '[ "$rc" -ne 0 ] && [ "$(q "$state" ".[0].state")" = OPEN ]'
 check "子PRを作れないと、その先の本文を埋めない" '[ "$(q "$state" ".[] | select(.headRefName == \"stack/A\") | .body | test(\"next=[{][{]NEXT\")")" = true ]'
 check "止まった後に同じ設定で実行し直せる" 'rerun "$state" > "$work/publish2.log" 2>&1'
-equals "実行し直しても、PRを作り直さない" "$(q "$state" '[.[] | select(.state == "OPEN") | .headRefName] | sort | join(" ")')" "stack/A stack/B stack/base"
+equals "実行し直しても、PRを作り直さない" "$(q "$state" '[.[] | select(.state == "OPEN" and (.isCrossRepository | not)) | .headRefName] | sort | join(" ")')" "stack/A stack/B stack/base"
 equals "実行し直すと、元のPRを閉じる" "$(q "$state" '.[0].state')" "CLOSED"
+equals "forkの同じ名前のブランチのPRを使わない" "$(q "$state" '.[1] | "\(.body) \(.edits)"')" "fork 0"
 a=$(q "$state" '.[] | select(.headRefName == "stack/A") | .number')
 b=$(q "$state" '.[] | select(.headRefName == "stack/B") | .number')
-equals "子PRの本文に、直下と先に読むPRと次のPRが入る" "$(q "$state" '.[] | select(.headRefName != "feature") | .body | split("\n")[0]' | tr '\n' '|')" "#$a #$b|A below=なし（ベースに向いている） prereq=なし（ほかの子 PR とは独立に読める） next=#$b|B below=#$a prereq=#$a next=なし（スタックの一番上）|"
+equals "子PRの本文に、直下と先に読むPRと次のPRが入る" "$(q "$state" '.[2:][] | .body | split("\n")[0]' | tr '\n' '|')" "#$a #$b|A below=なし（ベースに向いている） prereq=なし（ほかの子 PR とは独立に読める） next=#$b|B below=#$a prereq=#$a next=なし（スタックの一番上）|"
+edits=$(q "$state" '[.[].edits] | add')
+check "もう一度実行し直しても、本文を書き直さない" 'rerun "$state" > "$work/publish2b.log" 2>&1 && [ "$(q "$state" "[.[].edits] | add")" = "$edits" ]'
 
 cp -r "$work/bodies" "$work/bodies-typo"
 printf 'A {{TYPO}}\n' > "$work/bodies-typo/A.md"
