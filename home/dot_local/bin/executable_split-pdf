@@ -67,7 +67,7 @@ def by_pages(pages: int, every: int, book: str) -> list[Part]:
 
 def safe_name(title: str) -> str:
     # Linux limits a file name to 255 bytes, and a Japanese character takes 3.
-    name = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", title).encode(errors="ignore")[:200].decode(errors="ignore")
+    name = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", title).encode()[:200].decode(errors="ignore")
     return name.strip(" .")
 
 
