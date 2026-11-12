@@ -47,10 +47,10 @@ mise 本体は `MISE_VERSION` と `$MiseVersion` を書き換える。ずれて�
 
 ## PLaMo 3 Translate
 
-翻訳専用のLLMのPLaMo 3 Translateを、Windowsのllama.cppで動かす。`plamo-server`(既定は2B、`plamo-server 8b`で8B)が、OpenAI互換のAPIを`http://127.0.0.1:8077`で開く。モデルは初回の起動でHugging Faceから`~/.cache/huggingface/hub`に取得する(2Bは1.8GB、8Bは5.3GB)。使い方(翻訳の向き、用語集、文体の指定)はモデルカード(https://huggingface.co/pfnet/plamo-3-translate-2b-GGUF)にある。
+翻訳専用のLLMであるPLaMo 3 Translateを、Windowsのllama.cppで動かす。`plamo-server`(既定は2B、`plamo-server 8b`で8B)が、OpenAI互換のAPIを`http://127.0.0.1:8077`で提供する。モデルは初回の起動でHugging Faceから`~/.cache/huggingface/hub`に取得する(2Bは1.8GB、8Bは5.3GB)。使い方(翻訳の向き、用語集、文体の指定)はモデルカード(https://huggingface.co/pfnet/plamo-3-translate-2b-GGUF)にある。
 
-- llama.cppのWindows向けのビルドはプレリリースにしかなく、`latest`では引けない。上げるときは`config.toml`のタグ(`b12317`など)を書き換えて`mise lock --global`する
-- CUDA版は本体とcudartが別のzipで、miseでは片方しか入らないので、Vulkan版にしている。GTX 1080で測った速さ(Q4_K_M、トークン/秒)は次のとおりで、翻訳の時間のほとんどを占める生成は変わらない(約6,900字を2Bで25秒)
+- llama.cppのWindows向けのビルドはプレリリースにしかなく、`latest`では取得できない。上げるときは`config.toml`のタグ(`b12317`など)を書き換えて`mise lock --global`する
+- CUDA版は本体とcudartが別のzipで、miseでは片方しか入らないので、Vulkan版にしている。GTX 1080で測った速さ(Q4_K_M、トークン/秒)は次のとおりで、翻訳時間のほとんどを占める生成の速さはCUDA版と変わらない(約6,900字を2Bで25秒)
 
 | ビルド | 2Bの入力の処理 | 2Bの生成 | 8Bの入力の処理 | 8Bの生成 |
 |---|---:|---:|---:|---:|
