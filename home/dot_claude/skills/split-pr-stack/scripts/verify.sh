@@ -4,12 +4,12 @@
 # Exits non-zero when a layer fails to check out or its checks fail.
 WT=$1
 LOG=$2
-if [ -n "$(git -C "$WT" status --porcelain)" ]; then
-  echo "$WT has uncommitted changes; commit or discard them first" >&2
-  exit 2
-fi
 mkdir -p "$LOG"
 : > "$LOG/summary.txt"
+if [ -n "$(git -C "$WT" status --porcelain)" ]; then
+  echo "$WT has uncommitted changes (a log directory inside it must be ignored); commit or discard them first" >&2
+  exit 2
+fi
 failed=0
 
 # Set to the JUnit XML directory (relative to the worktree) to count the test cases each layer ran.

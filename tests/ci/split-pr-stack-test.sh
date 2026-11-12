@@ -138,8 +138,10 @@ check "検査の失敗をrcに出す" 'grep -q "^B2 stack/B rc=1 " "$summary"'
 check "ブランチの無い層も失敗に数える" 'grep -q "^X1 stack/missing checkout-failed" "$summary" && grep -q "^DONE failed=2$" "$summary"'
 check "すべての層が通れば0で終わる" 'verify "layer B1 stack/B . true" "$work/vlog2"'
 touch "$repo/junk"
-check "作業ツリーに未コミットの変更があると始めない" '! verify "layer B1 stack/B . true" "$work/vlog3" && [ ! -e "$work/vlog3/summary.txt" ]'
+check "作業ツリーに未コミットの変更があると始めず、前回の結果も残さない" '! verify "layer B1 stack/B . true" "$work/vlog2" 2>/dev/null && [ ! -s "$work/vlog2/summary.txt" ]'
 rm -f "$repo/junk"
+check "ログのディレクトリがworktreeの中で無視されていなければ始めない" '! verify "layer B1 stack/B . true" "$repo/vlog" 2>/dev/null'
+rm -rf "$repo/vlog"
 
 # 偽のghはPRをJSONに記録する。GH_FAIL_HEADのブランチのPRは作れない
 git init -q --bare "$work/origin.git"
