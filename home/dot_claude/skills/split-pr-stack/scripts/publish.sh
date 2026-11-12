@@ -1,6 +1,8 @@
 #!/bin/bash
 # Push the base branch and the layer branches, open the base PR (draft) and the stacked child PRs,
-# fill the cross-references, and close the original PR. Run only after the user approves.
+# fill the cross-references, check every PR, and close the original PR. Run only after the user approves.
+# After a failure, fix the cause and rerun with the same config: a branch that already has an open PR
+# into its base keeps that PR.
 #
 # usage: publish.sh <config.sh>
 #
@@ -43,6 +45,15 @@ PY
 
 pr_of() { awk -v l="$1" '$1 == l {print $2}' "$OUT/numbers.txt"; }
 
+# usage: open_pr <base> <head> <gh pr create options...>; prints the URL of the open PR.
+open_pr() {
+  local base=$1 head=$2 url
+  shift 2
+  url=$(gh pr list --repo "$REPO" --state open --base "$base" --head "$head" --json url --jq '.[0].url // empty') || return
+  [ -n "$url" ] || url=$(gh pr create --repo "$REPO" --assignee "$ASSIGNEE" --base "$base" --head "$head" "$@") || return
+  echo "$url"
+}
+
 layers=()
 branches=("$BASE_BRANCH")
 while IFS=$'\t' read -r layer branch prereq; do
@@ -58,8 +69,7 @@ git -C "$WT" push --atomic -u origin "${branches[@]}"
 draft=()
 [ "${CHILD_DRAFT:-false}" = "true" ] && draft=(--draft)
 
-base_url=$(gh pr create --repo "$REPO" --assignee "$ASSIGNEE" --draft --base "$BASE_TARGET" --head "$BASE_BRANCH" \
-  --title "$BASE_TITLE" --body-file "$BODY_DIR/BASE.md")
+base_url=$(open_pr "$BASE_TARGET" "$BASE_BRANCH" --draft --title "$BASE_TITLE" --body-file "$BODY_DIR/BASE.md")
 base_pr=${base_url##*/}
 echo "BASE $base_pr $base_url" | tee -a "$OUT/numbers.txt"
 
@@ -82,8 +92,7 @@ for layer in "${layers[@]}"; do
   render "$BODY_DIR/$layer.md" "$OUT/$layer.md" "BASE=#$base_pr" "BELOW=$below_ref" \
     "VERIFY=@$VERIFY_DIR/$layer.md" "PREREQ=$prereq_ref"
   title=$(git -C "$WT" log -1 --format=%s "$branch")
-  url=$(gh pr create --repo "$REPO" --assignee "$ASSIGNEE" ${draft[@]+"${draft[@]}"} --base "$below_branch" --head "$branch" \
-    --title "$title" --body-file "$OUT/$layer.md")
+  url=$(open_pr "$below_branch" "$branch" ${draft[@]+"${draft[@]}"} --title "$title" --body-file "$OUT/$layer.md")
   num=${url##*/}
   echo "$layer $num $url" | tee -a "$OUT/numbers.txt"
   below_branch=$branch
@@ -106,13 +115,20 @@ gh pr view "$base_pr" --repo "$REPO" --json body --jq .body > "$OUT/live_base.md
 render "$OUT/live_base.md" "$OUT/live_base.md" "${pairs[@]}"
 gh pr edit "$base_pr" --repo "$REPO" --body-file "$OUT/live_base.md" > /dev/null
 
-if [ -n "${ORIGINAL_PR:-}" ]; then
+unresolved=0
+while read -r _ num _; do
+  line=$(gh pr view "$num" --repo "$REPO" --json number,baseRefName,headRefName,isDraft,changedFiles,assignees,body \
+    --jq '"#\(.number) draft=\(.isDraft) \(.headRefName) -> \(.baseRefName) files=\(.changedFiles) assignees=\([.assignees[].login] | join(",")) unresolved=\(.body | test("\\{\\{"))"' < /dev/null)
+  echo "$line"
+  if [[ $line == *unresolved=true ]]; then unresolved=$((unresolved + 1)); fi
+done < "$OUT/numbers.txt"
+if [ "$unresolved" -gt 0 ]; then
+  echo "$unresolved PR bodies still have {{...}}; fix them on GitHub, then rerun to close the original PR" >&2
+  exit 1
+fi
+
+if [ -n "${ORIGINAL_PR:-}" ] && [ "$(gh pr view "$ORIGINAL_PR" --repo "$REPO" --json state --jq .state)" = OPEN ]; then
   render "$BODY_DIR/CLOSE.md" "$OUT/CLOSE.md" "BASE=#$base_pr"
   gh pr close "$ORIGINAL_PR" --repo "$REPO" --comment "$(cat "$OUT/CLOSE.md")"
 fi
-
-while read -r _ num _; do
-  gh pr view "$num" --repo "$REPO" --json number,baseRefName,headRefName,isDraft,changedFiles,assignees,body \
-    --jq '"#\(.number) draft=\(.isDraft) \(.headRefName) -> \(.baseRefName) files=\(.changedFiles) assignees=\([.assignees[].login] | join(",")) unresolved=\(.body | test("\\{\\{"))"' < /dev/null
-done < "$OUT/numbers.txt"
 echo PUBLISHED
