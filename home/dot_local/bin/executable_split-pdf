@@ -19,8 +19,8 @@ Pages before the first bookmark (a cover without one) go in a file named after t
 
 --at takes the page numbers printed in the book, as in its table of contents, when the PDF
 records them (page labels: its first pages may be Cover, i, ii, and 1 may be the 25th page),
-and the PDF's own page numbers otherwise. The ranges printed and used in file names are the
-PDF's page numbers.
+and the PDF's own page numbers otherwise; #N always means the PDF's page N. The ranges printed
+and used in file names are the PDF's page numbers.
 """
 
 import argparse
@@ -67,15 +67,29 @@ def by_outline(reader: PdfReader, level: int) -> list[Part]:
 
 
 def by_starts(reader: PdfReader, at: list[str], book: str) -> list[Part]:
+    pages = len(reader.pages)
     labels = reader.page_labels  # "1", "2", ... when the PDF has no page labels
+    tree = reader.trailer["/Root"].get("/PageLabels")
+    # pypdf reads a /Kids tree's /Limits as page ranges and falls back to PDF numbers past them, so its labels can be wrong.
+    trusted = tree is None or "/Kids" not in tree.get_object()
     starts = {0}  # the pages before the first chapter are a file too
     for value in at:
-        found = [i for i, label in enumerate(labels) if label == value]
-        if len(found) != 1:
-            # Splitting at a guessed page would cut a chapter in two without a word.
-            raise SystemExit(f"--at {value}: {'no page carries' if not found else f'{len(found)} pages carry'} that number")
+        if value.startswith("#"):
+            n = int(value[1:]) if value[1:].isdigit() else 0
+            if not 1 <= n <= pages:
+                raise SystemExit(f"--at {value}: the PDF has pages #1 to #{pages}")
+            starts.add(n - 1)
+            continue
+        if not trusted:
+            raise SystemExit(f"--at {value}: this PDF's printed page numbers can't be read reliably; give PDF pages as #N")
+        found = [i for i, label in enumerate(labels) if label.casefold() == value.casefold()]
+        # Splitting at a guessed page would cut a chapter in two without a word.
+        if not found:
+            raise SystemExit(f"--at {value}: no page carries that number (here they run {labels[0]} to {labels[-1]}); give PDF page N as #N")
+        if len(found) > 1:
+            raise SystemExit(f"--at {value}: PDF pages {', '.join(f'#{i + 1}' for i in found)} all carry it; pick one as #N")
         starts.add(found[0])
-    bounds = sorted(starts) + [len(labels)]
+    bounds = sorted(starts) + [pages]
     return [(s, e, f"{book} (p.{s + 1}-{e})") for s, e in zip(bounds, bounds[1:])]
 
 
@@ -92,7 +106,7 @@ def main() -> None:
     ap.add_argument("pdf", type=Path)
     how = ap.add_mutually_exclusive_group()
     how.add_argument("--level", type=int, default=0, help="bookmark depth to split at (0 = top level, the default)")
-    how.add_argument("--at", metavar="PAGES", help="split before these pages, comma-separated, as numbered in the book (see above)")
+    how.add_argument("--at", metavar="PAGES", help="split before these pages, comma-separated, as numbered in the book, or #N for PDF page N (see above)")
     ap.add_argument("--out", type=Path, help="output folder (default: next to the PDF, named after it)")
     ap.add_argument("--list", action="store_true", help="print the ranges without writing files")
     args = ap.parse_args()
