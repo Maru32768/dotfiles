@@ -124,6 +124,22 @@ check "linux-main: コミット署名が有効" 'grep -q "gpgsign = true" "$work
 check "linux-main: Claude の設定にフックがある" 'jq -e ".hooks.PreToolUse[0].hooks[0].command | test(\"block-signing-bypass\")" "$work/linux-main/home/.claude/settings.json"'
 equals "linux-main: 実行するスクリプト" "$(scripts_of linux-main)" "10-mise-install.sh 20-build-hooks.sh 30-vim-plugins.sh 40-claude-code.sh 50-gh-extensions.sh"
 
+# --- knowledge-capture (docs/skills.md) ---
+# 許可を広げるときは、何を許すことになるかを確かめてから、期待する値を直す
+knowledge_tools='Bash(git remote -v) Read(~/work/blog/marulabs-knowledge/**) Edit(~/work/blog/marulabs-knowledge/knowledge/**) Bash(git -C ~/work/blog/marulabs-knowledge add *) Bash(git -C ~/work/blog/marulabs-knowledge commit *) Bash(gh repo clone Maru32768/marulabs-knowledge ~/work/blog/marulabs-knowledge)'
+for name in linux-main windows-main; do
+  skill="$work/$name/home/.claude/skills/knowledge-capture/SKILL.md"
+  check "$name: knowledge-capture がある" '[ -f "$skill" ]'
+  # description を除く frontmatter の完全一致。hooks などのキーを足して許可を広げる変更も落ちる
+  equals "$name: knowledge-capture の frontmatter" "$(sed -n '1{/^---$/!q;d};/^---$/q;/^description: /d;p' "$skill" 2>/dev/null)" "name: knowledge-capture
+argument-hint: \"[記録する内容のメモ]\"
+allowed-tools: $knowledge_tools"
+  check "$name: knowledge-capture がコミットの前に gitleaks で調べる" 'grep -qF "先に\`mise -C ~/work/blog/marulabs-knowledge exec -- gitleaks dir --no-banner --redact -v --config .gitleaks.toml --exit-code 3 <記録のパス>\`を" "$skill"'
+  check "$name: knowledge-capture で gitleaks の手順がコミットより前にある" '[ "$(grep -oE "exec -- gitleaks dir|commit -m" "$skill" | head -1)" = "exec -- gitleaks dir" ]'
+  check "$name: knowledge-capture は gitleaks を実行できないときコミットしない" 'grep -qF "gitleaksを実行できなかったとき(許可されなかったときも)は、コミットせずに" "$skill"'
+  check "$name: CLAUDE.md に記録の提案の形がある" 'grep -qF "記録候補: <タイトル案>(/knowledge-capture)" "$work/$name/home/.claude/CLAUDE.md"'
+done
+
 # --- Windows ---
 for file in .wslconfig OneDrive/Documents/PowerShell/Microsoft.PowerShell_profile.ps1 .claude/settings.json .claude/CLAUDE.md .vimrc .local/bin/bws-run.ps1 .local/bin/bws-run.cmd; do
   check "windows-main: $file がある" '[ -f "$work/windows-main/home/$file" ]'
