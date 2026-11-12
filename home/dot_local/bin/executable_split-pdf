@@ -95,18 +95,21 @@ def main() -> None:
         raise SystemExit(f"no bookmarks at level {args.level}; try --every N")
 
     out = args.out or args.pdf.with_suffix("")
+    width = len(str(len(parts)))
+    paths = [out / f"{n:0{width}d} {(not args.every and safe_name(title)) or f'p.{start + 1}-{end}'}.pdf" for n, (start, end, title) in enumerate(parts, 1)]
+    # With --out next to the source, "1 Chapter.pdf" would overwrite a source of that name; check before writing any file.
+    if not args.list and any(p.resolve() == args.pdf.resolve() for p in paths):
+        raise SystemExit(f"an output file would overwrite {args.pdf}; choose another --out")
     if not args.list:
         out.mkdir(parents=True, exist_ok=True)
-    width = len(str(len(parts)))
-    for n, (start, end, title) in enumerate(parts, 1):
+    for n, ((start, end, title), path) in enumerate(zip(parts, paths), 1):
         print(f"{n:>{width}}  p.{start + 1}-{end}  {title}")
         if args.list:
             continue
         writer = PdfWriter()
         writer.append(reader, pages=(start, end))
         writer.add_metadata({"/Title": title})
-        name = (not args.every and safe_name(title)) or f"p.{start + 1}-{end}"
-        with open(out / f"{n:0{width}d} {name}.pdf", "wb") as f:
+        with open(path, "wb") as f:
             writer.write(f)
 
 
