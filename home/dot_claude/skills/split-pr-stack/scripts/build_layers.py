@@ -30,16 +30,16 @@ WT = sys.argv[1]
 L = ORDER.index(sys.argv[2])
 
 
-def git(*args):
-    return subprocess.run(["git", "-C", WT, "--literal-pathspecs", *args], capture_output=True, check=True).stdout
+def git(*args, paths=None):
+    """Run git in WT; `paths` are passed as literal pathspecs on stdin, so any number of any names fit."""
+    if paths is not None:
+        args = (*args, "--pathspec-from-file=-", "--pathspec-file-nul")
+    stdin = "\0".join(paths).encode("utf-8") if paths is not None else None
+    return subprocess.run(["git", "-C", WT, "--literal-pathspecs", *args], input=stdin, capture_output=True, check=True).stdout
 
 
-def take(ref, path):
-    """Make the index and the working tree hold `path` as it is in `ref`, or not at all."""
-    if subprocess.run(["git", "-C", WT, "cat-file", "-e", f"{ref}:{path}"], capture_output=True).returncode == 0:
-        git("restore", f"--source={ref}", "--staged", "--worktree", "--", path)
-    else:
-        git("rm", "-q", "-f", "--ignore-unmatch", "--", path)
+def split_nul(out):
+    return [p for p in out.decode("utf-8").split("\0") if p]
 
 
 def below(name):
@@ -110,28 +110,29 @@ TRANSFORMS = {
 # -----------------------------------------------------------------------------------------------
 
 
-def write_layer(path):
-    owners = OWNERS[path]
-    first, last = ORDER.index(owners[0]), ORDER.index(owners[-1])
-    if L < first:
-        take(BASE, path)
-        return
-    take(FINAL, path)
-    if L < last:
-        text = TRANSFORMS[path](git("show", f"{FINAL}:{path}").decode("utf-8"))
-        with open(f"{WT}/{path}", "w", encoding="utf-8", newline="") as f:
-            f.write(text)
-
-
 def main():
-    out = git("diff-tree", "-r", "-z", "--name-only", "--no-renames", BASE, FINAL)
-    changed = [p for p in out.decode("utf-8").split("\0") if p]
+    changed = split_nul(git("diff-tree", "-r", "-z", "--name-only", "--no-renames", BASE, FINAL))
     assert sorted(changed) == sorted(OWNERS), f"OWNERS must cover exactly the changed files: {set(changed) ^ set(OWNERS)}"
     for path, owners in OWNERS.items():
         assert owners == sorted(owners, key=ORDER.index), f"{path}: owners out of ORDER order"
         if len(owners) > 1:
             assert path in TRANSFORMS, f"{path}: shared file without a transform"
-        write_layer(path)
+    source = {path: BASE if L < ORDER.index(owners[0]) else FINAL for path, owners in OWNERS.items()}
+    files = {ref: set(split_nul(git("ls-tree", "-r", "-z", "--name-only", "--full-tree", ref))) for ref in (BASE, FINAL)}
+    # Remove first, then restore: when a file becomes a directory, or a rename changes only the case, both
+    # paths share one place on disk, and removing one after restoring the other would undo the restore.
+    gone = [path for path, ref in source.items() if path not in files[ref]]
+    if gone:
+        git("rm", "-r", "-q", "-f", "--ignore-unmatch", paths=gone)
+    for ref in (BASE, FINAL):
+        kept = [path for path, r in source.items() if r == ref and path in files[ref]]
+        if kept:
+            git("restore", f"--source={ref}", "--staged", "--worktree", paths=kept)
+    for path, owners in OWNERS.items():
+        if ORDER.index(owners[0]) <= L < ORDER.index(owners[-1]):
+            text = TRANSFORMS[path](git("show", f"{FINAL}:{path}").decode("utf-8"))
+            with open(f"{WT}/{path}", "w", encoding="utf-8", newline="") as f:
+                f.write(text)
 
 
 main()

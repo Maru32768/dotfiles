@@ -24,16 +24,23 @@ g config user.name test
 g config user.email test@example.com
 
 # BASEからFINALへ、層Aはモード、削除、空白や日本語のパス、バイナリ、シンボリックリンク、
-# [id]/new.txtをglobとして読むと当たるd/new.txtを、層Bはリネームを持つ。shared.txtは両方の層が変える
+# [id]/new.txtをglobとして読むと当たるd/new.txtを、層Bはリネームを持つ。shared.txtは両方の層が変える。
+# ファイルのdfは層Aで消え、層Bでディレクトリになる。Readme.mdは層Bで大文字と小文字だけを変える。
+# OWNERSでは、同じ場所を指す2つのパスのうち、FINALにあるほうを先に書く
 printf 'old\n' > "$repo/old.txt"
 printf 'base\n' > "$repo/shared.txt"
 printf 'echo\n' > "$repo/run.sh"
 printf 'gone\n' > "$repo/gone.txt"
+printf 'df\n' > "$repo/df"
+printf 'readme\n' > "$repo/Readme.md"
 g add -A && g commit -q -m base
 base=$(g rev-parse HEAD)
 mkdir -p "$repo/[id]" "$repo/d"
 g mv old.txt '[id]/new.txt'
-g rm -q gone.txt
+g rm -q gone.txt df
+mkdir -p "$repo/df"
+printf 'x\n' > "$repo/df/x.txt"
+g mv Readme.md README.md
 printf 'base\na\nb\n' > "$repo/shared.txt"
 printf 'd\n' > "$repo/d/new.txt"
 printf 'space\n' > "$repo/with space.txt"
@@ -63,6 +70,10 @@ OWNERS = {{
     "link": ["A"],
     "shared.txt": ["A", "B"],
     "old.txt": ["B"],
+    "df/x.txt": ["B"],
+    "df": ["A"],
+    "README.md": ["B"],
+    "Readme.md": ["B"],
     "[id]/new.txt": ["B"],
 }}'''
 transforms = '''def t_shared(t):
@@ -99,6 +110,8 @@ check "リネームの元のパスは、リネームする層まで残る" 'g ca
 check "リネームの先のパスは、リネームする層で現れる" '! g cat-file -e "stack/A:[id]/new.txt" && g cat-file -e "stack/B:[id]/new.txt"'
 check "パスをglobとして読まない" 'g cat-file -e stack/A:d/new.txt'
 check "消したファイルは、消す層で消える" '! g cat-file -e stack/A:gone.txt'
+check "ディレクトリになるファイルの場所に、上の層の中身を入れない" '! g cat-file -e stack/A:df && ! g cat-file -e stack/A:df/x.txt && g cat-file -e stack/B:df/x.txt'
+check "大文字と小文字だけを変えるリネームで、どちらかを消しすぎない" 'g cat-file -e stack/A:Readme.md && g cat-file -e stack/B:README.md && ! g cat-file -e stack/B:Readme.md'
 check "空白と日本語を含むパスを扱える" 'g cat-file -e "stack/A:with space.txt" && g cat-file -e "stack/A:日本語.md"'
 equals "共有ファイルは、上の層の部分を除いて書く" "$(g show stack/A:shared.txt)" "base
 a"
