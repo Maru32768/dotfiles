@@ -51,9 +51,9 @@ mise 本体は `MISE_VERSION` と `$MiseVersion` を書き換える。ずれて�
 
 ## 自作のコマンド
 
-chezmoiが`~/.local/bin`に置く。
+chezmoiが`~/.local/bin`に置く。agentの環境には置かない。
 
 | コマンド | 内容 |
 |---|---|
-| `bws-run` | Secrets ManagerのAPIキーを、そのコマンドにだけ環境変数として渡す(`docs/secrets.md`) |
-| `split-pdf` | PDFを、しおりごとか(`--level`)、Nページごと(`--every N`)のファイルに分ける。uvのスクリプトなので、初回にpypdfを取得する。Windowsでは`split-pdf.cmd`から動かす |
+| `bws-run` | Secrets Managerに置いたAPIキーを、指定したコマンドにだけ環境変数として渡す(`docs/secrets.md`) |
+| `split-pdf` | PDFを、しおりごとかNページごと(`--every N`)のファイルに分ける。しおりの深さは`--level`で選ぶ。uvのスクリプトなので、初回にpypdfを取得する。Windowsでは`split-pdf.cmd`を通して動く |
