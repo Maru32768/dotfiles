@@ -12,7 +12,7 @@ mkdir -p "$HOME/.config/mise"
 cp "$root/home/dot_config/mise/config.toml" "$root/home/dot_config/mise/mise.lock" "$HOME/.config/mise/"
 
 cd "$HOME"
-"$HOME/.local/bin/mise" install --yes chezmoi go shellcheck
+"$HOME/.local/bin/mise" install --yes chezmoi go shellcheck uv
 
 if [ -n "${GITHUB_PATH:-}" ]; then
   printf '%s\n' "$HOME/.local/bin" "$HOME/.local/share/mise/shims" >>"$GITHUB_PATH"
