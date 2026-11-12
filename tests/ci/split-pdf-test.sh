@@ -84,7 +84,7 @@ equals "しおりごとのファイルが、一覧のとおりのページを持
 equals "元の PDF を書き換えない" "$(sha1sum <"$book")" "$before"
 check "しおりごとのファイルに、しおりの名前がタイトルとして入る" '[ "$(uv run --quiet --no-project --with pypdf python -I -c "import sys; from pypdf import PdfReader; print(PdfReader(sys.argv[1]).metadata.title)" "$work/chapters/4 Appendix.pdf")" = Appendix ]'
 mkdir "$work/same" && cp "$book" "$work/same/1 Preface.pdf"
-check "出力が元の PDF と同じ名前になるときは、何も書かずに止まる" '! split "$work/same/1 Preface.pdf" --out "$work/same" && [ "$(sha1sum <"$work/same/1 Preface.pdf")" = "$before" ] && [ "$(ls "$work/same" | wc -l)" -eq 1 ]'
+check "出力が元の PDF と同じ名前になるときは、何も書かずに止まる" '[[ "$(split "$work/same/1 Preface.pdf" --out "$work/same" 2>&1)" == *"would overwrite"* ]] && [ "$(sha1sum <"$work/same/1 Preface.pdf")" = "$before" ] && [ "$(ls "$work/same" | wc -l)" -eq 1 ]'
 check "--every 0 を拒む" '[[ "$(split "$book" --every 0 2>&1)" == *"--every must be at least 1"* ]]'
 
 # ASCII で書けない名前でも止まらない。空の名前はページ範囲に、長い名前は Linux の上限に収める。

@@ -101,8 +101,8 @@ def main() -> None:
     out = args.out or args.pdf.with_suffix("")
     width = len(str(len(parts)))
     paths = [out / f"{n:0{width}d} {(not args.every and safe_name(title)) or f'p.{start + 1}-{end}'}.pdf" for n, (start, end, title) in enumerate(parts, 1)]
-    # With --out next to the source, "1 Chapter.pdf" would overwrite a source of that name; check before writing any file.
-    if not args.list and any(p.resolve() == args.pdf.resolve() for p in paths):
+    # With --out next to the source, "1 Chapter.pdf" would overwrite a source of that name (or a link to it); check before writing any file.
+    if not args.list and any(p.exists() and p.samefile(args.pdf) for p in paths):
         raise SystemExit(f"an output file would overwrite {args.pdf}; choose another --out")
     if not args.list:
         out.mkdir(parents=True, exist_ok=True)
