@@ -50,7 +50,7 @@ description: issue に着手してから、要件の詰め・実装・レビュ�
 - 性質の違う変更が混ざっている（リファクタ、API 契約、テストやビルドの基盤、機能）
 - 読み手の専門が分かれる（specs、例外処理、外部連携など）
 
-どれにも当たらなければ、PR を 1 本作って終わる。
+どれにも当たらなければ、PR を 1 本作って終わる。本文は `mattpocock-skills:pr` の型で書き、Summary の次に、`split-pr-stack` の子 PR の型（`references/templates.md`）にある「なぜ要るか」と「なぜこの形か」の節を、本文の言語で入れる。書いた後の WHY の確かめ方は、split-pr-stack の 4 と同じにする。
 
 分けるときは `ronny:engineering-small-prs` で層を設計し、次の 2 つの表を作って利用者の承認を取る。
 
