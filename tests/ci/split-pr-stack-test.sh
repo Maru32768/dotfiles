@@ -260,8 +260,8 @@ def save():
 def out(value):
     fields = opt("--json").split(",")
     data = [{k: p[k] for k in fields} for p in value] if isinstance(value, list) else {k: value[k] for k in fields}
-    r = subprocess.run([jq, "-r", opt("--jq")], input=json.dumps(data).encode(), capture_output=True, check=True)
-    sys.stdout.buffer.write(r.stdout.replace(b"\r\n", b"\n"))
+    r = subprocess.run([jq, "-b", "-r", opt("--jq")], input=json.dumps(data).encode(), capture_output=True, check=True)
+    sys.stdout.buffer.write(r.stdout)
 
 
 def body():
@@ -332,7 +332,9 @@ EOF
   rerun "$1"
 }
 rerun() { PATH="$work/bin:$PATH" GH_STATE="$1" JQ="$JQ" bash "$scripts/publish.sh" "$1.config"; }
-q() { "$JQ" -r "$2" "$1" | tr -d '\r'; }
+q() { "$JQ" -b -r "$2" "$1"; }
+# 記録の中で、forkではないブランチ$2のPRにjqの式$3を当てる
+pr() { q "$1" ".[] | select(.headRefName == \"$2\" and (.isCrossRepository | not)) | $3"; }
 # 記録の中で、ブランチ$2のPRの本文にjqの式$3を当てる。botの追記や、GitHubでの手直しの代わり
 edit_body() { "$JQ" -c --arg head "$2" '(.[] | select(.headRefName == $head) | .body) |= '"$3" "$1" > "$1.tmp" && mv "$1.tmp" "$1"; }
 
@@ -340,22 +342,22 @@ state="$work/state1.json"
 GH_FAIL_HEAD=stack/B publish "$state" "$work/bodies" > "$work/publish1.log" 2>&1
 rc=$?
 check "子PRを作れないと0以外で止まり、元のPRを閉じない" '[ "$rc" -ne 0 ] && [ "$(q "$state" ".[0].state")" = OPEN ]'
-check "子PRを作れないと、その先の本文を埋めない" '[ "$(q "$state" ".[] | select(.headRefName == \"stack/A\") | .body | test(\"next=[{][{]NEXT\")")" = true ]'
+check "子PRを作れないと、その先の本文を埋めない" '[ "$(pr "$state" stack/A ".body | test(\"next=[{][{]NEXT\")")" = true ]'
 edit_body "$state" stack/A '. + "<!-- bot -->"'
 check "止まった後に同じ設定で実行し直せる" 'rerun "$state" > "$work/publish2.log" 2>&1'
-check "止まっている間にbotが本文に足したものを残す" '[ "$(q "$state" ".[] | select(.headRefName == \"stack/A\") | .body | contains(\"<!-- bot -->\")")" = true ]'
+check "止まっている間にbotが本文に足したものを残す" '[ "$(pr "$state" stack/A ".body | contains(\"<!-- bot -->\")")" = true ]'
 equals "実行し直しても、PRを作り直さない" "$(q "$state" '[.[] | select(.state == "OPEN" and (.isCrossRepository | not)) | .headRefName] | sort | join(" ")')" "stack/A stack/B stack/base"
 equals "実行し直すと、元のPRを閉じる" "$(q "$state" '.[0].state')" "CLOSED"
 equals "forkの同じ名前のブランチのPRを使わない" "$(q "$state" '.[1] | "\(.body) \(.edits)"')" "fork {{PR:A}} 0"
-a=$(q "$state" '.[] | select(.headRefName == "stack/A") | .number')
-b=$(q "$state" '.[] | select(.headRefName == "stack/B") | .number')
+a=$(pr "$state" stack/A .number)
+b=$(pr "$state" stack/B .number)
 equals "子PRの本文に、直下と先に読むPRと次のPRが入る" "$(q "$state" '.[2:][] | .body | split("\n")[0]' | tr '\n' '|')" "#$a #$b|A below=なし（ベースに向いている） prereq=なし（ほかの子 PR とは独立に読める） next=#$b|B below=#$a prereq=#$a next=なし（スタックの一番上）|"
 edits=$(q "$state" '[.[].edits] | add')
 check "もう一度実行し直しても、本文を書き直さない" 'rerun "$state" > "$work/publish2b.log" 2>&1 && [ "$(q "$state" "[.[].edits] | add")" = "$edits" ]'
 equals "もう一度実行し直しても、元のPRを2度は閉じない" "$(q "$state" '.[0].comments | length')" "1"
-base_num=$(q "$state" '.[] | select(.headRefName == "stack/base" and (.isCrossRepository | not)) | .number')
+base_num=$(pr "$state" stack/base .number)
 equals "元のPRを閉じるコメントに、ベースPRを書く" "$(q "$state" '.[0].comments[0]')" "moved to #$base_num"
-equals "ベースPRはDraftで作る" "$(q "$state" '.[] | select(.headRefName == "stack/base" and (.isCrossRepository | not)) | .isDraft')" "true"
+equals "ベースPRはDraftで作る" "$(pr "$state" stack/base .isDraft)" "true"
 
 cp -r "$work/bodies" "$work/bodies-typo"
 printf 'A {{TYPO}}\n' > "$work/bodies-typo/A.md"
@@ -365,11 +367,11 @@ publish "$state" "$work/bodies-typo" > "$work/publish3.log" 2>&1
 rc=$?
 check "未置換のプレースホルダが残ると0以外で止まり、元のPRを閉じない" '[ "$rc" -ne 0 ] && [ "$(q "$state" ".[0].state")" = OPEN ]'
 check "層の一覧に無い{{PR:<層>}}も未置換とみなす" 'grep -q "stack/base -> main .*unresolved=true" "$work/publish3.log"'
-base_edits=$(q "$state" '.[] | select(.headRefName == "stack/base" and (.isCrossRepository | not)) | .edits')
-check "埋められないプレースホルダが残ったまま実行し直しても、本文を書き直さない" '! rerun "$state" > "$work/publish3a.log" 2>&1 && [ "$(q "$state" ".[] | select(.headRefName == \"stack/base\" and (.isCrossRepository | not)) | .edits")" = "$base_edits" ]'
+base_edits=$(pr "$state" stack/base .edits)
+check "埋められないプレースホルダが残ったまま実行し直しても、本文を書き直さない" '! rerun "$state" > "$work/publish3a.log" 2>&1 && [ "$(pr "$state" stack/base .edits)" = "$base_edits" ]'
 edit_body "$state" stack/A 'sub("[{][{]TYPO[}][}]"; "fixed")'
 edit_body "$state" stack/base 'sub("[{][{]PR:Z[}][}]"; "#0")'
-check "GitHubで本文を直してから実行し直すと、直した本文のまま元のPRを閉じる" 'rerun "$state" > "$work/publish3b.log" 2>&1 && [ "$(q "$state" ".[0].state")" = CLOSED ] && [ "$(q "$state" ".[] | select(.headRefName == \"stack/A\") | .body")" = "A fixed" ]'
+check "GitHubで本文を直してから実行し直すと、直した本文のまま元のPRを閉じる" 'rerun "$state" > "$work/publish3b.log" 2>&1 && [ "$(q "$state" ".[0].state")" = CLOSED ] && [ "$(pr "$state" stack/A .body)" = "A fixed" ]'
 
 cp -r "$work/bodies" "$work/bodies-close"
 printf 'moved to {{BASE}} {{TYPO}}\n' > "$work/bodies-close/CLOSE.md"
