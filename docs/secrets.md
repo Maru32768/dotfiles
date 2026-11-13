@@ -62,7 +62,7 @@ PowerShell からは `bws-run.ps1` が、`cmd` からは `bws-run.cmd` が呼ば
 
 端末を作り直したら、古いマシンアカウントのトークンを Web 画面で失効させる。
 
-`agent` 環境にはマシンアカウントを作らない。`verify-isolation.sh` が、トークンのファイル、`BWS_ACCESS_TOKEN`、Bitwarden CLI のログイン、API キーの環境変数がないことを確かめる。
+`agent` と `research` の環境にはマシンアカウントを作らない。research の API キーは Windows 側の `bws-run` から `lab.ps1 run` に渡す (`docs/research.md`)。`verify-isolation.sh` が、トークンのファイル、`BWS_ACCESS_TOKEN`、Bitwarden CLI のログイン、API キーの環境変数がないことを確かめる (research の起動前の検査は、渡した `ANTHROPIC_API_KEY` だけを外した環境で実行する)。
 
 ## 秘密情報を足す
 

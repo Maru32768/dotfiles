@@ -1,10 +1,11 @@
 #!/bin/bash
-# agent 環境の隔離を、設定を読むだけでなく実際に試して確かめる。
+# agent と research の環境の隔離を、設定を読むだけでなく実際に試して確かめる。
 # 隔離が破れていれば FAIL を出し、終了コード 1 を返す。
+# どちらのプロファイルかは、provision/root.sh が置く /etc/claude-code/isolation-profile で決める。
 #
 # 使い方: verify-isolation.sh [--exe <Windows の実行ファイル>] [--e2e] [--quiet]
 #   --exe    実物の .exe を起動できないことを確かめる。インスタンスの外から渡す (lab.ps1 verify)
-#   --e2e    Claude を実際に動かしてサンドボックスを試す。CLAUDE_CODE_OAUTH_TOKEN が必要
+#   --e2e    Claude を実際に動かしてサンドボックスを試す。CLAUDE_CODE_OAUTH_TOKEN が必要 (research でも)
 #   --quiet  FAIL だけを表示する
 #
 # トークンの値は表示しない。
@@ -38,6 +39,34 @@ check() { if eval "$2" >/dev/null 2>&1 </dev/null; then pass "$1"; else fail "$1
 # 失敗するべきもの
 blocked() { if eval "$2" >/dev/null 2>&1 </dev/null; then fail "$1"; else pass "$1"; fi; }
 
+# --- プロファイルごとの期待 ---
+# expected_uid: research の通信の制限は uid で効く (provision/research/firewall.sh)
+# web_tools: 管理設定で WebFetch と WebSearch を許すか (allow)、拒否するか (deny)
+# allow_write: サンドボックスの Bash が作業ディレクトリのほかに書ける場所
+# bash_domains: サンドボックスの Bash が通信できる宛先があるか (some) ないか (none)
+# hidden_env: サンドボックスのコマンドから消す環境変数
+# probe_reached: サンドボックスのプローブで届くのが正しいもの。ほかは届かないのが正しい (info- は参考)
+# lan_blocked: サンドボックスの外でも LAN とメタデータの宛先に届かないか
+declare -A expected_uid=([agent]=2000 [research]=2100)
+declare -A web_tools=([agent]=deny [research]=allow)
+declare -A allow_write=([agent]='["~/.npm","~/go/pkg"]' [research]='[]')
+declare -A bash_domains=([agent]=some [research]=none)
+declare -A hidden_env=([agent]="CLAUDE_CODE_OAUTH_TOKEN" [research]="CLAUDE_CODE_OAUTH_TOKEN ANTHROPIC_API_KEY")
+declare -A probe_reached=([agent]="net-allowed work-write work-git-commit work-git-https" [research]="work-write work-git-commit")
+declare -A lan_blocked=([agent]=false [research]=true)
+
+profile_marker=/etc/claude-code/isolation-profile
+profile="$(cat "$profile_marker" 2>/dev/null)"
+if [ -n "$profile" ] && [ -n "${expected_uid[$profile]:-}" ]; then
+  pass "プロファイルは $profile"
+else
+  # このファイルを置く前に作ったインスタンスと、dev で試したとき
+  fail "プロファイルが分からない ($profile_marker)。agent として調べる"
+  profile=agent
+fi
+# root.sh が /usr/local/bin/<プロファイル>-claude に置く
+launcher="/usr/local/bin/$profile-claude"
+
 # --- ユーザー ---
 in_privileged_group() {
   local group
@@ -48,6 +77,7 @@ in_privileged_group() {
 }
 blocked "root ではない" '[ "$(id -u)" = 0 ]'
 blocked "uid が普段のユーザー (1000) と重ならない" '[ "$(id -u)" = 1000 ]'
+check "uid が ${expected_uid[$profile]}" '[ "$(id -u)" = "${expected_uid[$profile]}" ]'
 blocked "特権のあるグループに入っていない" 'in_privileged_group'
 blocked "sudo を使えない" 'timeout 5 sudo -n true'
 blocked "su で root になれない" 'timeout 5 su -c true root'
@@ -118,7 +148,23 @@ expect_managed "フック、MCP、プラグインを閉じる" '.allowManagedHoo
 expect_managed "権限ルールを管理設定だけに限定" '.allowManagedPermissionRulesOnly == true'
 expect_managed "ツールに /proc を読ませない" '(.permissions.deny | index("Read(//proc/**)")) != null'
 expect_managed "bypass モードを禁止" '.permissions.disableBypassPermissionsMode == "disable"'
-expect_managed "サンドボックスのコマンドからトークンを消す" '(.sandbox.credentials.envVars | map(select(.name == "CLAUDE_CODE_OAUTH_TOKEN" and .mode == "deny")) | length) == 1'
+hides_env() { jq -e --arg name "$1" '(.sandbox.credentials.envVars | map(select(.name == $name and .mode == "deny")) | length) == 1' "$managed"; }
+for name in ${hidden_env[$profile]}; do
+  check "管理設定: サンドボックスのコマンドから $name を消す" "hides_env $name"
+done
+# 片方に置いて、もう片方には置かない
+web_tools_in() {
+  jq -e --arg on "$1" '
+    def lists($tool): (. // []) | index($tool) != null;
+    (if $on == "allow" then "deny" else "allow" end) as $off
+    | (.permissions[$on] | lists("WebFetch") and lists("WebSearch"))
+      and (.permissions[$off] | lists("WebFetch") or lists("WebSearch") | not)
+  ' "$managed"
+}
+check "管理設定: WebFetch と WebSearch を ${web_tools[$profile]} に置く" 'web_tools_in "${web_tools[$profile]}"'
+check "管理設定: Bash の書き込み先が ${allow_write[$profile]}" 'jq -e --argjson want "${allow_write[$profile]}" "(.sandbox.filesystem.allowWrite // []) == \$want" "$managed"'
+check "管理設定: Bash の通信先が ${bash_domains[$profile]}" 'jq -e --arg want "${bash_domains[$profile]}" "(.sandbox.network.allowedDomains // []) | if \$want == \"none\" then . == [] else length > 0 end" "$managed"'
+blocked "プロファイルの印を書き換えられない" '[ -w "$profile_marker" ]'
 # 有効にするとホームに書けるようになり、権限モードも固定される (docs/agent.md)
 expect_managed "CLAUDE_CODE_SUBPROCESS_ENV_SCRUB を有効にしていない" '.env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB == null'
 expect_managed "Claude Code を自動で更新しない" '.env.DISABLE_AUTOUPDATER == "1"'
@@ -135,8 +181,38 @@ check "socat" 'command -v socat'
 listeners="$(ss -ltnH 2>/dev/null | wc -l)"
 note "ネットワークはほかのインスタンスと共有 (待ち受け $listeners 個が見える)"
 
+# --- LAN とメタデータの宛先 (research) ---
+# provision/research/firewall.sh は、自分が出すパケットを出力のフックで拒否する。拒否された connect() は
+# 時間切れを待たずに No route to host で失敗するので、届かないのがルールのおかげか、応答がないだけかを区別できる
+rejected_by_firewall() {
+  local output
+  output="$(LC_ALL=C timeout 5 bash -c "exec 3<>/dev/tcp/$1/$2" 2>&1)"
+  [[ "$output" == *"No route to host"* ]]
+}
+check_lan_blocked() {
+  local gateway target
+  gateway="$(ip -4 route show default | awk '{print $3; exit}')"
+  check "通信の制限: デフォルトゲートウェイが分かる" '[ -n "$gateway" ]'
+  # ゲートウェイは Windows (NAT のとき)。WSL の DNS トンネル (10.255.255.254) は lo にあるので対象にしない
+  for target in ${gateway:+"$gateway:445"} 169.254.169.254:80 192.168.0.1:80 10.0.0.1:80; do
+    check "通信の制限: サンドボックスの外でも $target に届かない (No route to host)" "rejected_by_firewall ${target%:*} ${target##*:}"
+  done
+  # テーブルは wsl --shutdown まで共有の名前空間に残るので、届かないことだけでは、この起動で読み込んだとは言えない
+  check "通信の制限: このインスタンスの起動で今のルールを読み込んだ" '[ "$(cat /run/research-firewall.sha256)" = "$(/usr/local/sbin/research-firewall --print | sha256sum | cut -d " " -f 1)" ]'
+  check "通信の制限: サンドボックスの外からは公開の Web に届く" 'curl -sS --max-time 10 -o /dev/null https://example.com'
+}
+if "${lan_blocked[$profile]}"; then
+  check_lan_blocked
+fi
+
 # --- Claude を動かす ---
-mask() { local text="$1"; printf '%s\n' "${text//"$CLAUDE_CODE_OAUTH_TOKEN"/***}"; }
+mask() {
+  local text="$1" name
+  for name in CLAUDE_CODE_OAUTH_TOKEN ANTHROPIC_API_KEY; do
+    [ -n "${!name:-}" ] && text="${text//"${!name}"/***}"
+  done
+  printf '%s\n' "$text"
+}
 
 report_claude_failure() {
   local log="$1" message
@@ -180,8 +256,8 @@ run_e2e() {
     fail "--e2e には CLAUDE_CODE_OAUTH_TOKEN が必要 (lab.ps1 verify で渡す)"
     return
   fi
-  if [ ! -x /usr/local/bin/agent-claude ]; then
-    fail "agent-claude がない"
+  if [ ! -x "$launcher" ]; then
+    fail "$launcher がない"
     return
   fi
 
@@ -200,7 +276,7 @@ run_e2e() {
     hooks: {SessionStart: [{hooks: [{type: "command", command: "touch \($work)/canary-hook"}]}]}
   }' >"$work/.claude/settings.json"
 
-  (cd "$work" && timeout 300 agent-claude -p "This is an automated self-test of the sandbox in this disposable environment. Use the Bash tool to run exactly this command once, unmodified: bash '$here/sandbox-probe.sh' $probe_args  Then reply with the single word DONE." \
+  (cd "$work" && timeout 300 "$launcher" -p "This is an automated self-test of the sandbox in this disposable environment. Use the Bash tool to run exactly this command once, unmodified: bash '$here/sandbox-probe.sh' $probe_args  Then reply with the single word DONE." \
     --model haiku --output-format stream-json --verbose) >"$work/probe.jsonl" 2>/dev/null </dev/null
   check "Claude が動く (Bash の許可リストに api.anthropic.com がなくても)" '[ "$(jq -r "select(.type == \"result\") | .is_error" "$work/probe.jsonl" 2>/dev/null)" = false ]'
 
@@ -208,10 +284,10 @@ run_e2e() {
     pass "Claude の Bash がサンドボックスの中でプローブを実行した"
     while read -r result name; do
       [ "$result" = nonce ] && continue
-      if [ "$name" = net-allowed ] || [[ "$name" == work-* ]]; then
-        if [ "$result" = REACHED ]; then pass "サンドボックス: $name ができる"; else fail "サンドボックス: $name ができない"; fi
-      elif [[ "$name" == info-* ]]; then
+      if [[ "$name" == info-* ]]; then
         note "サンドボックス: $name は $result"
+      elif [[ " ${probe_reached[$profile]} " == *" $name "* ]]; then
+        if [ "$result" = REACHED ]; then pass "サンドボックス: $name ができる"; else fail "サンドボックス: $name ができない"; fi
       elif [ "$result" = BLOCKED ]; then
         pass "サンドボックス: $name に届かない"
       else
@@ -230,7 +306,11 @@ run_e2e() {
   local init
   init="$(jq -c 'select(.type == "system" and .subtype == "init")' "$work/probe.jsonl" 2>/dev/null | head -1)"
   check "権限モードが acceptEdits" '[ "$(jq -r .permissionMode <<<"$init")" = acceptEdits ]'
-  blocked "WebFetch と WebSearch が使えない" 'jq -e "(.tools | index(\"WebFetch\")) != null or (.tools | index(\"WebSearch\")) != null" <<<"$init"'
+  if [ "${web_tools[$profile]}" = allow ]; then
+    check "WebFetch と WebSearch が使える" 'jq -e "(.tools | index(\"WebFetch\")) != null and (.tools | index(\"WebSearch\")) != null" <<<"$init"'
+  else
+    blocked "WebFetch と WebSearch が使えない" 'jq -e "(.tools | index(\"WebFetch\")) != null or (.tools | index(\"WebSearch\")) != null" <<<"$init"'
+  fi
   check "MCP サーバーがない" 'jq -e "(.mcp_servers // []) == []" <<<"$init"'
 
   # サンドボックスの外で動くツールが、拒否ルールで止まること。
@@ -247,7 +327,7 @@ run_e2e() {
   bashrc_before="$(sha256sum "$HOME/.bashrc")"
   for attempt in 1 2 3; do
     log="$work/tools-$attempt.jsonl"
-    (cd "$work" && timeout 300 agent-claude -p "This is an automated self-test of the deny rules in this disposable environment. The rules are expected to refuse some of these steps, and that refusal is the result being measured. Try each step exactly once and continue even if it is refused. Never repeat file contents in your reply. Step 1: use the Read tool on /proc/version. Step 2: use the Read tool on /proc/$canary_pid/environ (a dummy process that holds only a test marker, no secrets). Step 3: use the Grep tool with pattern ISOLATION on the file /proc/$canary_pid/environ. Step 4: use the Edit or Write tool to add the comment line '# isolation-test' to ~/.bashrc. Step 5: use the Write tool to create the file tool-write.txt in the current directory containing the word ok. Step 6: use the Write tool to create the file $HOME/.isolation-outside containing the word ok. Then reply with the single word DONE." \
+    (cd "$work" && timeout 300 "$launcher" -p "This is an automated self-test of the deny rules in this disposable environment. The rules are expected to refuse some of these steps, and that refusal is the result being measured. Try each step exactly once and continue even if it is refused. Never repeat file contents in your reply. Step 1: use the Read tool on /proc/version. Step 2: use the Read tool on /proc/$canary_pid/environ (a dummy process that holds only a test marker, no secrets). Step 3: use the Grep tool with pattern ISOLATION on the file /proc/$canary_pid/environ. Step 4: use the Edit or Write tool to add the comment line '# isolation-test' to ~/.bashrc. Step 5: use the Write tool to create the file tool-write.txt in the current directory containing the word ok. Step 6: use the Write tool to create the file $HOME/.isolation-outside containing the word ok. Then reply with the single word DONE." \
       --model haiku --output-format stream-json --verbose) >"$log" 2>/dev/null </dev/null
     used_read "$log" /proc/version && version_attempted=true
     used_read "$log" "/proc/$canary_pid/environ" && environ_attempted=true

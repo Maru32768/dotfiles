@@ -5,11 +5,14 @@
 #   lab.ps1 new dev
 #   lab.ps1 new dev -Source C:\path\to\copy
 #   lab.ps1 new agent-foo          (a name starting with agent- gets the agent profile)
+#   lab.ps1 new research-foo       (research- gets the research profile: web reading, no LAN)
 #   lab.ps1 token                  (stores the token from claude setup-token)
 #   lab.ps1 run agent-foo [-Path ~/work/repo]   (the default path is ~/work)
+#   bws-run <project> -- powershell -ExecutionPolicy Bypass -File lab\lab.ps1 run research-foo -Path ~/work/run
+#                                  (research runs on ANTHROPIC_API_KEY from the caller)
 #   lab.ps1 verify agent-foo
-#   lab.ps1 rm agent-foo           (only agent-* and restore-test*)
-#   lab.ps1 restore-test           (builds main and agent, checks them, removes them)
+#   lab.ps1 rm agent-foo           (only agent-*, research-* and restore-test*)
+#   lab.ps1 restore-test           (builds every profile, checks them, removes them)
 #
 # -NoClaude skips the checks that run Claude, so the stored token is not used.
 [CmdletBinding()]
@@ -30,6 +33,31 @@ $LabDir = Join-Path $env:LOCALAPPDATA 'dotfiles-lab'
 $TokenPath = Join-Path $LabDir 'claude-oauth-token.dpapi'
 $ResultPath = Join-Path $LabDir 'restore-test.json'
 $LogPath = Join-Path $LabDir 'restore-test.log'
+
+# The instance name picks the profile: the first Prefix it starts with, else main.
+#   User: the instance user (-User overrides it)
+#   Home: the chezmoi profile of the user's files. research uses agent's.
+#   Launcher: starts Claude in the isolated profiles (docs/agent.md, docs/research.md)
+#   RunWith: how lab.ps1 run hands Claude its credential
+#   Next: what to do after lab.ps1 new ({0} is the instance, {1} the user)
+$Profiles = [ordered]@{
+    main     = @{ Prefix = $null; User = 'maru'; Home = 'main'; Launcher = $null; RunWith = $null
+                  Next = 'wsl -d {0} -u root passwd {1}' }
+    agent    = @{ Prefix = 'agent-'; User = 'agent'; Home = 'agent'; Launcher = '/usr/local/bin/agent-claude'; RunWith = 'Invoke-WithToken'
+                  Next = 'lab.ps1 token (once), then lab.ps1 run {0}' }
+    research = @{ Prefix = 'research-'; User = 'research'; Home = 'agent'; Launcher = '/usr/local/bin/research-claude'; RunWith = 'Invoke-WithApiKey'
+                  Next = 'bws-run <project> -- powershell -ExecutionPolicy Bypass -File lab\lab.ps1 run {0} -Path ~/work/run' }
+}
+
+function Get-ProfileName([string]$InstanceName) {
+    foreach ($key in $Profiles.Keys) {
+        $prefix = $Profiles[$key].Prefix
+        if ($prefix -and $InstanceName -like "$prefix*") {
+            return $key
+        }
+    }
+    return 'main'
+}
 
 function Invoke-Wsl {
     & wsl.exe @args
@@ -54,22 +82,38 @@ function ConvertTo-WslPath([string]$Path) {
     return "/mnt/$drive" + $full.Substring(2).Replace('\', '/')
 }
 
-# Gives the token to one wsl.exe call only. A user-level environment variable
-# would also override /login for Claude Code on Windows.
+# Passes one environment variable into the wsl.exe calls of $Action only.
+function Invoke-WithWslEnv([string]$Variable, [scriptblock]$Action) {
+    $savedWslEnv = $env:WSLENV
+    $env:WSLENV = (@($savedWslEnv, "$Variable/u") | Where-Object { $_ }) -join ':'
+    try {
+        & $Action
+    } finally {
+        $env:WSLENV = $savedWslEnv
+    }
+}
+
+# Gives the stored token to one wsl.exe call only. A user-level environment
+# variable would also override /login for Claude Code on Windows.
 function Invoke-WithToken([scriptblock]$Action) {
     if (-not (Test-Path -LiteralPath $TokenPath)) {
         throw "No token stored. Run: claude setup-token, then lab.ps1 token"
     }
     $secure = Get-Content -LiteralPath $TokenPath | ConvertTo-SecureString
-    $savedWslEnv = $env:WSLENV
     $env:CLAUDE_CODE_OAUTH_TOKEN = [System.Net.NetworkCredential]::new('', $secure).Password
-    $env:WSLENV = (@($savedWslEnv, 'CLAUDE_CODE_OAUTH_TOKEN/u') | Where-Object { $_ }) -join ':'
     try {
-        & $Action
+        Invoke-WithWslEnv 'CLAUDE_CODE_OAUTH_TOKEN' $Action
     } finally {
         Remove-Item Env:CLAUDE_CODE_OAUTH_TOKEN
-        $env:WSLENV = $savedWslEnv
     }
+}
+
+# The key comes from the caller (bws-run) and is never stored here.
+function Invoke-WithApiKey([scriptblock]$Action) {
+    if (-not $env:ANTHROPIC_API_KEY) {
+        throw "ANTHROPIC_API_KEY is not set. Run through bws-run: bws-run <project> -- powershell -ExecutionPolicy Bypass -File lab\lab.ps1 run $Name"
+    }
+    Invoke-WithWslEnv 'ANTHROPIC_API_KEY' $Action
 }
 
 # A real Windows executable shows whether interop is really off. The instance
@@ -116,10 +160,9 @@ function Invoke-RestoreTest {
     # failed step has to reach the result file instead of stopping here.
     $ErrorActionPreference = 'Continue'
 
-    $targets = @(
-        @{ Profile = 'main'; Instance = 'restore-test'; User = 'maru' },
-        @{ Profile = 'agent'; Instance = 'agent-restore-test'; User = 'agent' }
-    )
+    $targets = @(foreach ($key in $Profiles.Keys) {
+        @{ Profile = $key; Instance = "$($Profiles[$key].Prefix)restore-test"; User = $Profiles[$key].User }
+    })
     $existing = Get-Instances
     foreach ($target in $targets) {
         if ($existing -contains $target.Instance) {
@@ -151,7 +194,7 @@ function Invoke-RestoreTest {
         }
     }
 
-    # A push between the two builds would mean they did not test the same thing
+    # A push between the builds would mean they did not test the same thing
     $uniqueCommits = @($commits | Sort-Object -Unique)
     $passed = (@($results.Values | Where-Object { -not $_ }).Count -eq 0) -and ($uniqueCommits.Count -eq 1)
     [ordered]@{
@@ -188,22 +231,24 @@ if (-not $Name) {
     throw "lab.ps1 $Command needs an instance name"
 }
 
-$isAgent = $Name -like 'agent-*'
+$profileName = Get-ProfileName $Name
+$labProfile = $Profiles[$profileName]
 if (-not $User) {
-    $User = if ($isAgent) { 'agent' } else { 'maru' }
+    $User = $labProfile.User
 }
+$isolatedPrefixes = (@($Profiles.Values | Where-Object { $_.Launcher } | ForEach-Object { "$($_.Prefix)*" })) -join ', '
 
 if ($Command -eq 'rm') {
     # Only disposable instances. Anything else needs a deliberate wsl --unregister.
-    if ($Name -notmatch '^(agent-|restore-test)') {
-        throw "Refusing to remove ${Name}: only agent-* and restore-test* can be removed here"
+    if (-not $labProfile.Launcher -and $Name -notlike 'restore-test*') {
+        throw "Refusing to remove ${Name}: only $isolatedPrefixes and restore-test* can be removed here"
     }
     Invoke-Wsl --unregister $Name
     return
 }
 
-if ($Command -in @('run', 'verify') -and -not $isAgent) {
-    throw "lab.ps1 $Command only works on agent-* instances"
+if ($Command -in @('run', 'verify') -and -not $labProfile.Launcher) {
+    throw "lab.ps1 $Command only works on $isolatedPrefixes instances"
 }
 
 if ($Command -eq 'verify') {
@@ -212,8 +257,8 @@ if ($Command -eq 'verify') {
 }
 
 if ($Command -eq 'run') {
-    Invoke-WithToken {
-        & wsl.exe -d $Name -u $User --cd $Path -e /usr/local/bin/agent-claude
+    & $labProfile.RunWith {
+        & wsl.exe -d $Name -u $User --cd $Path -e $labProfile.Launcher
     }
     exit $LASTEXITCODE
 }
@@ -222,7 +267,6 @@ if ((Get-Instances) -contains $Name) {
     throw "Instance $Name already exists"
 }
 
-$profileName = if ($isAgent) { 'agent' } else { 'main' }
 $isLocal = Test-Path -LiteralPath $Source
 $sourceInWsl = if ($isLocal) { ConvertTo-WslPath $Source } else { $Source }
 $bootstrap = '/var/tmp/dotfiles-bootstrap'
@@ -250,7 +294,7 @@ Write-Host '==> Restarting to apply wsl.conf'
 Invoke-Wsl --terminate $Name
 
 Write-Host "==> Provisioning as $User"
-$arguments = @($profileName, $(if ($isLocal) { $bootstrap } else { $Source }))
+$arguments = @($labProfile.Home, $(if ($isLocal) { $bootstrap } else { $Source }))
 if ($Branch) { $arguments += $Branch }
 Invoke-Wsl -d $Name -u $User --cd '~' -e bash "$bootstrap/provision/user.sh" @arguments
 
@@ -259,13 +303,12 @@ Invoke-Wsl -d $Name -u root -e rm -rf $bootstrap
 Invoke-Wsl --terminate $Name
 
 Write-Host '==> Checking the result'
-if ($isAgent) {
+if ($labProfile.Launcher) {
     Invoke-Verify
-    Write-Host "==> Done. Next: lab.ps1 token (once), then lab.ps1 run $Name"
 } else {
     & wsl.exe -d $Name -u $User --cd '~' -e bash -lc 'bash ~/dotfiles/tests/doctor.sh'
     if ($LASTEXITCODE -ne 0) {
         throw "doctor.sh reported problems in $Name"
     }
-    Write-Host "==> Done. Next: wsl -d $Name -u root passwd $User"
 }
+Write-Host ("==> Done. Next: " + ($labProfile.Next -f $Name, $User))

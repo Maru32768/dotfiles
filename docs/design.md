@@ -41,7 +41,7 @@ packages/                apt.txt と winget.json
 bootstrap.ps1            Windows の入口
 provision/               インスタンスの初期設定
 lab/lab.ps1              インスタンスの作成と削除
-tests/                   doctor.sh と doctor.ps1 (環境の確認)、verify-isolation.sh (agent の隔離の確認)
+tests/                   doctor.sh と doctor.ps1 (環境の確認)、verify-isolation.sh (agent と research の隔離の確認)
   ci/                    CI の検査。手元でも実行できる
 .github/workflows/       CI (docs/ci.md)
 docs/
@@ -95,7 +95,7 @@ wsl -d dev -u root passwd maru
 |---|---|---|
 | Windows | 既存の `~/.ssh/github` | 正式な鍵 |
 | `dev` | 環境ごとに新規作成して GitHub に登録 | 正式な鍵を取り込む |
-| `agent` | 持たない | 持たない |
+| `agent`、`research` | 持たない | 持たない |
 
 - `~/.ssh` と `~/.gitconfig` を Windows へのリンクにしない。WSL が単体で復元できなくなり、隔離とも両立しないため。
 - SSH キーは環境ごとに作り直せるので、バックアップしない。作り直したら古い鍵を GitHub から消す。
@@ -107,6 +107,8 @@ wsl -d dev -u root passwd maru
 ## エージェント用の環境
 
 WSL の分離だけには頼らず、インスタンス、ユーザー、資格情報、Claude の設定、サンドボックス、通信の層を重ねる。成果物は署名なしの `agent/*` ブランチで受け取り、確認してから署名する。詳しくは `docs/agent.md`。
+
+Web を読ませる調べものには、同じ隔離に、uid で絞ったファイアウォールで LAN への通信を止める層を足した `research` を使う。API キーは呼び出し元が `bws-run` で渡す。詳しくは `docs/research.md`。
 
 WSL の各インスタンスは VM とカーネルを共有するので、悪意あるコードを閉じ込める壁としては弱い。信頼できないリポジトリには devcontainer や `wslc` を使う。隔離の効果は `tests/verify-isolation.sh` で実際に試して確かめる。
 
