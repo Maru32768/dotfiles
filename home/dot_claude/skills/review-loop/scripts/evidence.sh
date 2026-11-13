@@ -134,11 +134,9 @@ target() {
 intact() {
   [ "$(fingerprint)" = "$before" ] && clean && return 0
   {
-    printf '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n'
     printf '!!! evidence.sh: the worktree did not come back after %s\n' "$1"
     printf '!!! Nothing was cleaned up or recorded. Inspect it before you do anything else:\n'
     git -C "$top" status --short --untracked-files=normal
-    printf '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n'
   } >&2
   exit 5
 }
