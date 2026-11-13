@@ -217,6 +217,12 @@ check "後片づけの失敗の原因を層のログに残す" 'grep -q "index.l
 check "ビルドが作った入れ子のリポジトリも次の層に持ち越さない" 'verify "layer N1 stack/B . sh -c \"echo built; git init -q sub\"
 layer N2 stack/B . test ! -e sub" "$work/vlog7" && grep -q "^N2 stack/B rc=0 " "$work/vlog7/summary.txt"'
 check "後片づけの後も、層のログに検査の出力が残る" 'grep -q "^built$" "$work/vlog7/N1.log"'
+mkdir -p "$work/hooks"
+printf '#!/bin/sh\necho hooked\n' > "$work/hooks/post-checkout"
+chmod +x "$work/hooks/post-checkout"
+g config core.hooksPath "$work/hooks"
+check "成功したcheckoutの出力も層のログに残す" 'verify "layer H1 stack/A . true" "$work/vlog8" && grep -q "^hooked$" "$work/vlog8/H1.log"'
+rm -f "$work/hooks/post-checkout"
 
 # 偽のghはPRをJSONに記録する。GH_FAIL_HEADのブランチのPRは作れない
 git init -q --bare "$work/origin.git"
