@@ -185,6 +185,7 @@ wait "$pid"
 rc=$?
 equals "変異の実行中にTERMを受けると、変異を戻してから130で終わる" "$mutated $rc" "1 130"
 check "TERMで止めた後、作業ツリーがきれいで指紋も同じ" same
+same || g checkout -q -- .
 check "TERMで止めると、変異の結果を記録しない" '! grep -q "	mutate	" "$work/signal.tsv"'
 
 e "$mlog" mutate "$work/kill.patch" -- sh -c 'cat app.sh >> "$0"; exit 1' "$work/seen" > /dev/null 2>&1
@@ -197,6 +198,7 @@ e "$mlog" mutate "$work/kill.patch" -- sh -c 'touch junk.txt; exit 1' > /dev/nul
 rc=$?
 check "基準の実行が失敗してファイルを残すと、5で終わり何も記録しない" '[ "$rc" = 5 ] && [ "$(wc -l < "$mlog")" = "$lines" ]'
 rm -f "$repo/junk.txt"
+lines=$(wc -l < "$mlog")
 MUTATE_BUILD='touch junk.txt; exit 1' e "$mlog" mutate "$work/kill.patch" -- sh test.sh > /dev/null 2>&1
 rc=$?
 check "基準の実行のビルドが失敗してファイルを残すと、5で終わり何も記録しない" '[ "$rc" = 5 ] && [ "$(wc -l < "$mlog")" = "$lines" ]'
