@@ -146,7 +146,8 @@ verify() {
 }
 verify 'layer A1 stack/A . sh -c "echo dirt >> run.sh; touch junk"
 layer B1 stack/B . sh -c "test ! -e junk && git diff --quiet"
-layer B2 stack/B . false
+layer B2 stack/B . sh -c "touch junk2; false"
+layer B3 stack/B . sh -c "test ! -e junk2"
 layer X1 stack/missing . true' "$work/vlog1" 2> "$work/vlog1.err"
 rc=$?
 summary="$work/vlog1/summary.txt"
@@ -154,6 +155,7 @@ check "失敗した層があると0以外で終わる" '[ "$rc" -ne 0 ]'
 check "ビルドが残した変更をdirtyに出す" 'grep -q "^A1 stack/A rc=0 .*dirty=\[.*run.sh.*junk" "$summary"'
 check "ビルドが残した変更を次の層に持ち越さない" 'grep -q "^B1 stack/B rc=0 " "$summary"'
 check "検査の失敗をrcに出す" 'grep -q "^B2 stack/B rc=1 " "$summary"'
+check "失敗した層が残したものも次の層に持ち越さない" 'grep -q "^B3 stack/B rc=0 " "$summary"'
 check "ブランチの無い層も失敗に数える" 'grep -q "^X1 stack/missing checkout-failed" "$summary" && grep -q "^DONE failed=2$" "$summary"'
 check "すべての層が通れば0で終わる" 'verify "layer B1 stack/B . true" "$work/vlog2"'
 touch "$repo/junk"
