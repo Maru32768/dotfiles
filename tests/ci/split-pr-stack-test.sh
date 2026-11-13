@@ -385,6 +385,10 @@ mkdir -p "$state.out"
 cp "$work/layers.tsv" "$state.out/layers.tsv"
 check "層の一覧を出力のディレクトリに置いても、一覧を壊さない" 'publish "$state" "$work/bodies" 1 "$state.out/layers.tsv" > "$work/publish6.log" 2>&1 && [ "$(q "$state" ".[0].state")" = CLOSED ]'
 
+state="$work/state6.json"
+printf 'A\tstack/A\t-\nA\tstack/B\tA\n' > "$work/layers-dup.tsv"
+check "層の一覧に同じ名前の層が2行あると、PRを作る前に止まる" '! publish "$state" "$work/bodies" 1 "$work/layers-dup.tsv" > "$work/publish7.log" 2>&1 && [ "$(q "$state" "length")" = 2 ]'
+
 state="$work/state3.json"
 publish "$state" "$work/bodies" 99 > "$work/publish4.log" 2>&1
 rc=$?

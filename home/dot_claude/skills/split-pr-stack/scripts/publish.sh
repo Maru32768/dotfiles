@@ -70,8 +70,9 @@ open_pr() {
 layers=()
 branches=("$BASE_BRANCH")
 prereqs=()
-while IFS=$'\t' read -r layer branch prereq; do
+while IFS=$'\t' read -r layer branch prereq _; do
   [ -z "$layer" ] && continue
+  case " ${layers[*]} " in *" $layer "*) echo "$LAYERS_TSV lists the layer $layer twice" >&2; exit 1 ;; esac
   layers+=("$layer")
   branches+=("$branch")
   prereqs+=("$prereq")
