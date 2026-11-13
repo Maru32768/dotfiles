@@ -2,6 +2,8 @@
 
 Claude を確認の少ない設定で動かすための、使い捨ての WSL インスタンス。名前が `agent-` で始まると、このプロファイルで作られる。
 
+Web を読ませて調べものをさせるときは、同じ隔離をもとにした research 環境を使う (`docs/research.md`)。
+
 ## 使い方
 
 Windows の PowerShell で実行する。
@@ -22,7 +24,7 @@ powershell -ExecutionPolicy Bypass -File lab\lab.ps1 verify agent-foo
 powershell -ExecutionPolicy Bypass -File lab\lab.ps1 rm agent-foo
 ```
 
-`-Path` を省くと `~/work` で動く。サンドボックスは作業ディレクトリへの書き込みを許すので、ホームでは起動しない。`rm` で消せるのは `agent-*` と `restore-test*` だけ。ほかは `wsl --unregister` を自分で実行する。
+`-Path` を省くと `~/work` で動く。サンドボックスは作業ディレクトリへの書き込みを許すので、ホームでは起動しない。`rm` で消せるのは `agent-*`、`research-*`、`restore-test*` だけ。ほかは `wsl --unregister` を自分で実行する。
 
 ## コードの受け渡し
 
@@ -70,6 +72,8 @@ git fetch agent-foo.bundle agent/foo:agent/foo
 | 対照 | 同じプローブをサンドボックスの外で実行し、検出できることを確かめる |
 | ツール | `Read` で `/proc` を読めず、`~/.bashrc` に書けないこと。規則は `/proc/version` で必ず確かめる。プロセスの環境変数は、ルールが効かなくてもトークンが漏れないよう、目印だけを持つプロセスで試す。モデルが試さなかったときは NOTE にする (下の「拒否ルールの検査」) |
 
+agent と research のどちらとして調べるかは、`root.sh` が置く `/etc/claude-code/isolation-profile` で決まる。このファイルがないと FAIL にして agent として調べるので、置く前に作ったインスタンスは作り直す。プロファイルごとに違う期待 (uid、Web のツール、Bash の通信先と書き込み先、隠す環境変数、プローブで届くのが正しいもの、LAN の検査) は、`verify-isolation.sh` の先頭の表にまとめてある。
+
 `dev` で実行すれば FAIL が並ぶので、検査が失敗を検出できることも確かめられる。
 
 ```bash
@@ -116,7 +120,7 @@ powershell -ExecutionPolicy Bypass -File lab\lab.ps1 new agent-foo
 
 Windows のユーザー環境変数には入れない。Windows 上の Claude Code でも `/login` より優先されてしまう。
 
-API キーに変えるなら、`lab.ps1` の変数名と `sandbox.credentials.envVars` を `ANTHROPIC_API_KEY` にする。
+API キーで動かすのは research 環境で、キーは呼び出し元が `bws-run` で渡す (`docs/research.md`)。
 
 ## CLAUDE_CODE_SUBPROCESS_ENV_SCRUB を使わない理由
 
@@ -138,6 +142,6 @@ API キーに変えるなら、`lab.ps1` の変数名と `sandbox.credentials.en
 
 ## 変更するとき
 
-通信先や書き込み先は `provision/agent/managed-settings.json` を編集して、インスタンスを作り直す。`allowWrite` に足した場所は、`agent-claude.sh` で先に作っておく。サンドボックスの中からは作れない。
+通信先や書き込み先は `provision/agent/managed-settings.json` を編集して、インスタンスを作り直す。`allowWrite` に足した場所は、`agent-claude.sh` で先に作っておく。サンドボックスの中からは作れない。拒否ルールなど research と共通の部分を変えたら、`provision/research/managed-settings.json` も揃える。`tests/ci/invariants.sh` が比べる。
 
 `/mnt/wsl` は全インスタンスで共有される。`isolate-mounts.sh` のように private にしてから外す。そのまま外したり、上に別のものをマウントしたりすると、ほかのインスタンスの Docker Desktop に影響する恐れがある。
