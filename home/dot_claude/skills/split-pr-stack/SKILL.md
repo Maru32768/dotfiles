@@ -29,6 +29,7 @@ description: 大きいブランチや PR を、ベース PR に集める積み�
 - `scripts/build_layers.py` を作業ディレクトリに写し、`FINAL`、`BASE`、`ORDER`、`OWNERS`、`TRANSFORMS` を埋める
   - 層 L でのファイルの中身は次のとおり。最初の持ち主より下の層では BASE のまま、最後の持ち主以上の層では FINAL のまま、その間の層では TRANSFORMS で FINAL から上の層の部分を取り除く
   - BASEとFINALからは`git restore`で取り出すので、モード、シンボリックリンク、バイナリもそのまま移る。TRANSFORMSで変換する共有ファイルは、テキストに限る
+  - リネームは、元のパスと先のパスを別々のファイルとしてOWNERSに書く。別の層に持たせてもよい
   - 取り除く処理は、どれも「ちょうど 1 か所に当たる」ことを assert する。当たらなければ止まるので、黙って壊れた層はできない
 - まず全層を順に書き出すドライランをする。最後の層で `git add -A && git diff --cached --stat --exit-code <FINAL>` が0で終わることを確かめ、`git reset --hard` で戻す
 - ベースブランチに空コミットを 1 つ作る。GitHub は、差分の無い PR を作れない
