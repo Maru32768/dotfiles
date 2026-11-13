@@ -10,7 +10,8 @@
 # One line per record: <UTC time>\t<run|mutate>\t<label>\t<result>\t<fingerprint>\t<command>. The command is quoted
 # with printf %q, so the shell reads it back as the same arguments, tabs and newlines included. The fingerprint is
 # the tree id of the worktree as it is (tracked files and untracked files that are not ignored), so it is the same
-# before and after committing the same content.
+# before and after committing the same content. It misses changes inside nested repositories and submodules (only
+# the commit they have checked out counts), and changes to files marked skip-worktree or assume-unchanged.
 #
 # run     Runs the command, records its exit code with the fingerprint from before it ran, and exits with that code.
 # check   Prints OK, MISSING, FAILED or STALE for the latest run of each label. Exits 0 only when all are OK.
