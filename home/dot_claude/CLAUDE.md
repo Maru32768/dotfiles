@@ -45,7 +45,7 @@ Windowsでは、翻訳専用のLLMであるPLaMo 3 Translate(日英を含む53�
 
 # レビュー
 
-- review-loopは、片づけの段でponytail-review、simplify、prose-polishを回す。review-loopを使うときは、prose-polishを別にかけない
+- review-loopは、片づけの段でponytail-review、simplify、prose-polishを回す。review-loopが推敲した文書には、prose-polishを別にかけない
 - poteto-modeとreview-loopを一緒に使うときは、コードの片づけ(deslop、no-comments)と文書の推敲をreview-loopの片づけの段に任せる。poteto-modeのtechnical-writingとunslopは、返信とコミットメッセージにだけかける
 
 # 技術的な知見の記録
