@@ -217,7 +217,11 @@ e "$mlog" mutate "$work/kill.patch" -- sh -c 'grep -q "1 - " app.sh && echo x >>
 rc=$?
 check "変異の実行がファイルを書き換えると5で終わり、変異の結果を記録しない" '[ "$rc" = 5 ] && [ "$(wc -l < "$mlog")" = "$((lines + 1))" ] && [ "$(last 3 "$mlog")" = baseline ]'
 g checkout -q -- test.sh
-check "基準の実行がファイルを書き換えても5で終わる" '[ "$(e "$mlog" mutate "$work/kill.patch" -- sh -c "echo x >> test.sh" > /dev/null 2>&1; echo $?)" = 5 ]'
+lines=$(wc -l < "$mlog")
+runs=$(wc -l < "$count")
+e "$mlog" mutate "$work/kill.patch" -- sh -c 'echo run >> "$0"; echo x >> test.sh' "$count" > /dev/null 2>&1
+rc=$?
+check "基準の実行がファイルを書き換えると、5で終わり、変異を回さず、baselineの行も残さない" '[ "$rc" = 5 ] && [ "$(wc -l < "$count")" = "$((runs + 1))" ] && [ "$(wc -l < "$mlog")" = "$lines" ]'
 g checkout -q -- test.sh
 
 # --- サブディレクトリとlinked worktree ---
