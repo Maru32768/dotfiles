@@ -160,6 +160,7 @@ for old, new in zip(pairs[::2], pairs[1::2]):
     t = t.replace(old, new)
 open(dst, "w", encoding="utf-8", newline="").write(t)
 EOF
+  [ $? -eq 0 ] || fail "誤った割り当ての$(basename "$1")を作れる"
 }
 g switch -q --detach stack/base
 # dfを消すのを層Bに、df/x.txtを足すのを層Aにすると、層Aにはファイルのdfとディレクトリのdfが両方要る
