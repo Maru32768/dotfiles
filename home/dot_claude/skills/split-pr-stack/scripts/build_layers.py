@@ -123,9 +123,12 @@ def main():
     kept = {path: ref for path, ref in source.items() if path in files[ref]}
     icase = git("config", "--type=bool", "--default=false", "core.ignorecase").strip() == b"true"
 
+    def simple_upper(c):
+        """One character for one, as NTFS maps case: straße.txt and strasse.txt are two files there, ᾀ and ᾈ one."""
+        return next((u for u in (c.upper(), c.title()) if len(u) == 1), c)
+
     def fold(path):
-        """Upper-case one character at a time, as NTFS does: straße.txt and strasse.txt are two files there."""
-        return "".join(c.upper() if len(c.upper()) == 1 else c for c in path) if icase else path
+        return "".join(map(simple_upper, path)) if icase else path
 
     places = Counter(fold(path) for path in kept)
     dirs = {place[:i] for place in places for i, c in enumerate(place) if c == "/"}
