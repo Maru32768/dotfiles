@@ -4,7 +4,7 @@
 #
 # usage: evidence.sh <evidence.tsv> run <label> -- <command...>
 #        evidence.sh <evidence.tsv> mutate <patch> -- <command...>
-#        evidence.sh <evidence.tsv> check [<label>...]
+#        evidence.sh <evidence.tsv> check <label>...
 #        evidence.sh <evidence.tsv> table
 #
 # One line per record: <UTC time>\t<run|mutate>\t<label>\t<result>\t<fingerprint>\t<command>. The fingerprint is
@@ -12,8 +12,7 @@
 # before and after committing the same content.
 #
 # run     Runs the command, records its exit code with the fingerprint from before it ran, and exits with that code.
-# check   Prints OK, MISSING, FAILED or STALE for the latest run of each label (default: every label except
-#         baseline). Exits 0 only when all are OK.
+# check   Prints OK, MISSING, FAILED or STALE for the latest run of each label. Exits 0 only when all are OK.
 # table   Prints the latest runs on the current fingerprint as a Markdown table. Exits 1 when there are none.
 # mutate  Needs a clean worktree. Runs the command unmutated (the baseline; skipped when the latest run of the same
 #         command on this fingerprint passed), applies the patch, runs $MUTATE_BUILD with bash -c when it is set,
@@ -27,7 +26,7 @@
 set -uo pipefail
 
 die() { printf 'evidence.sh: %s\n' "$1" >&2; exit 2; }
-[ $# -ge 2 ] || die "usage: evidence.sh <evidence.tsv> run <label> -- <command...> | mutate <patch> -- <command...> | check [<label>...] | table"
+[ $# -ge 2 ] || die "usage: evidence.sh <evidence.tsv> run <label> -- <command...> | mutate <patch> -- <command...> | check <label>... | table"
 file=$1 sub=$2
 shift 2
 top=$(git rev-parse --show-toplevel 2>/dev/null) || die "not inside a git worktree"
@@ -101,12 +100,6 @@ check_cmd() {
   for label; do valid_label "$label"; done
   guard_file
   now=$(fingerprint) || die "cannot compute the fingerprint"
-  if [ $# -eq 0 ]; then
-    local all=()
-    while IFS= read -r label; do all+=("$label"); done < <(labels)
-    [ ${#all[@]} -gt 0 ] || { printf 'evidence.sh: no runs recorded in %s\n' "$file" >&2; exit 1; }
-    set -- "${all[@]}"
-  fi
   for label; do
     row=$(latest "$label")
     IFS=$'\t' read -r result fp _ <<< "$row"
@@ -207,7 +200,7 @@ src=$file
 case $sub in
   run) [ $# -ge 1 ] || die "run needs <label>"; run_cmd "$@" ;;
   mutate) [ $# -ge 1 ] || die "mutate needs <patch>"; mutate_cmd "$@" ;;
-  check) check_cmd "$@" ;;
+  check) [ $# -ge 1 ] || die "check needs <label>..."; check_cmd "$@" ;;
   table) [ $# -eq 0 ] || die "table takes no arguments"; table_cmd ;;
   *) die "unknown subcommand: $sub" ;;
 esac

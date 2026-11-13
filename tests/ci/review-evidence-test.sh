@@ -93,7 +93,6 @@ rc=1"
 e "$clog" run unit -- true
 equals "失敗の後に成功すれば、最新の行が勝ってOK" "$(e "$clog" check unit; echo "rc=$?")" "OK unit
 rc=0"
-check "runの行が無い記録では、ラベルを渡さないcheckは1" '! e "$work/empty.tsv" check'
 
 # --- table ---
 tlog="$work/table.tsv"
@@ -191,16 +190,6 @@ check "変異の実行がファイルを書き換えると5で終わり、変異
 g checkout -q -- test.sh
 check "基準の実行がファイルを書き換えても5で終わる" '[ "$(e "$mlog" mutate "$work/kill.patch" -- sh -c "echo x >> test.sh" > /dev/null 2>&1; echo $?)" = 5 ]'
 g checkout -q -- test.sh
-
-# ラベルを渡さないcheckは、runの行のラベルだけを見て、baselineを見ない
-alog="$work/all.tsv"
-e "$alog" run a -- true
-e "$alog" run b -- false
-e "$alog" mutate "$work/kill.patch" -- sh test.sh > /dev/null
-check "前提: 記録にbaselineの行がある" 'grep -q "	baseline	" "$alog"'
-equals "ラベルを渡さないと、baselineを除く全部のラベルを見る" "$(e "$alog" check; echo "rc=$?")" "OK a
-FAILED b
-rc=1"
 
 # --- サブディレクトリとlinked worktree ---
 slog="$work/sub.tsv"
