@@ -1,13 +1,14 @@
 #!/bin/bash
 # Check out each layer branch in the split worktree and run its checks; one summary line per layer.
 # usage: verify.sh <worktree> <log-dir>   (copy this file, then write the layer lines above the DONE line)
-# Exits non-zero when a layer fails to check out or its checks fail.
+# Exits 1 when a layer fails to check out, fails its checks, or cannot be reset afterwards, and 2 without
+# running anything when the worktree is not clean at the start. Keep <log-dir> outside the worktree.
 WT=$1
 LOG=$2
 mkdir -p "$LOG"
 : > "$LOG/summary.txt"
 if [ -n "$(git -C "$WT" status --porcelain --untracked-files=normal)" ]; then
-  echo "$WT has uncommitted changes (a log directory inside it must be ignored); commit or discard them first" >&2
+  echo "$WT has uncommitted changes, or holds the log directory; commit or discard them, and keep the logs outside" >&2
   exit 2
 fi
 failed=0
