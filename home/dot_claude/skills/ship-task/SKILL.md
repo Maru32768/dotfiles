@@ -56,7 +56,7 @@ description: issueや依頼に着手してから、完了条件の言い直し�
 
 - **直接。** スライスのブランチをデフォルトブランチへ早送りでマージする。issueは、最後のスライスをpushした後に閉じる。
 - **PR。** 1つのスライスを1本のPRにする。前のスライスがまだマージされていなければ、そのブランチをbaseにする。同じheadとbaseの開いたPRが無いことを確かめてから作る。
-- **PRの本文。** `mattpocock-skills:pr`の型で書き、Summaryの次に、`split-pr-stack/references/templates.md`の子PRの型にある「なぜ要るか」と「なぜこの形か」を、本文の言語で入れる。「動作確認」は、`bash <review-loopのディレクトリ>/scripts/evidence.sh <台帳のディレクトリ>/evidence.tsv table`で作る。作る前に、同じスクリプトの`check`で、記録が最後のツリーのものかを確かめる。書いたら、この会話の文脈を持たないサブエージェントに本文と差分を渡し、本文で答えていない「なぜ」の問いを挙げさせる。答えはコード、コミット、issueから裏を取って足す。最後に`prose-polish`にかける。
+- **PRの本文。** `mattpocock-skills:pr`の型で書き、Summaryの次に、`split-pr-stack/references/templates.md`の子PRの型にある「なぜ要るか」と「なぜこの形か」を、本文の言語で入れる。「動作確認」は、`bash <review-loopのディレクトリ>/scripts/evidence.sh <台帳のディレクトリ>/evidence.tsv table`で作る。作る前に、同じスクリプトの`check`で、記録が最後のツリーのものかを確かめる。書いた後の「なぜ」の確かめ方は、`split-pr-stack`の4と同じにする。最後に`prose-polish`にかける。
 - **下のスライスを後から直したとき。** 下のブランチを、上のブランチへマージする。rebaseしない。force pushが要らず、レビューで作った指摘ごとのコミットが残る。
 - push、PRの作成は、確認を取ってから行う。
 
