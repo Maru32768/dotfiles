@@ -251,6 +251,12 @@ g commit -q -am here
 fp0=$(fp)
 mutate kill > /dev/null
 equals "指紋が変わると、同じコマンドでも基準の実行をやり直す" "$(wc -l < "$count")" "$((runs + 2))"
+# 成功したbaselineの行の後に、同じ指紋とキーで失敗した行を足す
+row=$(grep "	run	baseline	" "$mlog" | tail -n 1)
+awk -F'\t' -v OFS='\t' '{ $4 = 1; print }' <<< "$row" >> "$mlog"
+runs=$(wc -l < "$count")
+mutate kill > /dev/null
+equals "最新のbaselineの行が失敗なら、前に成功した行があっても基準の実行をやり直す" "$(wc -l < "$count")" "$((runs + 2))"
 lines=$(wc -l < "$mlog")
 
 # 変異のときだけ、コマンドが追跡しているファイルを書き換える。戻した後の作業ツリーが違うので、何も記録しない
