@@ -258,6 +258,11 @@ e "$mlog" mutate "$work/kill.patch" -- sh -c 'grep -q "1 - " app.sh && echo x >>
 rc=$?
 check "変異の実行がファイルを書き換えると5で終わり、変異の結果を記録しない" '[ "$rc" = 5 ] && [ "$(wc -l < "$mlog")" = "$((lines + 1))" ] && [ "$(last 3 "$mlog")" = baseline ]'
 g checkout -q -- test.sh
+# git apply -Rは作業ツリーだけを戻すので、indexに変異が残る
+e "$mlog" mutate "$work/kill.patch" -- sh -c 'grep -q "1 - " app.sh && git add -A; sh test.sh' > /dev/null 2>&1
+rc=$?
+equals "変異の実行がindexに変異を入れると5で終わる" "$rc" "5"
+g reset -q --hard
 lines=$(wc -l < "$mlog")
 runs=$(wc -l < "$count")
 e "$mlog" mutate "$work/kill.patch" -- sh -c 'echo run >> "$0"; echo x >> test.sh' "$count" > /dev/null 2>&1
