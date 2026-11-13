@@ -63,16 +63,16 @@ PR/MR本文、Issue、設計資料、テスト、既存実装から「何を実�
 
 ```markdown
 # 対応済み
-- [R1/Must] <内容> → <どう直したか>（<直したコミット>）
+- [R1-correctness/Must/start] <内容> → <どう直したか>（<直したコミット>）
 
 # 意図的に見送り（再提起禁止・新しい論拠がある場合のみ可）
-- <内容> → <理由>
+- [R1-test/Could/start] <内容> → <理由>
 
 # 申し送り（本 MR の範囲外。別 MR で判断が要る）
-- <内容> → <なぜこの MR に入れないか>
+- [R2-correctness/Could/pre-existing] <内容> → <なぜこの MR に入れないか>
 
 # 却下した指摘（前提が誤っていたもの）
-- <内容> → <何が誤りだったか>
+- [fable/Should/start] <内容> → <何が誤りだったか>
 
 # 推敲で採らなかった変更
 - <ファイル or PR 本文> <推敲案> → <採らなかった理由（意味が動いた・範囲外 等）>
@@ -102,24 +102,10 @@ PR/MR本文、Issue、設計資料、テスト、既存実装から「何を実�
 
 台帳の「未検証」は「誤りなので却下」とは違う。環境不備や仕様不明による未検証の指摘を、再現できなかったという理由だけで消さない。
 
-### 指摘を1件1行で記録する
+「対応済み」「見送り」「申し送り」「却下」の行の先頭には、`[工程/重大度/由来]`を付ける。どの工程が何を見つけたかを、後で大まかに数えるための印で、厳密な件数は求めない。
 
-台帳と同じディレクトリに`findings.tsv`を作る。レビュアー、4と5の工程、親自身が見つけた欠陥と提案を、直さなかったものも含めて、親が足す。1行は1つの欠陥で、原因が同じもの(1か所を直せばどれも消えるもの)は1行にまとめる。扱いを決めたときに足し、直したら`commit`を埋め、後で扱いが変わったら行を書き換える。どの工程が何を見つけたかを後で数えるための記録で、台帳の文章の代わりにはしない。1行目は次の見出しにする。値の無い列は`-`にする。
-
-```
-id	source	also	severity	kind	origin	file	summary	outcome	commit
-```
-
-- `id`: 1からの連番
-- `source`: その欠陥を最初に出した工程。`R1-correctness`、`R1-test`(R2以降も同じ形)、`fable`、`codex`、`followup-correctness`、`followup-test`(FableとCodexの指摘を直した後の差分ラウンド)、`ponytail`、`simplify`、`prose`、`final`、`parent`(親が自分で見つけた)。同じラウンドのcorrectnessとtestがどちらも出したら、correctnessにする
-- `also`: 同じ欠陥を出した、ほかの工程。`source`と同じ書き方で、複数あれば`,`で並べる
-- `severity`: 親が扱いを決めたときの`Must`、`Should`、`Could`。提案は`-`
-- `kind`: `code`(実行されるコードと設定)、`test`、`docs`(文書、コメント、PR/MR本文、エージェントへの指示文)、`suggestion`(欠陥ではない削除、単純化、言い換えの提案)
-- `origin`: `start`(レビュー対象の差分が持ち込んだ)、`fix`(ループの中の修正、単純化、推敲が持ち込んだ)、`pre-existing`(差分より前からある)。修正コミットが変えた行から出た欠陥は`fix`にする
-- `file`は`path:line`、`summary`は1行の説明で、タブと改行を入れない
-- `outcome`: `fixed`(直した、提案を採った)、`rejected`(反証した)、`deferred`(見送った、提案を採らなかった)、`handoff`(申し送り)、`unverified`
-- `commit`: 直したコミット。複数あれば`,`で並べる
-- 4の工程は、提案1件を1行にする。ponytail-reviewの提案をsimplifyが適用したものは、`ponytail`の行にだけ書く
+- 工程: 指摘を出した工程。`R1-correctness`、`R1-test`(R2以降も同じ形)、`fable`、`codex`、`followup-correctness`、`followup-test`(FableとCodexの指摘を直した後の差分ラウンド)、`ponytail`、`simplify`、`final`、`parent`(親が自分で見つけた)。複数の工程が出したら`+`でつなぐ
+- 由来: `start`(レビュー対象の差分が持ち込んだ)、`fix`(ループの中の修正、単純化、推敲が持ち込んだ)、`pre-existing`(差分より前からある)
 
 ---
 
@@ -459,7 +445,7 @@ ponytail-review の指摘のうち、ハード制約と衝突するもの・意�
 - 台帳の「申し送り」— 仕様・前提レベルの食い違いは独立した項として明示する
 - **通せなかった検証コマンドがあれば、何が未検証のまま残っているかを書く**
 - 上限4ラウンドで Should が残ったまま進んだ場合は、残件と収束しない理由
-- 台帳のディレクトリの絶対パス。`ledger.md`と`findings.tsv`がそこにある
+- 台帳のディレクトリの絶対パス
 - prose-polish の報告（推敲したファイル、PR/MR 本文の更新と控えのパス、採らなかった変更、確かめたい点、検査の結果、humanizer のパス数）
 - 取得できる場合は総レビュー実行時間・mutation実行数とKilled数。**件数とmutation scoreだけで品質を断定しない。**
 
@@ -475,4 +461,4 @@ ponytail-review の指摘のうち、ハード制約と衝突するもの・意�
 - [Anthropic: Finding bugs with Claude and property-based testing (2026-01)](https://www.anthropic.com/research/property-based-testing) — 性質の抽出と自動生成テストによる検証。生成した性質が仕様と一致するかは別途確認が要る。
 - [TestSuiteBench (2026-10)](https://arxiv.org/abs/2610.13065) — LLM生成テストの実行成功とmutation検出能力の差。
 
-後片付け: レビュー用の worktree と scratch ブランチを消して、作業ツリーがクリーンな状態で終える。台帳のディレクトリは消さない。PR/MR本文の控えと、工程ごとの収穫を数える`findings.tsv`がある。
+後片付け: レビュー用の worktree と scratch ブランチを消して、作業ツリーがクリーンな状態で終える。台帳のディレクトリは消さない。PR/MR本文の控えがあり、台帳は工程ごとの収穫を後で数えるのにも使う。
