@@ -15,15 +15,18 @@
 # run     Runs the command, records its exit code with the fingerprint from before it ran, and exits with that code.
 # check   Prints OK, MISSING, FAILED or STALE for the latest run of each label. Exits 0 only when all are OK.
 # table   Prints the latest runs on the current fingerprint as a Markdown table. Exits 1 when there are none.
-# mutate  Needs a clean worktree. Runs the command unmutated (the baseline; skipped when the latest run of the same
-#         command on this fingerprint passed), applies the patch, runs $MUTATE_BUILD with bash -c when it is set,
-#         runs the command (under `timeout $MUTATE_TIMEOUT` when it is set), reverts with git apply -R, and checks
-#         that the worktree is back where it started. The baseline also runs $MUTATE_BUILD and the timeout, and
-#         $MUTATE_BUILD runs once more after the revert so no build output keeps the mutant.
-#         Exits 0 Killed, 1 Survived, 3 Timeout, 4 Invalid (the baseline fails, the patch does not apply, or the
-#         mutant does not build), and 5 when the worktree did not come back (nothing is recorded or cleaned up).
-# Exits 2 without running anything on a usage error, a dirty worktree for mutate, or an <evidence.tsv> inside the
-# worktree that is not ignored (every record would change the fingerprint).
+# mutate  Needs a clean worktree. Runs the command unmutated (the baseline), applies the patch, runs $MUTATE_BUILD
+#         with bash -c when it is set, runs the command (under `timeout $MUTATE_TIMEOUT` when it is set), reverts with
+#         git apply -R, and checks that the worktree is back where it started. The baseline also runs $MUTATE_BUILD
+#         and the timeout, and $MUTATE_BUILD runs once more after the revert so no build output keeps the mutant.
+#         A passing baseline is recorded as a run labelled baseline whose command column is the key: the command
+#         with $MUTATE_BUILD and $MUTATE_TIMEOUT in front. The baseline is skipped when the latest baseline row with
+#         the same fingerprint and key passed; other runs of the same command do not count.
+#         Exits 0 Killed, 1 Survived, 3 Timeout, 4 Invalid (the baseline fails, the patch does not apply, the mutant
+#         does not build, or the mutant run exits 126 or 127 because the command cannot run; 128 and above count
+#         as Killed), and 5 when the worktree did not come back (nothing is recorded or cleaned up).
+# Exits 2 without running anything on a usage error, a dirty worktree for mutate, $MUTATE_TIMEOUT without a timeout
+# command, or an <evidence.tsv> inside the worktree that is not ignored (every record would change the fingerprint).
 set -uo pipefail
 
 die() { printf 'evidence.sh: %s\n' "$1" >&2; exit 2; }
@@ -150,11 +153,12 @@ invalid() {
 }
 
 mutate_cmd() {
-  local patch=$1 rc result
+  local patch=$1 rc result key
   name=$(basename -- "$patch")
   valid_label "$name"
   shift
   parse_command "$@"
+  [ -z "${MUTATE_TIMEOUT:-}" ] || command -v timeout > /dev/null || die "MUTATE_TIMEOUT is set but there is no timeout command"
   [ -f "$patch" ] || die "no such patch: $patch"
   # git apply skips paths outside the current directory, so it always runs from the top with an absolute path.
   patch="$(cd "$(dirname -- "$patch")" && pwd)/$name"
@@ -162,14 +166,15 @@ mutate_cmd() {
   guard_file
   clean || die "the worktree has uncommitted changes or untracked files; commit them first so the revert can be checked"
   before=$(fingerprint) || die "cannot compute the fingerprint"
-  if ! FP=$before CMD=$cmd awk -F'\t' '$2 == "run" && ($5 "") == (ENVIRON["FP"] "") && ($6 "") == (ENVIRON["CMD"] "") { r = $4 }
-      END { exit r != "0" }' "$src"; then
+  printf -v key 'MUTATE_BUILD=%q MUTATE_TIMEOUT=%q %s' "${MUTATE_BUILD:-}" "${MUTATE_TIMEOUT:-}" "$cmd"
+  if ! FP=$before KEY=$key awk -F'\t' '$2 == "run" && $3 == "baseline" && ($5 "") == (ENVIRON["FP"] "") &&
+      ($6 "") == (ENVIRON["KEY"] "") { r = $4 } END { exit r != "0" }' "$src"; then
     build || { intact "the baseline build"; invalid "MUTATE_BUILD fails before mutating"; }
     target
     rc=$?
     intact "the baseline"
     [ "$rc" -eq 0 ] || invalid "the command fails before mutating (exit $rc)"
-    record run baseline 0 "$before"
+    cmd=$key record run baseline 0 "$before"
   fi
   git -C "$top" apply -- "$patch" || { intact "a failed git apply"; invalid "the patch does not apply"; }
   if ! build; then
@@ -179,6 +184,7 @@ mutate_cmd() {
     rc=$?
     if [ "$rc" -eq 0 ]; then result=Survived
     elif [ "$rc" -eq 124 ] && [ -n "${MUTATE_TIMEOUT:-}" ]; then result=Timeout
+    elif [ "$rc" -eq 126 ] || [ "$rc" -eq 127 ]; then result=Invalid
     else result=Killed
     fi
   fi

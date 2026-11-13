@@ -152,6 +152,10 @@ rc=$?
 equals "テストが気づかない変異はSurvivedで1" "$rc $(last 2-4 "$mlog")" "1 mutate	survive.patch	Survived"
 check "Survivedの後、作業ツリーがきれいで指紋も同じ" same
 equals "同じ指紋と同じコマンドの2回目は、基準の実行を省く" "$(wc -l < "$count")" "3"
+rlog="$work/run-only.tsv"
+e "$rlog" run same -- sh -c 'echo run >> "$0"; sh test.sh' "$count" > /dev/null
+e "$rlog" mutate "$work/kill.patch" -- sh -c 'echo run >> "$0"; sh test.sh' "$count" > /dev/null
+equals "同じコマンドのrunの行があっても、baselineの行が無ければ基準の実行を省かない" "$(wc -l < "$count")" "6"
 mutate noapply > /dev/null 2>&1
 rc=$?
 equals "当たらないパッチはInvalidで4" "$rc $(last 2-4 "$mlog")" "4 mutate	noapply.patch	Invalid"
@@ -160,6 +164,7 @@ MUTATE_TIMEOUT=2 mutate loop > /dev/null 2>&1
 rc=$?
 equals "MUTATE_TIMEOUTを過ぎるとTimeoutで3" "$rc $(last 2-4 "$mlog")" "3 mutate	loop.patch	Timeout"
 check "Timeoutの後、作業ツリーがきれいで指紋も同じ" same
+equals "MUTATE_TIMEOUTが違えば、同じコマンドでも基準の実行をやり直す" "$(wc -l < "$count")" "8"
 
 e "$mlog" mutate "$work/kill.patch" -- sh -c 'cat app.sh >> "$0"; exit 1' "$work/seen" > /dev/null 2>&1
 rc=$?
@@ -181,6 +186,7 @@ MUTATE_BUILD='! grep -q "1 - " app.sh' mutate kill > /dev/null 2>&1
 rc=$?
 equals "MUTATE_BUILDが失敗するとInvalidで4" "$rc $(last 2-4 "$mlog")" "4 mutate	kill.patch	Invalid"
 check "ビルドの失敗の後、作業ツリーがきれいで指紋も同じ" same
+equals "MUTATE_BUILDが違えば、同じコマンドでも基準の実行をやり直す" "$(wc -l < "$count")" "9"
 # テストがビルドの成果物(無視されたbuild/)を読むとき、変異ごとにビルドし直してから回す
 MUTATE_BUILD='mkdir -p build && cp app.sh build/app.sh' \
   e "$mlog" mutate "$work/kill.patch" -- sh -c '. build/app.sh; [ "$(add 2 3)" = 5 ]' > /dev/null 2>&1
@@ -189,6 +195,11 @@ check "戻した後にビルドし直し、成果物に変異を残さない" 'c
 PATH="$work/bin:$PATH" e "$mlog" mutate "$work/kill.patch" -- build > /dev/null 2>&1
 rc=$?
 equals "mutateも、evidence.shの関数と同じ名前のPATHのコマンドを回す" "$rc $(last 2-4 "$mlog")" "4 mutate	kill.patch	Invalid"
+# 変異のときだけ、コマンドが$1の終了コードで終わる
+exits() { e "$mlog" mutate "$work/kill.patch" -- sh -c 'grep -q "1 - " app.sh && exit "$0"; sh test.sh' "$1" > /dev/null 2>&1; echo "$? $(last 4 "$mlog")"; }
+equals "変異の実行が126で終わる(コマンドを実行できない)とInvalidで4" "$(exits 126)" "4 Invalid"
+equals "変異の実行が127で終わる(コマンドが無い)とInvalidで4" "$(exits 127)" "4 Invalid"
+equals "変異の実行が128以上で終わる(クラッシュ)とKilledで0" "$(exits 134)" "0 Killed"
 
 lines=$(wc -l < "$mlog")
 runs=$(wc -l < "$count")
@@ -203,6 +214,16 @@ mutate kill > /dev/null 2>&1
 rc=$?
 check "未コミットの変更があると2で終わり、記録もせず、パッチも当てない" untouched
 g checkout -q -- test.sh
+# timeoutのほかは、evidence.shとテストのコマンドが使うものだけを置いたPATH
+nobin="$work/nobin"
+mkdir -p "$nobin"
+for c in awk basename cp date dirname git mkdir mktemp rm sh; do
+  printf '#!/bin/sh\nexec %q "$@"\n' "$(command -v "$c")" > "$nobin/$c"
+  chmod +x "$nobin/$c"
+done
+(cd "$repo" && MUTATE_TIMEOUT=2 PATH="$nobin" "$BASH" "$ev" "$mlog" mutate "$work/kill.patch" -- sh -c 'echo run >> "$0"; sh test.sh' "$count") > /dev/null 2>&1
+rc=$?
+check "MUTATE_TIMEOUTがあってtimeoutのコマンドが無いと、2で終わり、記録もせず、パッチも当てない" untouched
 
 # 中身が変われば、同じコマンドでも基準の実行をやり直す
 printf 'there\n' >> "$repo/sub/here.txt"
