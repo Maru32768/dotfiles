@@ -104,21 +104,22 @@ PR/MR本文、Issue、設計資料、テスト、既存実装から「何を実�
 
 ### 指摘を1件1行で記録する
 
-台帳と同じディレクトリに`findings.tsv`を作る。レビュアーと4、5の工程が出した指摘を、直さなかったものも含めて、親が1件1行で足す。直した指摘はコミットの後に、それ以外は扱いを決めたときに書く。後で扱いが変わったら、その行を書き換える。同じ欠陥を複数の工程が出したら、工程ごとに1行書く。どの工程が何を見つけたかを後で数えるための記録で、台帳の文章の代わりにはしない。1行目は次の見出しにする。値の無い列は`-`にする。
+台帳と同じディレクトリに`findings.tsv`を作る。レビュアー、4と5の工程、親自身が見つけた欠陥と提案を、直さなかったものも含めて、親が足す。1行は1つの欠陥で、1つの修正で消えるものは1行にまとめる。扱いを決めたときに足し、直したら`commit`を埋め、後で扱いが変わったら行を書き換える。どの工程が何を見つけたかを後で数えるための記録で、台帳の文章の代わりにはしない。1行目は次の見出しにする。値の無い列は`-`にする。
 
 ```
-id	round	reviewer	severity	kind	origin	file	summary	outcome	commit
+id	source	also	severity	kind	origin	file	summary	outcome	commit
 ```
 
 - `id`: 1からの連番
-- `round`: `R1`〜`R4`、`fable`、`codex`、`followup`(FableとCodexの指摘を直した後の差分ラウンド)、`ponytail`、`simplify`、`prose`、`final`
-- `reviewer`: `correctness`、`test`、`fable`、`codex`、`ponytail-review`、`simplify`、`prose-polish`、`final`、`parent`(親が自分で見つけた)
-- `severity`: `Must`、`Should`、`Could`。重大度を付けない4の工程の提案は`-`
+- `source`: その欠陥を最初に出した工程。`R1-correctness`、`R1-test`(R2以降も同じ形)、`fable`、`codex`、`followup-correctness`、`followup-test`(FableとCodexの指摘を直した後の差分ラウンド)、`ponytail`、`simplify`、`prose`、`final`、`parent`(親が自分で見つけた)。同じラウンドのcorrectnessとtestがどちらも出したら、correctnessにする
+- `also`: 同じ欠陥を出した、ほかの工程。`source`と同じ書き方で、複数あれば`,`で並べる
+- `severity`: 親が扱いを決めたときの`Must`、`Should`、`Could`。提案は`-`
 - `kind`: `code`(実行されるコードと設定)、`test`、`docs`(文書、コメント、PR/MR本文、エージェントへの指示文)、`suggestion`(欠陥ではない削除、単純化、言い換えの提案)
 - `origin`: `start`(レビュー対象の差分が持ち込んだ)、`fix`(ループの中の修正、単純化、推敲が持ち込んだ)、`pre-existing`(差分より前からある)。修正コミットが変えた行から出た欠陥は`fix`にする
 - `file`は`path:line`、`summary`は1行の説明で、タブと改行を入れない
-- `outcome`: `fixed`(直した、提案を採った)、`rejected`(反証した)、`deferred`(見送った、提案を採らなかった)、`handoff`(申し送り)、`unverified`、`duplicate`(同じ欠陥をほかの工程が先に出した。`summary`に元の`id`を書く)
+- `outcome`: `fixed`(直した、提案を採った)、`rejected`(反証した)、`deferred`(見送った、提案を採らなかった)、`handoff`(申し送り)、`unverified`
 - `commit`: 直したコミット。複数あれば`,`で並べる
+- 4の工程は、提案1件を1行にする。ponytail-reviewの提案をsimplifyが適用したものは、`ponytail`の行にだけ書く
 
 ---
 
