@@ -107,7 +107,7 @@ description: 実装済みの差分を片づけてから、correctnessとテス�
 
 軽では飛ばす。Opusのラウンドが終わった後に、別のモデルに1回ずつ読ませる。同じメッセージで同時に起こす。
 
-- Fable: Agentツールに`model: "fable"`を渡し、`<base>...HEAD`の全体を読ませる
+- Fable: Agentツールに`model: "fable"`を渡し、`<base>...HEAD`の全体を読ませる。2のレビュアーと同じく`isolation: "worktree"`で起こし、修正は適用させない
 - Codex: Bashで、バックグラウンドで実行する。数分かかる
 
 ```bash
