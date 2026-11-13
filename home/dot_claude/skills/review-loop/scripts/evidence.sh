@@ -169,8 +169,7 @@ mutate_cmd() {
     record run baseline 0 "$before"
     intact "the baseline"
   fi
-  git -C "$top" apply --check -- "$patch" || invalid "the patch does not apply"
-  git -C "$top" apply -- "$patch" || { intact "a failed git apply"; invalid "git apply failed"; }
+  git -C "$top" apply -- "$patch" || { intact "a failed git apply"; invalid "the patch does not apply"; }
   if ! build; then
     result=Invalid
   else
