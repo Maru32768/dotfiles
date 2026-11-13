@@ -256,6 +256,14 @@ MUTATE_BUILD='touch gen.txt' e "$mlog" mutate "$work/kill.patch" -- sh -c 'rm -f
 rc=$?
 check "戻した後のビルドが無視されないファイルを残すと、5で終わり変異の結果を記録しない" '[ "$rc" = 5 ] && ! tail -n "+$((lines + 1))" "$mlog" | grep -q "	mutate	"'
 rm -f "$repo/gen.txt"
+# 無視されたファイルは指紋に入らない。それでも、当てたパッチは戻す
+printf 'mode=1\n' > "$repo/conf.log"
+printf 'mode=2\n' > "$work/conf.mut"
+diff -u --label a/conf.log --label b/conf.log "$repo/conf.log" "$work/conf.mut" > "$work/conf.patch"
+e "$mlog" mutate "$work/conf.patch" -- sh -c '! grep -q mode=2 conf.log' > /dev/null 2>&1
+rc=$?
+equals "無視されたファイルへのパッチも、当てた後に戻す" "$rc $(cat "$repo/conf.log")" "0 mode=1"
+rm -f "$repo/conf.log"
 
 e "$mlog" mutate "$work/kill.patch" -- sh -c 'cat app.sh >> "$0"; exit 1' "$work/seen" > /dev/null 2>&1
 rc=$?

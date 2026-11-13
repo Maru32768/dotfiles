@@ -18,17 +18,17 @@
 # table   Prints the latest runs on the current fingerprint as a Markdown table. Exits 1 when there are none.
 # mutate  Needs a clean worktree. Runs the command unmutated (the baseline), applies the patch, runs $MUTATE_BUILD
 #         with bash -c when it is set, runs the command (under `timeout $MUTATE_TIMEOUT` when it is set), reverts with
-#         git apply -R, and checks that the worktree is back where it started. The baseline also runs $MUTATE_BUILD
-#         and the timeout, and $MUTATE_BUILD runs once more after the revert so no build output keeps the mutant.
+#         git apply -R, runs $MUTATE_BUILD once more so no build output keeps the mutant, and checks that the worktree
+#         is back where it started. The baseline also runs $MUTATE_BUILD and the timeout.
 #         A passing baseline is recorded as a run labelled baseline whose command column is the key: the command
 #         with the working directory, $MUTATE_BUILD and $MUTATE_TIMEOUT in front. The baseline is skipped when the
 #         latest baseline row with the same fingerprint and key passed; other runs of the same command do not count.
 #         Exits 0 Killed, 1 Survived, 3 Timeout, 4 Invalid (the baseline fails, the patch does not apply, the mutant
 #         does not build, or the mutant run exits 126 or 127 because the command cannot run; 128 and above count
 #         as Killed), 5 when the worktree did not come back (nothing is recorded or cleaned up), and 130 when HUP,
-#         INT or TERM arrives from just before the patch is applied until the revert is checked and rebuilt: it waits
-#         for the running command, reverts the patch unless the worktree is already back, checks the worktree as
-#         above, runs $MUTATE_BUILD, and records nothing.
+#         INT or TERM arrives from just before the patch is applied until the worktree is rebuilt and checked after
+#         the revert: it waits for the running command, reverts the patch unless it still applies forward, runs
+#         $MUTATE_BUILD, checks the worktree as above, and records nothing.
 # Exits 2 without running anything on a usage error, a dirty worktree for mutate, $MUTATE_TIMEOUT without a timeout
 # command, or an <evidence.tsv> inside the worktree that is not ignored (every record would change the fingerprint).
 set -uo pipefail
@@ -156,12 +156,13 @@ invalid() {
   exit 4
 }
 
-# Reverts the patch unless the worktree is already back, rebuilds and checks it, so running it again changes nothing.
-# A reverse --check would not do: when the patch's lines and context also appear elsewhere in the file, the reverse
-# applies to the reverted tree too and would change that other place. The check comes after the rebuild, which can
-# leave files of its own.
+# Reverts the patch unless it still applies forward (then it is not applied), rebuilds and checks the worktree, so
+# running it again changes nothing. A reverse --check would not do: when the patch's lines and context also appear
+# elsewhere in the file, the reverse applies to the reverted tree too and would change that other place. Nor would the
+# fingerprint, which misses ignored and assume-unchanged files. The check comes after the rebuild, which can leave
+# files of its own.
 restore() {
-  { [ "$(fingerprint)" = "$before" ] && clean; } || git -C "$top" apply -R -- "$patch"
+  git -C "$top" apply --check -- "$patch" 2> /dev/null || git -C "$top" apply -R -- "$patch"
   build || printf 'evidence.sh: warning: MUTATE_BUILD fails after reverting; build outputs may still hold the mutant\n' >&2
   intact "reverting $name"
 }
