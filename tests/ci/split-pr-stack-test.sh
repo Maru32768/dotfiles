@@ -27,7 +27,8 @@ g config core.quotepath true
 
 # BASEからFINALへ、層Aはモード、削除、空白や日本語のパス、バイナリ、シンボリックリンク、
 # [id]/new.txtをglobとして読むと当たるd/new.txtを、層Bはリネームを持つ。shared.txtは両方の層が変える。
-# ファイルのdfは層Aで消え、層Bでディレクトリになる。Readme.mdは層Bで大文字と小文字だけを変える。
+# ファイルのdfは層Aで消え、層Bでディレクトリになる。逆にディレクトリのfdは、中身が層Aで消え、層Bでファイルになる。
+# Readme.mdは層Bで大文字と小文字だけを変える。
 # OWNERSでは、同じ場所を指す2つのパスのうち、FINALにあるほうを先に書く。
 # 層Cは、層AとCが変えるac.txtと、層BとCが変え、BASEには無いディレクトリにあるnew/bc.txtを仕上げる
 printf 'old\n' > "$repo/old.txt"
@@ -36,14 +37,17 @@ printf 'base\n' > "$repo/ac.txt"
 printf 'echo\n' > "$repo/run.sh"
 printf 'gone\n' > "$repo/gone.txt"
 printf 'df\n' > "$repo/df"
+mkdir -p "$repo/fd"
+printf 'y\n' > "$repo/fd/y.txt"
 printf 'readme\n' > "$repo/Readme.md"
 g add -A && g commit -q -m base
 base=$(g rev-parse HEAD)
 mkdir -p "$repo/[id]" "$repo/d"
 g mv old.txt '[id]/new.txt'
-g rm -q gone.txt df
+g rm -q gone.txt df fd/y.txt
 mkdir -p "$repo/df"
 printf 'x\n' > "$repo/df/x.txt"
+printf 'fd\n' > "$repo/fd"
 g mv Readme.md README.md
 printf 'base\na\nb\n' > "$repo/shared.txt"
 printf 'base\na\nc\n' > "$repo/ac.txt"
@@ -81,6 +85,8 @@ OWNERS = {{
     "old.txt": ["B"],
     "df/x.txt": ["B"],
     "df": ["A"],
+    "fd": ["B"],
+    "fd/y.txt": ["A"],
     "README.md": ["B"],
     "Readme.md": ["B"],
     "[id]/new.txt": ["B"],
@@ -126,6 +132,7 @@ check "リネームの先のパスは、リネームする層で現れる" '! g 
 check "パスをglobとして読まない" 'g cat-file -e stack/A:d/new.txt'
 check "消したファイルは、消す層で消える" '! g cat-file -e stack/A:gone.txt'
 check "ディレクトリになるファイルの場所に、上の層の中身を入れない" '! g cat-file -e stack/A:df && ! g cat-file -e stack/A:df/x.txt && g cat-file -e stack/B:df/x.txt'
+check "ファイルになるディレクトリは、中身を消した層で消え、ファイルを足す層でファイルになる" '! g cat-file -e stack/A:fd && ! g cat-file -e stack/A:fd/y.txt && [ "$(g cat-file -t stack/B:fd)" = blob ]'
 check "大文字と小文字だけを変えるリネームで、どちらかを消しすぎない" 'g cat-file -e stack/A:Readme.md && g cat-file -e stack/B:README.md && ! g cat-file -e stack/B:Readme.md'
 check "空白と日本語を含むパスを扱える" 'g cat-file -e "stack/A:with space.txt" && g cat-file -e "stack/A:日本語.md"'
 equals "共有ファイルは、上の層の部分を除いて書く" "$(g show stack/A:shared.txt)" "base
