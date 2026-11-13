@@ -119,7 +119,7 @@ e "$tlog" run lint -- sh -c 'false || exit 3'
 equals "今の指紋の行だけを、パイプを逃がした表にする" "$(e "$tlog" table)" '| 検査 | 結果 | コマンド |
 |---|---|---|
 | new | 成功 | `true` |
-| lint | 失敗(終了コード 3) | `sh -c false\ \\|\\|\ exit\ 3` |'
+| lint | 失敗(終了コード3) | `sh -c false\ \\|\\|\ exit\ 3` |'
 g add -A && g commit -q -m v2
 
 # --- mutate ---

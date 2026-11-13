@@ -121,7 +121,7 @@ table_cmd() {
     [ "$fp" = "$now" ] || continue
     [ "$rows" -gt 0 ] || printf '| 検査 | 結果 | コマンド |\n|---|---|---|\n'
     rows=$((rows + 1))
-    if [ "$result" = 0 ]; then result=成功; else result="失敗(終了コード $result)"; fi
+    if [ "$result" = 0 ]; then result=成功; else result="失敗(終了コード$result)"; fi
     printf "| %s | %s | \`%s\` |\n" "${label//|/\\|}" "$result" "${command//|/\\|}"
   done < <(labels)
   [ "$rows" -gt 0 ] || { printf 'evidence.sh: no runs on the current worktree in %s\n' "$file" >&2; exit 1; }
