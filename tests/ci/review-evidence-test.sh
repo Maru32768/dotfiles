@@ -94,8 +94,8 @@ rc=1"
 g checkout -q -- app.sh
 equals "中身を戻すとOKに戻る" "$(e "$clog" check lint; echo "rc=$?")" "OK lint
 rc=0"
-equals "行の無いラベルはMISSINGで1" "$(e "$clog" check lint nothere; echo "rc=$?")" "OK lint
-MISSING nothere
+equals "行の無いラベルはMISSINGで1。後のラベルがOKでも1" "$(e "$clog" check nothere lint; echo "rc=$?")" "MISSING nothere
+OK lint
 rc=1"
 e "$clog" run unit -- false
 equals "最新の行が失敗ならFAILEDで1" "$(e "$clog" check unit; echo "rc=$?")" "FAILED unit
