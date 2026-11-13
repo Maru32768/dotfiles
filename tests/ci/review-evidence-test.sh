@@ -209,6 +209,9 @@ done
 equals "止めたときに変異の実行がファイルを残すと、5で終わり、記録しない" "$(interrupt TERM 'touch junk.txt' dirty)" "5 0"
 rm -f "$repo/junk.txt"
 same || g checkout -q -- .
+equals "MUTATE_BUILDがあるときに止めても、変異を戻してから130で終わる" "$(MUTATE_BUILD='mkdir -p build && cp app.sh build/app.sh' interrupt INT : build)" "130 0"
+check "止めた後も戻してからビルドし直し、成果物に変異を残さない" 'cmp -s "$repo/build/app.sh" "$repo/app.sh"'
+same || g checkout -q -- .
 # evidence.shがgitに$PAUSEを含む引数を渡す直前に、$GO.startedを作ってから$GOができるまで待つgit
 mkdir -p "$work/gitbin"
 printf '#!/bin/sh\ncase " $* " in *" $PAUSE "*) : > "$GO.started"; until [ -e "$GO" ]; do sleep 0.1; done ;; esac\nexec %q "$@"\n' "$(command -v git)" > "$work/gitbin/git"
