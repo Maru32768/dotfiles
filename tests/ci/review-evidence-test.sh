@@ -166,6 +166,15 @@ rc=$?
 equals "基準の実行が失敗するとInvalidで4" "$rc $(last 2-4 "$mlog")" "4 mutate	kill.patch	Invalid"
 equals "基準の実行が失敗すると、パッチを当てずに止まる" "$(cat "$work/seen")" "$(cat "$repo/app.sh")"
 check "基準の実行が失敗した後、作業ツリーがきれいで指紋も同じ" same
+lines=$(wc -l < "$mlog")
+e "$mlog" mutate "$work/kill.patch" -- sh -c 'touch junk.txt; exit 1' > /dev/null 2>&1
+rc=$?
+check "基準の実行が失敗してファイルを残すと、5で終わり何も記録しない" '[ "$rc" = 5 ] && [ "$(wc -l < "$mlog")" = "$lines" ]'
+rm -f "$repo/junk.txt"
+MUTATE_BUILD='touch junk.txt; exit 1' e "$mlog" mutate "$work/kill.patch" -- sh test.sh > /dev/null 2>&1
+rc=$?
+check "基準の実行のビルドが失敗してファイルを残すと、5で終わり何も記録しない" '[ "$rc" = 5 ] && [ "$(wc -l < "$mlog")" = "$lines" ]'
+rm -f "$repo/junk.txt"
 
 # 変異だけがビルドに失敗するビルド
 MUTATE_BUILD='! grep -q "1 - " app.sh' mutate kill > /dev/null 2>&1

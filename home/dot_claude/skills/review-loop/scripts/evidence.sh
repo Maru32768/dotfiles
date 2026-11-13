@@ -164,12 +164,12 @@ mutate_cmd() {
   before=$(fingerprint) || die "cannot compute the fingerprint"
   if ! FP=$before CMD=$cmd awk -F'\t' '$2 == "run" && ($5 "") == (ENVIRON["FP"] "") && ($6 "") == (ENVIRON["CMD"] "") { r = $4 }
       END { exit r != "0" }' "$src"; then
-    build || invalid "MUTATE_BUILD fails before mutating"
+    build || { intact "the baseline build"; invalid "MUTATE_BUILD fails before mutating"; }
     target
     rc=$?
+    intact "the baseline"
     [ "$rc" -eq 0 ] || invalid "the command fails before mutating (exit $rc)"
     record run baseline 0 "$before"
-    intact "the baseline"
   fi
   git -C "$top" apply -- "$patch" || { intact "a failed git apply"; invalid "the patch does not apply"; }
   if ! build; then
