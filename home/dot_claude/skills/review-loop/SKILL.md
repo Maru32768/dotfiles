@@ -339,7 +339,7 @@ git status --short            # 未コミットの変更があれば先にコミ
 codex review --base <base> -c model=gpt-6-astra -c review_model=gpt-6-astra -c model_reasoning_effort=high   # <base> は 0 で固定した SHA
 ```
 
-`review_model`も渡す。Codexはレビューのモデルを`review_model`から先に決めるので、設定ファイルに`review_model`があると、`model`だけでは別のモデルが読む。
+Codexはレビューのモデルを`review_model`から先に決めるので、設定ファイルに`review_model`があると、`model`だけでは別のモデルが読む。
 
 - Fable に渡すのは差分と変更の意図だけにする。台帳やここまでの結論は渡さない。Codex にもプロンプトを足さない。同じ前提に引きずられると、別のモデルに読ませる意味がなくなる
 - Fable と Codex の指摘も、ラウンドの指摘と同じに扱う。直す前に自分で再現し（2）、台帳で重複を除き、採らないものは理由を書く
