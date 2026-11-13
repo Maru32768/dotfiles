@@ -22,6 +22,8 @@ g() { git -C "$repo" "$@"; }
 git init -q -b main "$repo"
 g config user.name test
 g config user.email test@example.com
+# 利用者のquotepath=falseで、日本語のパスを改行で割る退行を見逃さないよう、gitの既定値に固定する
+g config core.quotepath true
 
 # BASEからFINALへ、層Aはモード、削除、空白や日本語のパス、バイナリ、シンボリックリンク、
 # [id]/new.txtをglobとして読むと当たるd/new.txtを、層Bはリネームを持つ。shared.txtは両方の層が変える。
