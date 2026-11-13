@@ -239,7 +239,9 @@ elif cmd == "edit":
     pr["edits"] += 1
     save()
 elif cmd == "close":
-    find(args[2])["state"] = "CLOSED"
+    pr = find(args[2])
+    pr["state"] = "CLOSED"
+    pr.setdefault("comments", []).append(opt("--comment"))
     save()
 else:
     sys.exit(f"fake gh: unsupported {args}")
@@ -277,13 +279,17 @@ EOF
 }
 rerun() { PATH="$work/bin:$PATH" GH_STATE="$1" JQ="$JQ" bash "$scripts/publish.sh" "$1.config"; }
 q() { "$JQ" -r "$2" "$1" | tr -d '\r'; }
+# 記録の中で、ブランチ$2のPRの本文にjqの式$3を当てる。botの追記や、GitHubでの手直しの代わり
+edit_body() { "$JQ" -c --arg head "$2" '(.[] | select(.headRefName == $head) | .body) |= '"$3" "$1" > "$1.tmp" && mv "$1.tmp" "$1"; }
 
 state="$work/state1.json"
 GH_FAIL_HEAD=stack/B publish "$state" "$work/bodies" > "$work/publish1.log" 2>&1
 rc=$?
 check "子PRを作れないと0以外で止まり、元のPRを閉じない" '[ "$rc" -ne 0 ] && [ "$(q "$state" ".[0].state")" = OPEN ]'
 check "子PRを作れないと、その先の本文を埋めない" '[ "$(q "$state" ".[] | select(.headRefName == \"stack/A\") | .body | test(\"next=[{][{]NEXT\")")" = true ]'
+edit_body "$state" stack/A '. + "<!-- bot -->"'
 check "止まった後に同じ設定で実行し直せる" 'rerun "$state" > "$work/publish2.log" 2>&1'
+check "止まっている間にbotが本文に足したものを残す" '[ "$(q "$state" ".[] | select(.headRefName == \"stack/A\") | .body | contains(\"<!-- bot -->\")")" = true ]'
 equals "実行し直しても、PRを作り直さない" "$(q "$state" '[.[] | select(.state == "OPEN" and (.isCrossRepository | not)) | .headRefName] | sort | join(" ")')" "stack/A stack/B stack/base"
 equals "実行し直すと、元のPRを閉じる" "$(q "$state" '.[0].state')" "CLOSED"
 equals "forkの同じ名前のブランチのPRを使わない" "$(q "$state" '.[1] | "\(.body) \(.edits)"')" "fork 0"
@@ -292,6 +298,7 @@ b=$(q "$state" '.[] | select(.headRefName == "stack/B") | .number')
 equals "子PRの本文に、直下と先に読むPRと次のPRが入る" "$(q "$state" '.[2:][] | .body | split("\n")[0]' | tr '\n' '|')" "#$a #$b|A below=なし（ベースに向いている） prereq=なし（ほかの子 PR とは独立に読める） next=#$b|B below=#$a prereq=#$a next=なし（スタックの一番上）|"
 edits=$(q "$state" '[.[].edits] | add')
 check "もう一度実行し直しても、本文を書き直さない" 'rerun "$state" > "$work/publish2b.log" 2>&1 && [ "$(q "$state" "[.[].edits] | add")" = "$edits" ]'
+equals "もう一度実行し直しても、元のPRを2度は閉じない" "$(q "$state" '.[0].comments | length')" "1"
 
 cp -r "$work/bodies" "$work/bodies-typo"
 printf 'A {{TYPO}}\n' > "$work/bodies-typo/A.md"
@@ -299,6 +306,8 @@ state="$work/state2.json"
 publish "$state" "$work/bodies-typo" > "$work/publish3.log" 2>&1
 rc=$?
 check "未置換のプレースホルダが残ると0以外で止まり、元のPRを閉じない" '[ "$rc" -ne 0 ] && [ "$(q "$state" ".[0].state")" = OPEN ]'
+edit_body "$state" stack/A 'sub("[{][{]TYPO[}][}]"; "fixed")'
+check "GitHubで本文を直してから実行し直すと、直した本文のまま元のPRを閉じる" 'rerun "$state" > "$work/publish3b.log" 2>&1 && [ "$(q "$state" ".[0].state")" = CLOSED ] && [ "$(q "$state" ".[] | select(.headRefName == \"stack/A\") | .body")" = "A fixed" ]'
 
 state="$work/state3.json"
 publish "$state" "$work/bodies" 99 > "$work/publish4.log" 2>&1
