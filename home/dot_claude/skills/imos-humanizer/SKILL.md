@@ -9,7 +9,7 @@ description: いもすさんの humanizer ルール（https://imoz.jp/humanizer.
 
 - **対象:** ファイルと、直してよい行範囲。base を渡されたら、`<base>...HEAD` で追加・変更された段落だけを対象にする（新規ファイルは全体）。差分に無い既存の文は直さない。PR/MR 本文は、GitLab なら `glab mr view -F json --jq .description`、GitHub なら `gh pr view --json body --jq .body` で取る。
 - **言語:** ファイルごとに、地の文の言語で `ja` か `en` を決める。
-- **作業ディレクトリ `<work>`:** 呼び出し元が渡す（prose-polish ならその `<work>`）。渡されなければ `/tmp/imos-humanizer-<対象の名前>/` を作る。
+- **作業ディレクトリ `<work>`:** 呼び出し元が渡す（prose-polish ならその `<work>`）。渡されなければ、システムプロンプトにscratchpadのディレクトリが書かれていればその下に、無ければ`/tmp`の下に、`imos-humanizer-<対象の名前>/`を作る。WindowsのGit Bashでは、`/tmp`の下のパスを`cygpath -m`で`C:/...`の形に直して使う。
 - **原文の退避と入力稿:** 呼び出し元が渡す（prose-polish なら `<path>.orig` と `<path>.h0`）。単独で使うときは、原文を `<work>/<path>.orig`（PR/MR 本文は `pr-body.orig.md`）に置き、同じものを `<path>.h0`（`pr-body.h0.md`）にコピーする。
 - **文書の種類と読者:** 呼び出し元が渡す。単独で使うときは、文書から決める。
 - **検査:** 呼び出し元が渡せばそれを使う。単独で使うときは、日本語は下の yomiyasu の検査、英語は無し（親の diff がその代わり）。
