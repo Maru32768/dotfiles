@@ -104,7 +104,7 @@ PR/MR本文、Issue、設計資料、テスト、既存実装から「何を実�
 
 ### 指摘を1件1行で記録する
 
-台帳と同じディレクトリに`findings.tsv`を作る。レビュアーと4、5の工程が出した指摘を、直さなかったものも含めて、親が扱いを決めたときに1件1行で足す。どの工程が何を見つけたかを後で数えるための記録で、台帳の文章の代わりにはしない。1行目は次の見出しにする。
+台帳と同じディレクトリに`findings.tsv`を作る。レビュアーと4、5の工程が出した指摘を、直さなかったものも含めて、親が扱いを決めたときに1件1行で足す。同じ欠陥を複数の工程が出したら、工程ごとに1行書く。どの工程が何を見つけたかを後で数えるための記録で、台帳の文章の代わりにはしない。1行目は次の見出しにする。
 
 ```
 id	round	reviewer	severity	kind	origin	file	summary	outcome	commit
@@ -116,7 +116,7 @@ id	round	reviewer	severity	kind	origin	file	summary	outcome	commit
 - `kind`: `code`(製品のコード)、`test`、`docs`、`suggestion`
 - `origin`: `start`(レビューの開始時からあった)、`fix`(ループの中の修正、単純化、推敲が持ち込んだ)、`pre-existing`(差分より前からある)。修正コミットが変えた行から出た欠陥は`fix`にする
 - `file`は`path:line`、`summary`は1行の説明で、タブと改行を入れない
-- `outcome`: `fixed`、`rejected`(反証した)、`deferred`(見送り)、`handoff`(申し送り)、`unverified`
+- `outcome`: `fixed`、`rejected`(反証した)、`deferred`(見送り)、`handoff`(申し送り)、`unverified`、`duplicate`(同じ欠陥をほかの工程が先に出した。`summary`に元の`id`を書く)
 - `commit`: 直したコミット。無ければ空
 
 ---
