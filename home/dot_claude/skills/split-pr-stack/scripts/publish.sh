@@ -1,6 +1,8 @@
 #!/bin/bash
 # Push the base branch and the layer branches, open the base PR (draft) and the stacked child PRs,
-# fill the cross-references, and close the original PR. Run only after the user approves.
+# fill the cross-references, check every PR, and close the original PR. Run only after the user approves.
+# After a failure, fix the cause and rerun with the same config: a branch that already has an open PR
+# into its base keeps that PR.
 #
 # usage: publish.sh <config.sh>
 #
@@ -11,7 +13,7 @@
 #   BASE_TARGET   the branch the base PR targets (main, or the PR the stack sits on)
 #   BASE_TITLE    title of the base PR
 #   LAYERS_TSV    one line per layer, bottom first: <layer>\t<branch>\t<prereq layers, comma-separated, or ->
-#   BODY_DIR      <layer>.md for each child, BASE.md, and optionally CLOSE.md
+#   BODY_DIR      <layer>.md for each child, BASE.md, and CLOSE.md when ORIGINAL_PR is set
 #   VERIFY_DIR    <layer>.md: the 動作確認 bullets substituted for {{VERIFY}}
 #   CHILD_DRAFT   "true" to open the child PRs as drafts
 #   ORIGINAL_PR   number of the PR being replaced, or empty
@@ -24,50 +26,71 @@ set -euo pipefail
 # shellcheck source=/dev/null
 source "$1"
 mkdir -p "$OUT"
+# The layer list may come from a Windows editor with CRLF line ends.
+layer_list=$(tr -d '\r' < "$LAYERS_TSV")
 ASSIGNEE=${ASSIGNEE:-@me}
 : > "$OUT/numbers.txt"
+placeholder='[{][{][A-Z]+(:[^{}]*)?[}][}]'
 
 render() {
   python3 -I - "$@" <<'PY'
 import sys
 src, dst, *pairs = sys.argv[1:]
-text = open(src, encoding="utf-8").read()
+text = open(src, encoding="utf-8", newline="").read()
 for pair in pairs:
     key, value = pair.split("=", 1)
     if value.startswith("@"):
         value = open(value[1:], encoding="utf-8").read().strip()
     text = text.replace("{{%s}}" % key, value)
-open(dst, "w", encoding="utf-8").write(text)
+open(dst, "w", encoding="utf-8", newline="").write(text)
 PY
 }
 
 pr_of() { awk -v l="$1" '$1 == l {print $2}' "$OUT/numbers.txt"; }
 
+# usage: fill_body <PR number> <name=value...>; edits the live body only when something was filled in.
+fill_body() {
+  local num=$1
+  shift
+  gh pr view "$num" --repo "$REPO" --json body --jq .body > "$OUT/live_$num.md"
+  render "$OUT/live_$num.md" "$OUT/filled_$num.md" "$@"
+  cmp -s "$OUT/live_$num.md" "$OUT/filled_$num.md" || gh pr edit "$num" --repo "$REPO" --body-file "$OUT/filled_$num.md" > /dev/null
+}
+
+# usage: open_pr <base> <head> <gh pr create options...>; prints the URL of the open PR.
+open_pr() {
+  local base=$1 head=$2 url
+  shift 2
+  url=$(gh pr list --repo "$REPO" --state open --base "$base" --head "$head" --json url,isCrossRepository \
+    --jq '[.[] | select(.isCrossRepository | not)][0].url // empty') || return
+  [ -n "$url" ] || url=$(gh pr create --repo "$REPO" --assignee "$ASSIGNEE" --base "$base" --head "$head" "$@") || return
+  echo "$url"
+}
+
 layers=()
 branches=("$BASE_BRANCH")
-while IFS=$'\t' read -r layer branch prereq; do
+prereqs=()
+while IFS=$'\t' read -r layer branch prereq _; do
   [ -z "$layer" ] && continue
+  case " ${layers[*]} " in *" $layer "*) echo "$LAYERS_TSV lists the layer $layer twice" >&2; exit 1 ;; esac
   layers+=("$layer")
   branches+=("$branch")
-done < "$LAYERS_TSV"
-branch_of() { awk -F'\t' -v l="$1" '$1 == l {print $2}' "$LAYERS_TSV"; }
-prereq_of() { awk -F'\t' -v l="$1" '$1 == l {print $3}' "$LAYERS_TSV"; }
+  prereqs+=("$prereq")
+done <<< "$layer_list"
 
 git -C "$WT" push --atomic -u origin "${branches[@]}"
 
 draft=()
 [ "${CHILD_DRAFT:-false}" = "true" ] && draft=(--draft)
 
-base_url=$(gh pr create --repo "$REPO" --assignee "$ASSIGNEE" --draft --base "$BASE_TARGET" --head "$BASE_BRANCH" \
-  --title "$BASE_TITLE" --body-file "$BODY_DIR/BASE.md")
+base_url=$(open_pr "$BASE_TARGET" "$BASE_BRANCH" --draft --title "$BASE_TITLE" --body-file "$BODY_DIR/BASE.md")
 base_pr=${base_url##*/}
 echo "BASE $base_pr $base_url" | tee -a "$OUT/numbers.txt"
 
 below_branch=$BASE_BRANCH
 below_ref="なし（ベースに向いている）"
-for layer in "${layers[@]}"; do
-  branch=$(branch_of "$layer")
-  prereq=$(prereq_of "$layer")
+for i in "${!layers[@]}"; do
+  layer=${layers[$i]} branch=${branches[$((i + 1))]} prereq=${prereqs[$i]}
   if [ -z "$prereq" ] || [ "$prereq" = "-" ]; then
     prereq_ref="なし（ほかの子 PR とは独立に読める）"
   else
@@ -82,8 +105,7 @@ for layer in "${layers[@]}"; do
   render "$BODY_DIR/$layer.md" "$OUT/$layer.md" "BASE=#$base_pr" "BELOW=$below_ref" \
     "VERIFY=@$VERIFY_DIR/$layer.md" "PREREQ=$prereq_ref"
   title=$(git -C "$WT" log -1 --format=%s "$branch")
-  url=$(gh pr create --repo "$REPO" --assignee "$ASSIGNEE" ${draft[@]+"${draft[@]}"} --base "$below_branch" --head "$branch" \
-    --title "$title" --body-file "$OUT/$layer.md")
+  url=$(open_pr "$below_branch" "$branch" ${draft[@]+"${draft[@]}"} --title "$title" --body-file "$OUT/$layer.md")
   num=${url##*/}
   echo "$layer $num $url" | tee -a "$OUT/numbers.txt"
   below_branch=$branch
@@ -95,24 +117,34 @@ count=${#layers[@]}
 for i in "${!layers[@]}"; do
   num=$(pr_of "${layers[$i]}")
   if [ $((i + 1)) -lt "$count" ]; then next="#$(pr_of "${layers[$((i + 1))]}")"; else next="なし（スタックの一番上）"; fi
-  gh pr view "$num" --repo "$REPO" --json body --jq .body > "$OUT/live_$num.md"
-  render "$OUT/live_$num.md" "$OUT/live_$num.md" "NEXT=$next"
-  gh pr edit "$num" --repo "$REPO" --body-file "$OUT/live_$num.md" > /dev/null
+  fill_body "$num" "NEXT=$next"
 done
 
 pairs=()
 for layer in "${layers[@]}"; do pairs+=("PR:$layer=#$(pr_of "$layer")"); done
-gh pr view "$base_pr" --repo "$REPO" --json body --jq .body > "$OUT/live_base.md"
-render "$OUT/live_base.md" "$OUT/live_base.md" "${pairs[@]}"
-gh pr edit "$base_pr" --repo "$REPO" --body-file "$OUT/live_base.md" > /dev/null
+fill_body "$base_pr" "${pairs[@]}"
 
-if [ -n "${ORIGINAL_PR:-}" ]; then
-  render "$BODY_DIR/CLOSE.md" "$OUT/CLOSE.md" "BASE=#$base_pr"
-  gh pr close "$ORIGINAL_PR" --repo "$REPO" --comment "$(cat "$OUT/CLOSE.md")"
+unresolved=0
+while read -r _ num _; do
+  line=$(gh pr view "$num" --repo "$REPO" --json number,baseRefName,headRefName,isDraft,changedFiles,assignees,body \
+    --jq '"#\(.number) draft=\(.isDraft) \(.headRefName) -> \(.baseRefName) files=\(.changedFiles) assignees=\([.assignees[].login] | join(",")) unresolved=\(.body | test("'"$placeholder"'"))"' < /dev/null)
+  echo "$line"
+  if [[ $line == *unresolved=true ]]; then unresolved=$((unresolved + 1)); fi
+done < "$OUT/numbers.txt"
+if [ "$unresolved" -gt 0 ]; then
+  echo "$unresolved PR bodies still have {{...}}; fix them on GitHub, then rerun to close the original PR" >&2
+  exit 1
 fi
 
-while read -r _ num _; do
-  gh pr view "$num" --repo "$REPO" --json number,baseRefName,headRefName,isDraft,changedFiles,assignees,body \
-    --jq '"#\(.number) draft=\(.isDraft) \(.headRefName) -> \(.baseRefName) files=\(.changedFiles) assignees=\([.assignees[].login] | join(",")) unresolved=\(.body | test("\\{\\{"))"' < /dev/null
-done < "$OUT/numbers.txt"
+if [ -n "${ORIGINAL_PR:-}" ]; then
+  state=$(gh pr view "$ORIGINAL_PR" --repo "$REPO" --json state --jq .state)
+  if [ "$state" = OPEN ]; then
+    render "$BODY_DIR/CLOSE.md" "$OUT/CLOSE.md" "BASE=#$base_pr"
+    if grep -qE "$placeholder" "$OUT/CLOSE.md"; then
+      echo "$OUT/CLOSE.md still has {{...}}; fix $BODY_DIR/CLOSE.md, then rerun" >&2
+      exit 1
+    fi
+    gh pr close "$ORIGINAL_PR" --repo "$REPO" --comment "$(cat "$OUT/CLOSE.md")"
+  fi
+fi
 echo PUBLISHED

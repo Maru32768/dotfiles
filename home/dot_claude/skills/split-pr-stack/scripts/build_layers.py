@@ -8,9 +8,13 @@ Layer L's content of a file:
   below its first owner           -> BASE
   at or above its last owner      -> FINAL
   in between (shared files only)  -> TRANSFORMS[path](FINAL text), which removes the parts of higher layers
+
+The file is taken from BASE or FINAL with git restore, so its mode, symlink, and binary content carry
+over as they are. A shared file must be text.
 """
 import subprocess
 import sys
+from collections import Counter
 
 # ---- CONFIG -----------------------------------------------------------------------------------
 FINAL = "<sha of the branch being split>"
@@ -27,9 +31,22 @@ WT = sys.argv[1]
 L = ORDER.index(sys.argv[2])
 
 
-def show(ref, path):
-    r = subprocess.run(["git", "-C", WT, "show", f"{ref}:{path}"], capture_output=True)
-    return r.stdout.decode() if r.returncode == 0 else None
+def git(*args, paths=None):
+    """Run git in WT; `paths` are passed as literal pathspecs on stdin, so any number of any names fit.
+
+    An empty `paths` runs nothing: git rm and git restore fail on an empty pathspec file instead of matching nothing.
+    """
+    stdin = None
+    if paths is not None:
+        if not paths:
+            return b""
+        args = (*args, "--pathspec-from-file=-", "--pathspec-file-nul")
+        stdin = "\0".join(paths).encode("utf-8")
+    return subprocess.run(["git", "-C", WT, "--literal-pathspecs", *args], input=stdin, stdout=subprocess.PIPE, check=True).stdout
+
+
+def split_nul(out):
+    return [p for p in out.decode("utf-8").split("\0") if p]
 
 
 def below(name):
@@ -100,34 +117,41 @@ TRANSFORMS = {
 # -----------------------------------------------------------------------------------------------
 
 
-def content_at_layer(path):
-    owners = OWNERS[path]
-    first, last = ORDER.index(owners[0]), ORDER.index(owners[-1])
-    if L < first:
-        return show(BASE, path)
-    final = show(FINAL, path)
-    if L >= last:
-        return final
-    return TRANSFORMS[path](final)
-
-
 def main():
-    changed = subprocess.run(
-        ["git", "-C", WT, "diff", "--name-only", BASE, FINAL], capture_output=True, text=True, check=True
-    ).stdout.split()
-    assert sorted(changed) == sorted(OWNERS), f"OWNERS must cover exactly the changed files: {set(changed) ^ set(OWNERS)}"
+    fields = split_nul(git("diff-tree", "-r", "-z", "--name-status", "--no-renames", BASE, FINAL))
+    status = dict(zip(fields[1::2], fields[::2]))
+    assert sorted(status) == sorted(OWNERS), f"OWNERS must cover exactly the changed files: {set(status) ^ set(OWNERS)}"
     for path, owners in OWNERS.items():
         assert owners == sorted(owners, key=ORDER.index), f"{path}: owners out of ORDER order"
         if len(owners) > 1:
             assert path in TRANSFORMS, f"{path}: shared file without a transform"
-        text = content_at_layer(path)
-        full = f"{WT}/{path}"
-        if text is None:
-            subprocess.run(["rm", "-f", full], check=True)
-        else:
-            subprocess.run(["mkdir", "-p", full.rsplit("/", 1)[0]], check=True)
-            with open(full, "w", encoding="utf-8") as f:
-                f.write(text)
+    source = {path: BASE if below(owners[0]) else FINAL for path, owners in OWNERS.items()}
+    missing = {BASE: "A", FINAL: "D"}  # the status of a path that this tree does not have
+    kept = {path: ref for path, ref in source.items() if status[path] != missing[ref]}
+    icase = git("config", "--type=bool", "--default=false", "core.ignorecase").strip() == b"true"
+
+    def simple_upper(c):
+        """One character for one, as NTFS maps case: straße.txt and strasse.txt are two files there, ᾀ and ᾈ one."""
+        return next((u for u in (c.upper(), c.title()) if len(u) == 1), c)
+
+    def fold(path):
+        return "".join(map(simple_upper, path)) if icase else path
+
+    places = Counter(fold(path) for path in kept)
+    dirs = {place[:i] for place in places for i, c in enumerate(place) if c == "/"}
+    clash = sorted((dirs & places.keys()) | {place for place, n in places.items() if n > 1})
+    assert not clash, f"OWNERS puts two entries at the same place on disk in {ORDER[L]}: {clash}"
+    between = [path for path, owners in OWNERS.items() if not below(owners[0]) and below(owners[-1])]
+    texts = {path: TRANSFORMS[path](git("show", f"{FINAL}:{path}").decode("utf-8")) for path in between}
+    # Remove first, then restore: when a file becomes a directory, or a rename changes only the case, both
+    # paths share one place on disk, and removing one after restoring the other would undo the restore.
+    git("rm", "-r", "-q", "-f", "--ignore-unmatch", paths=[path for path in source if path not in kept])
+    for ref in (BASE, FINAL):
+        git("restore", f"--source={ref}", "--staged", "--worktree", paths=[path for path, r in kept.items() if r == ref])
+    for path, text in texts.items():
+        with open(f"{WT}/{path}", "w", encoding="utf-8", newline="") as f:
+            f.write(text)
+    git("add", paths=list(texts))
 
 
 main()
