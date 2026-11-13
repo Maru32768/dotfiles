@@ -206,6 +206,9 @@ for sig in HUP INT; do
   check "${sig}で止めた後、作業ツリーがきれいで指紋も同じ" same
   same || g checkout -q -- .
 done
+equals "止めたときに変異の実行がファイルを残すと、5で終わり、記録しない" "$(interrupt TERM 'touch junk.txt' dirty)" "5 0"
+rm -f "$repo/junk.txt"
+same || g checkout -q -- .
 
 e "$mlog" mutate "$work/kill.patch" -- sh -c 'cat app.sh >> "$0"; exit 1' "$work/seen" > /dev/null 2>&1
 rc=$?
