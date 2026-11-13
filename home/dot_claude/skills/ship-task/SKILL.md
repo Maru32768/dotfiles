@@ -58,10 +58,10 @@ description: issueや依頼に着手してから、完了条件の言い直し�
 | チームのPR | ベースPR、子issue、Sprint、QAの決まりがある。手順は`references/team-prs.md` |
 
 - **直接。** スライスのブランチをデフォルトブランチへ早送りでマージする。
-- **PR。** 1つのスライスを1本のPRにする。前のスライスに依存し、前がまだマージされていなければ、前のブランチをbaseにする。依存しなければ、デフォルトブランチをbaseにする。同じheadとbaseの開いたPRが無いことを確かめてから作る。`gh pr list --head`はforkの同じ名前のブランチのPRも返すので、`isCrossRepository`が真のものは除く。積んだPRは、下から順にmerge commitでマージする。上から、またはsquashでマージしたときのGitHubの振る舞いは、`split-pr-stack`の「形」にある。
+- **PR。** 1つのスライスを1本のPRにする。前のスライスに依存し、前がまだマージされていなければ、前のブランチをbaseにする。依存しなければ、デフォルトブランチをbaseにする。同じheadとbaseの開いたPRが無いことを確かめてから作る。`gh pr list --head`はforkの同じ名前のブランチのPRも返すので、`isCrossRepository`が真のものは除く。マージは、人のレビューの承認と必須の検査が通り、CIが走るなら緑になってから行う。積んだPRは、下から順にmerge commitでマージする。上から先にマージすると、変更は下のブランチに入る。squashしたときと、ブランチが自動で消えるときのGitHubの振る舞いは、`split-pr-stack`の「形」にある。下のPRをマージした後、上のPRのbaseがデフォルトブランチに付け替わったかを確かめ、付け替わらなければ`gh pr edit <番号> --base <デフォルトブランチ>`で付け替える。
 - **PRの本文。** `mattpocock-skills:pr`の型で書き、Summaryの次に、`split-pr-stack/references/templates.md`の子PRの型にある「なぜ要るか」と「なぜこの形か」を、本文の言語で入れる。Evidenceの節には、`bash <review-loopのディレクトリ>/scripts/evidence.sh <台帳のディレクトリ>/evidence.tsv table`の出力を置く。作る前に、同じスクリプトの`check`に台帳の検証コマンドの名前を全部渡し、記録が最後のツリーのものかを確かめる。`table`は今のツリーの記録が無い名前を黙って外すので、表に出た名前だけを渡すと、欠けた検証に気づかない。書いた後の「なぜ」の確かめ方は、`split-pr-stack`の4と同じにする。最後に`prose-polish`にかける。
 - **下のスライスを後から直したとき。** 下のブランチを、上のブランチへマージする。rebaseしない。force pushが要らず、レビューで作った指摘ごとのコミットが残る。上のブランチのPRがあれば、マージした後に検証コマンドを回し直し、本文のEvidenceを直す。
-- push、PRの作成は、確認を取ってから行う。
+- push、PRの作成、マージは、確認を取ってから行う。
 
 ## 4. 締める
 
