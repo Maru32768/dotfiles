@@ -13,7 +13,7 @@
 #   BASE_TARGET   the branch the base PR targets (main, or the PR the stack sits on)
 #   BASE_TITLE    title of the base PR
 #   LAYERS_TSV    one line per layer, bottom first: <layer>\t<branch>\t<prereq layers, comma-separated, or ->
-#   BODY_DIR      <layer>.md for each child, BASE.md, and optionally CLOSE.md
+#   BODY_DIR      <layer>.md for each child, BASE.md, and CLOSE.md when ORIGINAL_PR is set
 #   VERIFY_DIR    <layer>.md: the 動作確認 bullets substituted for {{VERIFY}}
 #   CHILD_DRAFT   "true" to open the child PRs as drafts
 #   ORIGINAL_PR   number of the PR being replaced, or empty
