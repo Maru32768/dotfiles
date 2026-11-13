@@ -19,7 +19,7 @@ JUNIT_DIR=${JUNIT_DIR:-}
 layer() {
   local name=$1 branch=$2 dir=$3
   shift 3
-  if ! git -C "$WT" checkout -q "$branch"; then
+  if ! git -C "$WT" checkout -q "$branch" > "$LOG/$name.log" 2>&1; then
     echo "$name $branch checkout-failed" >> "$LOG/summary.txt"
     failed=$((failed + 1))
     return
@@ -39,7 +39,7 @@ layer() {
       | awk -F'"' '{t+=$2; s+=$4; f+=$6; e+=$8} END {printf "tests=%d skipped=%d failures=%d errors=%d", t, s, f, e}')
   fi
   echo "$name $branch rc=$rc $((SECONDS - start))s $tests dirty=[$dirty]" >> "$LOG/summary.txt"
-  if ! { git -C "$WT" reset -q --hard && git -C "$WT" clean -qfd; }; then
+  if ! { git -C "$WT" reset -q --hard && git -C "$WT" clean -qfd; } >> "$LOG/$name.log" 2>&1; then
     echo "$name $branch cleanup-failed" >> "$LOG/summary.txt"
     failed=$((failed + 1))
   fi

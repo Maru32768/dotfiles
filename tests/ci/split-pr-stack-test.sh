@@ -169,6 +169,7 @@ check "ビルドが残した変更を次の層に持ち越さない" 'grep -q "^
 check "検査の失敗をrcに出す" 'grep -q "^B2 stack/B rc=1 " "$summary"'
 check "失敗した層が残したものも次の層に持ち越さない" 'grep -q "^B3 stack/B rc=0 " "$summary"'
 check "ブランチの無い層も失敗に数える" 'grep -q "^X1 stack/missing checkout-failed" "$summary" && grep -q "^DONE failed=2$" "$summary"'
+check "checkoutの失敗の原因を層のログに残す" 'grep -q "stack/missing" "$work/vlog1/X1.log"'
 check "すべての層が通れば0で終わる" 'verify "layer B1 stack/B . true" "$work/vlog2"'
 touch "$repo/junk"
 check "作業ツリーに未コミットの変更があると始めず、前回の結果も残さない" '! verify "layer B1 stack/B . true" "$work/vlog2" 2>/dev/null && [ ! -s "$work/vlog2/summary.txt" ]'
@@ -185,6 +186,7 @@ verify 'layer L1 stack/B . touch .git/index.lock' "$work/vlog6" 2>/dev/null
 rc=$?
 rm -f "$repo/.git/index.lock"
 check "後片づけに失敗した層を失敗に数える" '[ "$rc" -ne 0 ] && grep -q "^L1 stack/B cleanup-failed" "$work/vlog6/summary.txt" && grep -q "^DONE failed=1$" "$work/vlog6/summary.txt"'
+check "後片づけの失敗の原因を層のログに残す" 'grep -q "index.lock" "$work/vlog6/L1.log"'
 
 # 偽のghはPRをJSONに記録する。GH_FAIL_HEADのブランチのPRは作れない
 git init -q --bare "$work/origin.git"
