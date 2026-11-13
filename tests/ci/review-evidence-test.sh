@@ -166,6 +166,22 @@ equals "MUTATE_TIMEOUTを過ぎるとTimeoutで3" "$rc $(last 2-4 "$mlog")" "3 m
 check "Timeoutの後、作業ツリーがきれいで指紋も同じ" same
 equals "MUTATE_TIMEOUTが違えば、同じコマンドでも基準の実行をやり直す" "$(wc -l < "$count")" "8"
 
+# 変異のときだけ、コマンドが$goのファイルを待つ。待っている間にTERMを送る
+go="$work/go"
+(cd "$repo" && exec bash "$ev" "$work/signal.tsv" mutate "$work/kill.patch" -- \
+  sh -c 'if grep -q "1 - " app.sh; then : > "$0.started"; until [ -e "$0" ]; do sleep 0.1; done; fi; sh test.sh' "$go") > /dev/null 2>&1 &
+pid=$!
+for _ in $(seq 600); do [ -e "$go.started" ] && break; sleep 0.1; done
+g diff --quiet
+mutated=$?
+kill -TERM "$pid"
+: > "$go"
+wait "$pid"
+rc=$?
+equals "変異の実行中にTERMを受けると、変異を戻してから130で終わる" "$mutated $rc" "1 130"
+check "TERMで止めた後、作業ツリーがきれいで指紋も同じ" same
+check "TERMで止めると、変異の結果を記録しない" '! grep -q "	mutate	" "$work/signal.tsv"'
+
 e "$mlog" mutate "$work/kill.patch" -- sh -c 'cat app.sh >> "$0"; exit 1' "$work/seen" > /dev/null 2>&1
 rc=$?
 equals "基準の実行が失敗するとInvalidで4" "$rc $(last 2-4 "$mlog")" "4 mutate	kill.patch	Invalid"

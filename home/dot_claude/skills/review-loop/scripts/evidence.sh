@@ -24,7 +24,9 @@
 #         the same fingerprint and key passed; other runs of the same command do not count.
 #         Exits 0 Killed, 1 Survived, 3 Timeout, 4 Invalid (the baseline fails, the patch does not apply, the mutant
 #         does not build, or the mutant run exits 126 or 127 because the command cannot run; 128 and above count
-#         as Killed), and 5 when the worktree did not come back (nothing is recorded or cleaned up).
+#         as Killed), 5 when the worktree did not come back (nothing is recorded or cleaned up), and 130 when HUP,
+#         INT or TERM arrived after the patch was applied: it waits for the running command, reverts, checks the
+#         worktree as above, and records nothing.
 # Exits 2 without running anything on a usage error, a dirty worktree for mutate, $MUTATE_TIMEOUT without a timeout
 # command, or an <evidence.tsv> inside the worktree that is not ignored (every record would change the fingerprint).
 set -uo pipefail
@@ -152,8 +154,14 @@ invalid() {
   exit 4
 }
 
+restore() {
+  git -C "$top" apply -R -- "$patch"
+  intact "reverting $name"
+}
+
 mutate_cmd() {
-  local patch=$1 rc result key
+  local rc result key
+  patch=$1
   name=$(basename -- "$patch")
   valid_label "$name"
   shift
@@ -177,6 +185,7 @@ mutate_cmd() {
     cmd=$key record run baseline 0 "$before"
   fi
   git -C "$top" apply -- "$patch" || { intact "a failed git apply"; invalid "the patch does not apply"; }
+  trap 'trap "" HUP INT TERM; restore; exit 130' HUP INT TERM
   if ! build; then
     result=Invalid
   else
@@ -188,8 +197,8 @@ mutate_cmd() {
     else result=Killed
     fi
   fi
-  git -C "$top" apply -R -- "$patch"
-  intact "reverting $name"
+  trap - HUP INT TERM
+  restore
   build || printf 'evidence.sh: warning: MUTATE_BUILD fails after reverting; build outputs may still hold the mutant\n' >&2
   record mutate "$name" "$result" "$before"
   printf '%s %s\n' "$result" "$name"
