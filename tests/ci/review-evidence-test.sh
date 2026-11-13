@@ -59,6 +59,9 @@ equals "evidence.shの関数と同じ名前のコマンドは、PATHのコマン
 e "$log" run ex -- eval 'exit 3'
 rc=$?
 equals "組み込みのコマンドがexitしても、その終了コードを返して記録する" "$rc $(last 3-4 "$log")" "3 ex	3"
+mkdir -p "$work/dir.tsv"
+e "$work/dir.tsv" run ok -- true > /dev/null 2>&1
+equals "記録を書けなければ、コマンドが成功しても2で終わる" "$?" "2"
 lines=$(wc -l < "$log")
 check "タブを含むラベルは、実行も記録もせずに拒否する" '! e "$log" run "a	b" -- touch "$work/tab-ran" && [ ! -e "$work/tab-ran" ] && [ "$(wc -l < "$log")" = "$lines" ]'
 check "作業ツリーの中の、無視されていない記録は拒否する" '! e "$repo/evidence.tsv" run x -- true && [ ! -e "$repo/evidence.tsv" ]'

@@ -31,6 +31,7 @@
 #         $MUTATE_BUILD, checks the worktree as above, and records nothing.
 # Exits 2 without running anything on a usage error, a dirty worktree for mutate, $MUTATE_TIMEOUT without a timeout
 # command, or an <evidence.tsv> inside the worktree that is not ignored (every record would change the fingerprint).
+# Also exits 2, after running, when the record cannot be written.
 set -uo pipefail
 
 die() { printf 'evidence.sh: %s\n' "$1" >&2; exit 2; }
@@ -68,7 +69,8 @@ fingerprint() {
 clean() { [ -z "$(git -C "$top" status --porcelain --untracked-files=normal)" ]; }
 
 record() {
-  printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$1" "$2" "$3" "$4" "$cmd" >> "$file"
+  printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$1" "$2" "$3" "$4" "$cmd" >> "$file" ||
+    die "cannot write the record to $file"
 }
 
 # Prints "<result>\t<fingerprint>\t<command>" of the latest run of the label, or nothing.
