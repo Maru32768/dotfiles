@@ -69,13 +69,13 @@ open_pr() {
 
 layers=()
 branches=("$BASE_BRANCH")
+prereqs=()
 while IFS=$'\t' read -r layer branch prereq; do
   [ -z "$layer" ] && continue
   layers+=("$layer")
   branches+=("$branch")
+  prereqs+=("$prereq")
 done <<< "$layer_list"
-branch_of() { awk -F'\t' -v l="$1" '$1 == l {print $2}' <<< "$layer_list"; }
-prereq_of() { awk -F'\t' -v l="$1" '$1 == l {print $3}' <<< "$layer_list"; }
 
 git -C "$WT" push --atomic -u origin "${branches[@]}"
 
@@ -88,9 +88,8 @@ echo "BASE $base_pr $base_url" | tee -a "$OUT/numbers.txt"
 
 below_branch=$BASE_BRANCH
 below_ref="なし（ベースに向いている）"
-for layer in "${layers[@]}"; do
-  branch=$(branch_of "$layer")
-  prereq=$(prereq_of "$layer")
+for i in "${!layers[@]}"; do
+  layer=${layers[$i]} branch=${branches[$((i + 1))]} prereq=${prereqs[$i]}
   if [ -z "$prereq" ] || [ "$prereq" = "-" ]; then
     prereq_ref="なし（ほかの子 PR とは独立に読める）"
   else
