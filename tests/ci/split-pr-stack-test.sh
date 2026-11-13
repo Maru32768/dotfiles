@@ -179,7 +179,12 @@ g config status.showUntrackedFiles no
 touch "$repo/junk"
 check "status.showUntrackedFilesがnoでも、未追跡のファイルを見つけて始めない" '! verify "layer B1 stack/B . true" "$work/vlog4" 2>/dev/null && [ -e "$repo/junk" ]'
 rm -f "$repo/junk"
+check "status.showUntrackedFilesがnoでも、ビルドが残した未追跡のファイルをdirtyに出す" 'verify "layer U1 stack/B . touch junk3" "$work/vlog5" && grep -q "^U1 stack/B rc=0 .*dirty=\[?? junk3" "$work/vlog5/summary.txt"'
 g config status.showUntrackedFiles normal
+verify 'layer L1 stack/B . touch .git/index.lock' "$work/vlog6" 2>/dev/null
+rc=$?
+rm -f "$repo/.git/index.lock"
+check "後片づけに失敗した層を失敗に数える" '[ "$rc" -ne 0 ] && grep -q "^L1 stack/B cleanup-failed" "$work/vlog6/summary.txt" && grep -q "^DONE failed=1$" "$work/vlog6/summary.txt"'
 
 # 偽のghはPRをJSONに記録する。GH_FAIL_HEADのブランチのPRは作れない
 git init -q --bare "$work/origin.git"
