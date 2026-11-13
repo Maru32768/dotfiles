@@ -165,6 +165,8 @@ g switch -q --detach stack/base
 # dfを消すのを層Bに、df/x.txtを足すのを層Aにすると、層Aにはファイルのdfとディレクトリのdfが両方要る
 misowned "$work/bad_df.py" '"df/x.txt": ["B"]' '"df/x.txt": ["A"]' '"df": ["A"]' '"df": ["B"]'
 check "同じ層にファイルとディレクトリの両方が要る割り当てでは、何も変えずに止まる" '! python3 -I "$work/bad_df.py" "$repo" A 2>/dev/null && [ -z "$(g status --porcelain)" ]'
+misowned "$work/bad_cut.py" 'cut(t, "b\n")' 'cut(t, "zzz\n")'
+check "共有ファイルの変換が当たらないときも、何も変えずに止まる" '! python3 -I "$work/bad_cut.py" "$repo" A 2>/dev/null && [ -z "$(g status --porcelain)" ]'
 # README.mdを足すのを層Aにすると、層AにはReadme.mdとREADME.mdが両方要る。大文字と小文字を区別しない
 # ファイルシステムでは1つになるので、Linuxでもignorecaseをtrueにして試す
 misowned "$work/bad_case.py" '"README.md": ["B"]' '"README.md": ["A"]'

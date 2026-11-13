@@ -131,6 +131,8 @@ def main():
     dirs = {place[:i] for place in places for i, c in enumerate(place) if c == "/"}
     clash = sorted((dirs & places.keys()) | {place for place, n in places.items() if n > 1})
     assert not clash, f"OWNERS puts two entries at the same place on disk in {ORDER[L]}: {clash}"
+    between = [path for path, owners in OWNERS.items() if ORDER.index(owners[0]) <= L < ORDER.index(owners[-1])]
+    texts = {path: TRANSFORMS[path](git("show", f"{FINAL}:{path}").decode("utf-8")) for path in between}
     # Remove first, then restore: when a file becomes a directory, or a rename changes only the case, both
     # paths share one place on disk, and removing one after restoring the other would undo the restore.
     gone = [path for path in source if path not in kept]
@@ -140,13 +142,11 @@ def main():
         paths = [path for path, r in kept.items() if r == ref]
         if paths:
             git("restore", f"--source={ref}", "--staged", "--worktree", paths=paths)
-    between = [path for path, owners in OWNERS.items() if ORDER.index(owners[0]) <= L < ORDER.index(owners[-1])]
-    for path in between:
-        text = TRANSFORMS[path](git("show", f"{FINAL}:{path}").decode("utf-8"))
+    for path, text in texts.items():
         with open(f"{WT}/{path}", "w", encoding="utf-8", newline="") as f:
             f.write(text)
-    if between:
-        git("add", paths=between)
+    if texts:
+        git("add", paths=list(texts))
 
 
 main()
