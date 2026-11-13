@@ -94,7 +94,7 @@ run_cmd() {
   mkdir -p "$(dirname -- "$file")" || die "cannot create the directory of $file"
   guard_file
   before=$(fingerprint) || die "cannot compute the fingerprint"
-  command -- "${command[@]}"
+  (command -- "${command[@]}")
   rc=$?
   record run "$label" "$rc" "$before"
   exit "$rc"
@@ -137,7 +137,7 @@ table_cmd() {
 build() { [ -z "${MUTATE_BUILD:-}" ] || bash -c "$MUTATE_BUILD"; }
 
 target() {
-  if [ -n "${MUTATE_TIMEOUT:-}" ]; then timeout "$MUTATE_TIMEOUT" "${command[@]}"; else command -- "${command[@]}"; fi
+  if [ -n "${MUTATE_TIMEOUT:-}" ]; then timeout "$MUTATE_TIMEOUT" "${command[@]}"; else (command -- "${command[@]}"); fi
 }
 
 intact() {

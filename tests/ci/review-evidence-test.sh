@@ -56,6 +56,9 @@ chmod +x "$work/bin/build"
 PATH="$work/bin:$PATH" e "$log" run build -- build
 rc=$?
 equals "evidence.shの関数と同じ名前のコマンドは、PATHのコマンドを回す" "$rc $(last 4 "$log")" "7 7"
+e "$log" run ex -- eval 'exit 3'
+rc=$?
+equals "組み込みのコマンドがexitしても、その終了コードを返して記録する" "$rc $(last 3-4 "$log")" "3 ex	3"
 lines=$(wc -l < "$log")
 check "タブを含むラベルは、実行も記録もせずに拒否する" '! e "$log" run "a	b" -- touch "$work/tab-ran" && [ ! -e "$work/tab-ran" ] && [ "$(wc -l < "$log")" = "$lines" ]'
 check "作業ツリーの中の、無視されていない記録は拒否する" '! e "$repo/evidence.tsv" run x -- true && [ ! -e "$repo/evidence.tsv" ]'
@@ -264,6 +267,11 @@ e "$mlog" mutate "$work/conf.patch" -- sh -c '! grep -q mode=2 conf.log' > /dev/
 rc=$?
 equals "無視されたファイルへのパッチも、当てた後に戻す" "$rc $(cat "$repo/conf.log")" "0 mode=1"
 rm -f "$repo/conf.log"
+e "$mlog" mutate "$work/kill.patch" -- eval 'sh test.sh || exit 1' > /dev/null 2>&1
+rc=$?
+equals "組み込みのコマンドがexitしても、変異を戻してから結果を記録する" "$rc $(last 2-4 "$mlog")" "0 mutate	kill.patch	Killed"
+check "組み込みのコマンドがexitした後、作業ツリーがきれいで指紋も同じ" same
+same || g checkout -q -- .
 
 e "$mlog" mutate "$work/kill.patch" -- sh -c 'cat app.sh >> "$0"; exit 1' "$work/seen" > /dev/null 2>&1
 rc=$?
