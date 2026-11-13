@@ -7,12 +7,13 @@ Windows と WSL (Ubuntu 26.04) の設定とツールを chezmoi と mise で管�
 ## コマンド
 
 ```bash
-bash tests/ci/static.sh                 # 環境を作らずにできる検査をすべて (shellcheck、フックのテスト、bws-run のテスト、split-pdf のテスト、split-pr-stackのテスト、不変条件、レンダリング、gitleaks、actionlint)
+bash tests/ci/static.sh                 # 環境を作らずにできる検査をすべて (shellcheck、フックのテスト、bws-run のテスト、split-pdf のテスト、split-pr-stackのテスト、review-loopの記録のテスト、不変条件、レンダリング、gitleaks、actionlint)
 bash tests/ci/invariants.sh             # 不変条件だけ
 bash tests/ci/render.sh                 # linux-main / linux-agent / windows-main を描画して置かれるものを確かめる (スキルの取得でネットワークを使う)
 bash tests/ci/bws-run-test.sh           # bws-run (bash 版) のテスト
 bash tests/ci/split-pdf-test.sh         # split-pdf のテスト (pypdf を PyPI から取得する)
 bash tests/ci/split-pr-stack-test.sh    # split-pr-stackのスクリプトのテスト(偽のghで試す。jqをmiseで取得する)
+bash tests/ci/review-evidence-test.sh   # review-loopのevidence.shのテスト(使い捨てのリポジトリで、記録、指紋、mutationを試す)
 cd home/.hooks-src/block-signing-bypass && go test ./...            # フックのテスト
 cd home/.hooks-src/block-signing-bypass && go test -run 'TestName' ./...  # 1 つだけ
 bash tests/ci/container.sh main         # ubuntu:26.04 のコンテナで環境を作って確かめる。agent と research も可。数分かかり、数 GB をダウンロードする
