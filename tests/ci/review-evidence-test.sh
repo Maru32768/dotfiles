@@ -59,8 +59,8 @@ equals "evidence.shの関数と同じ名前のコマンドは、PATHのコマン
 e "$log" run ex -- eval 'exit 3'
 rc=$?
 equals "組み込みのコマンドがexitしても、その終了コードを返して記録する" "$rc $(last 3-4 "$log")" "3 ex	3"
-mkdir -p "$work/dir.tsv"
-e "$work/dir.tsv" run ok -- true > /dev/null 2>&1
+mkdir -p "$work/unwritable.tsv"
+e "$work/unwritable.tsv" run ok -- true > /dev/null 2>&1
 equals "記録を書けなければ、コマンドが成功しても2で終わる" "$?" "2"
 lines=$(wc -l < "$log")
 check "runのラベルにbaselineは使えず、実行も記録もしない" '! e "$log" run baseline -- touch "$work/baseline-ran" && [ ! -e "$work/baseline-ran" ] && [ "$(wc -l < "$log")" = "$lines" ]'
