@@ -462,4 +462,4 @@ ponytail-review の指摘のうち、ハード制約と衝突するもの・意�
 - [Anthropic: Finding bugs with Claude and property-based testing (2026-01)](https://www.anthropic.com/research/property-based-testing) — 性質の抽出と自動生成テストによる検証。生成した性質が仕様と一致するかは別途確認が要る。
 - [TestSuiteBench (2026-10)](https://arxiv.org/abs/2610.13065) — LLM生成テストの実行成功とmutation検出能力の差。
 
-後片付け: レビュー用の worktree と scratch ブランチを消して、作業ツリーがクリーンな状態で終える。台帳のディレクトリは消さない。PR/MR本文の控えがあり、台帳は工程ごとの収穫を後で数えるのにも使う。
+後片付け: レビュー用の worktree と scratch ブランチを消して、作業ツリーがクリーンな状態で終える。台帳のディレクトリは消さない。PR/MR本文の控えがある。
