@@ -103,7 +103,7 @@ g commit -q --allow-empty -m "ベース"
 for layer in A B; do
   g switch -q -c "stack/$layer"
   check "層${layer}を書き出せる" 'python3 -I "$work/build_layers.py" "$repo" "$layer"'
-  g add -A
+  check "層${layer}を書き出すと、indexと作業ツリーが揃い、addせずにコミットできる" 'g diff --quiet'
   g commit -q --allow-empty -m "$layer"
 done
 

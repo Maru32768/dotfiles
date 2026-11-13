@@ -128,11 +128,13 @@ def main():
         kept = [path for path, r in source.items() if r == ref and path in files[ref]]
         if kept:
             git("restore", f"--source={ref}", "--staged", "--worktree", paths=kept)
-    for path, owners in OWNERS.items():
-        if ORDER.index(owners[0]) <= L < ORDER.index(owners[-1]):
-            text = TRANSFORMS[path](git("show", f"{FINAL}:{path}").decode("utf-8"))
-            with open(f"{WT}/{path}", "w", encoding="utf-8", newline="") as f:
-                f.write(text)
+    between = [path for path, owners in OWNERS.items() if ORDER.index(owners[0]) <= L < ORDER.index(owners[-1])]
+    for path in between:
+        text = TRANSFORMS[path](git("show", f"{FINAL}:{path}").decode("utf-8"))
+        with open(f"{WT}/{path}", "w", encoding="utf-8", newline="") as f:
+            f.write(text)
+    if between:
+        git("add", paths=between)
 
 
 main()
