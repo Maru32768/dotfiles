@@ -161,7 +161,7 @@ mutate_cmd() {
   clean || die "the worktree has uncommitted changes or untracked files; commit them first so the revert can be checked"
   before=$(fingerprint) || die "cannot compute the fingerprint"
   if ! FP=$before CMD=$cmd awk -F'\t' '$2 == "run" && $5 == ENVIRON["FP"] && $6 == ENVIRON["CMD"] { r = $4 }
-      END { exit r != "0" }' "$file" 2>/dev/null; then
+      END { exit r != "0" }' "$src"; then
     build || invalid "MUTATE_BUILD fails before mutating"
     target
     rc=$?
