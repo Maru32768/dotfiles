@@ -447,7 +447,7 @@ ponytail-review の指摘のうち、ハード制約と衝突するもの・意�
 
 ### 参考資料（方針の根拠と限界）
 
-- [Anthropic: How the Claude Code team does code review (2026-10)](https://claude.dev/blog/solving-code-review-at-anthropic/) — 上限、差分限定の再レビュー、同型指摘の集約、incident由来の評価セット。**同社の運用例であり、4ラウンドの最適性を証明するものではない。**
+- [claude.dev: How the Claude Code team does code review (2026-10)](https://claude.dev/blog/solving-code-review-at-anthropic/) — 上限、差分限定の再レビュー、同型指摘の集約、incident由来の評価セット。**Anthropicの運用例として書かれているが、サイトの発行元がAnthropicかは確かめられていない。記事の上限は3ラウンドで、4ラウンドの最適性を証明するものではない。**
 - [Google: State of Mutation Testing at Google (2018)](https://research.google/pubs/state-of-mutation-testing-at-google/) — diffベースのmutation選択と低価値な変異の除外。
 - [StrykerJS: Configuration / Incremental](https://stryker-mutator.io/docs/stryker-js/incremental/) — per-test coverage、差分実行、キャッシュの制限。**テスト依存の選択がいつでも完全であるとは限らない。**
 - [Anthropic: Finding bugs with Claude and property-based testing (2026-01)](https://www.anthropic.com/research/property-based-testing) — 性質の抽出と自動生成テストによる検証。生成した性質が仕様と一致するかは別途確認が要る。
