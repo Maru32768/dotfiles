@@ -187,6 +187,25 @@ equals "変異の実行中にTERMを受けると、変異を戻してから130�
 check "TERMで止めた後、作業ツリーがきれいで指紋も同じ" same
 same || g checkout -q -- .
 check "TERMで止めると、変異の結果を記録しない" '! grep -q "	mutate	" "$work/signal.tsv"'
+# 変異のときだけ、コマンドが$2を実行してから待つ。待っている間に$1を送り、終了コードとmutateの行の数を出す。
+# 無視されたシグナルはtrapできない。Linuxの非対話のbashは&で起こしたジョブにINTを無視させ、テストを
+# 無視された状態で起動すれば(裏で回すときなど)それも引き継ぐので、envで既定に戻す
+interrupt() {
+  local go="$work/go-$3" pid
+  (cd "$repo" && exec env --default-signal="$1" bash "$ev" "$work/signal-$3.tsv" mutate "$work/kill.patch" -- \
+    sh -c 'if grep -q "1 - " app.sh; then $1; : > "$0.started"; until [ -e "$0" ]; do sleep 0.1; done; fi; sh test.sh' "$go" "$2") > /dev/null 2>&1 &
+  pid=$!
+  for _ in $(seq 600); do [ -e "$go.started" ] && break; sleep 0.1; done
+  kill -"$1" "$pid"
+  : > "$go"
+  wait "$pid"
+  echo "$? $(grep -c '	mutate	' "$work/signal-$3.tsv")"
+}
+for sig in HUP INT; do
+  equals "${sig}を受けても、変異を戻してから130で終わり、記録しない" "$(interrupt "$sig" : "$sig")" "130 0"
+  check "${sig}で止めた後、作業ツリーがきれいで指紋も同じ" same
+  same || g checkout -q -- .
+done
 
 e "$mlog" mutate "$work/kill.patch" -- sh -c 'cat app.sh >> "$0"; exit 1' "$work/seen" > /dev/null 2>&1
 rc=$?
