@@ -78,7 +78,7 @@ parse_command() {
 }
 
 run_cmd() {
-  local label=$1 before after rc
+  local label=$1 before rc
   valid_label "$label"
   shift
   parse_command "$@"
@@ -88,10 +88,6 @@ run_cmd() {
   "${command[@]}"
   rc=$?
   record run "$label" "$rc" "$before"
-  after=$(fingerprint)
-  if [ "$after" != "$before" ]; then
-    printf 'evidence.sh: warning: %s changed the worktree; the record keeps the fingerprint from before it ran\n' "$label" >&2
-  fi
   exit "$rc"
 }
 
