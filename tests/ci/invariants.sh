@@ -35,9 +35,22 @@ else
   pass "GPG の鍵の指定が揃っている"
 fi
 
-for file in home/.claude-settings.json provision/agent/managed-settings.json packages/winget.json; do
+for file in home/.claude-settings.json provision/agent/managed-settings.json provision/research/managed-settings.json packages/winget.json; do
   if jq empty "$file" 2>/dev/null; then pass "JSON: $file"; else fail "JSON が壊れている: $file"; fi
 done
+
+# research の管理設定は agent のものと、Web のツール、Bash の通信先と書き込み先、隠す環境変数だけが違う。
+# agent に足した拒否ルールなどを research に足し忘れないように
+shared_settings='del(.sandbox.network.allowedDomains, .sandbox.filesystem.allowWrite, .sandbox.credentials.envVars)
+  | .permissions.allow -= ["WebFetch", "WebSearch"] | .permissions.deny -= ["WebFetch", "WebSearch"]'
+# jq が失敗すると両方とも空になって一致してしまうので、終了コードも見る
+if agent_shared="$(jq -S "$shared_settings" provision/agent/managed-settings.json)" &&
+  research_shared="$(jq -S "$shared_settings" provision/research/managed-settings.json)" &&
+  [ "$agent_shared" = "$research_shared" ]; then
+  pass "research の管理設定が、決めた違いのほかは agent と同じ"
+else
+  fail "research の管理設定が、決めた違いのほかでも agent と違う (tests/ci/invariants.sh の shared_settings)"
+fi
 
 # インストーラーに渡す値なので、正確なバージョンでなければならない
 if grep -qxE '[0-9]+\.[0-9]+\.[0-9]+' provision/agent/claude-version; then

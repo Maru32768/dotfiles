@@ -5,7 +5,7 @@
 | ジョブ | スクリプト | 内容 |
 |---|---|---|
 | `static` | `tests/ci/static.sh` | shellcheck、フック・`bws-run`・`split-pdf`・`split-pr-stack` のテスト、不変条件、chezmoi のレンダリング、gitleaks、actionlint |
-| `container` | `tests/ci/container.sh <main\|agent>` | `ubuntu:26.04` で環境を作り、確認と再適用まで行う |
+| `container` | `tests/ci/container.sh <main\|agent\|research>` | `ubuntu:26.04` で環境を作り、確認と再適用まで行う |
 | `windows` | `tests/ci/windows.ps1`、`tests/ci/bws-run-test.ps1` | Windows PowerShell 5.1 での構文、Windows 版の `bws-run` のテスト、PSScriptAnalyzer |
 
 定期実行は、固定していないもの (apt、インストーラー、Vim プラグイン) の破損に気づくためにある。
@@ -26,6 +26,10 @@ bash tests/ci/container.sh main
 bash tests/ci/container.sh agent
 ```
 
+```bash
+bash tests/ci/container.sh research
+```
+
 `container.sh` は作業ツリーの内容を使うので、コミットの前に試せる。1 回あたり数分かかり、数 GB をダウンロードする。
 
 ## 確かめていること
@@ -39,7 +43,7 @@ bash tests/ci/container.sh agent
 | 対象 | 理由 | どう確かめるか |
 |---|---|---|
 | systemd と `wsl.conf` の効果 | コンテナにはない。`doctor.sh --container` は飛ばす | `lab.ps1 restore-test` |
-| agent の隔離 | WSL の設定に依存する。`verify-isolation.sh` はコンテナでは実行しない | `lab.ps1 restore-test` |
+| agent と research の隔離 | WSL の設定に依存する。`verify-isolation.sh` はコンテナでは実行しない。research の通信の制限だけは、コンテナに `CAP_NET_ADMIN` を与えて試す (`docs/research.md`) | `lab.ps1 restore-test` |
 | Windows での適用 | `render.sh` はテンプレートの `.chezmoi.os` を差し替えるだけ。`.ps1.tmpl` の構文も見ない | `bootstrap.ps1` |
 
 ## 復元テスト
@@ -50,7 +54,7 @@ CI で確かめられないものは、実物の WSL で確かめる。Windows �
 powershell -ExecutionPolicy Bypass -File lab\lab.ps1 restore-test
 ```
 
-GitHub の `master` から `main` と `agent` を新しく作り、`doctor.sh` と `verify-isolation.sh` で確かめて、消す。途中で失敗しても消す。ほかのインスタンスには触らない。
+GitHub の `master` から `main`、`agent`、`research` を新しく作り、`doctor.sh` と `verify-isolation.sh` で確かめて、消す。途中で失敗しても消す。ほかのインスタンスには触らない。
 
 - 結果は `%LOCALAPPDATA%\dotfiles-lab\restore-test.json`、ログは同じ場所の `restore-test.log` に残る。
 - `doctor.ps1` が結果を報告する。失敗しているか、45 日より古ければ TODO になる。
