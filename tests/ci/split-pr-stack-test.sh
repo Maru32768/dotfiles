@@ -187,6 +187,8 @@ rc=$?
 rm -f "$repo/.git/index.lock"
 check "後片づけに失敗した層を失敗に数える" '[ "$rc" -ne 0 ] && grep -q "^L1 stack/B cleanup-failed" "$work/vlog6/summary.txt" && grep -q "^DONE failed=1$" "$work/vlog6/summary.txt"'
 check "後片づけの失敗の原因を層のログに残す" 'grep -q "index.lock" "$work/vlog6/L1.log"'
+check "ビルドが作った入れ子のリポジトリも次の層に持ち越さない" 'verify "layer N1 stack/B . git init -q sub
+layer N2 stack/B . test ! -e sub" "$work/vlog7" && grep -q "^N2 stack/B rc=0 " "$work/vlog7/summary.txt"'
 
 # 偽のghはPRをJSONに記録する。GH_FAIL_HEADのブランチのPRは作れない
 git init -q --bare "$work/origin.git"
