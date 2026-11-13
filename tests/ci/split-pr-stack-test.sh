@@ -278,7 +278,7 @@ printf 'A\tstack/A\t-\nB\tstack/B\tA' > "$work/layers.tsv"
 publish() {
   printf '[%s, %s]' \
     '{"number": 1, "baseRefName": "main", "headRefName": "feature", "state": "OPEN", "isCrossRepository": false}' \
-    '{"number": 2, "url": "https://github.com/fork/r/pull/2", "baseRefName": "main", "headRefName": "stack/base", "state": "OPEN", "isCrossRepository": true, "body": "fork", "edits": 0}' > "$1"
+    '{"number": 2, "url": "https://github.com/fork/r/pull/2", "baseRefName": "main", "headRefName": "stack/base", "state": "OPEN", "isCrossRepository": true, "body": "fork {{PR:A}}", "edits": 0}' > "$1"
   cat > "$1.config" <<EOF
 WT="$repo"
 REPO=o/r
@@ -309,13 +309,16 @@ check "止まった後に同じ設定で実行し直せる" 'rerun "$state" > "$
 check "止まっている間にbotが本文に足したものを残す" '[ "$(q "$state" ".[] | select(.headRefName == \"stack/A\") | .body | contains(\"<!-- bot -->\")")" = true ]'
 equals "実行し直しても、PRを作り直さない" "$(q "$state" '[.[] | select(.state == "OPEN" and (.isCrossRepository | not)) | .headRefName] | sort | join(" ")')" "stack/A stack/B stack/base"
 equals "実行し直すと、元のPRを閉じる" "$(q "$state" '.[0].state')" "CLOSED"
-equals "forkの同じ名前のブランチのPRを使わない" "$(q "$state" '.[1] | "\(.body) \(.edits)"')" "fork 0"
+equals "forkの同じ名前のブランチのPRを使わない" "$(q "$state" '.[1] | "\(.body) \(.edits)"')" "fork {{PR:A}} 0"
 a=$(q "$state" '.[] | select(.headRefName == "stack/A") | .number')
 b=$(q "$state" '.[] | select(.headRefName == "stack/B") | .number')
 equals "子PRの本文に、直下と先に読むPRと次のPRが入る" "$(q "$state" '.[2:][] | .body | split("\n")[0]' | tr '\n' '|')" "#$a #$b|A below=なし（ベースに向いている） prereq=なし（ほかの子 PR とは独立に読める） next=#$b|B below=#$a prereq=#$a next=なし（スタックの一番上）|"
 edits=$(q "$state" '[.[].edits] | add')
 check "もう一度実行し直しても、本文を書き直さない" 'rerun "$state" > "$work/publish2b.log" 2>&1 && [ "$(q "$state" "[.[].edits] | add")" = "$edits" ]'
 equals "もう一度実行し直しても、元のPRを2度は閉じない" "$(q "$state" '.[0].comments | length')" "1"
+base_num=$(q "$state" '.[] | select(.headRefName == "stack/base" and (.isCrossRepository | not)) | .number')
+equals "元のPRを閉じるコメントに、ベースPRを書く" "$(q "$state" '.[0].comments[0]')" "moved to #$base_num"
+equals "ベースPRはDraftで作る" "$(q "$state" '.[] | select(.headRefName == "stack/base" and (.isCrossRepository | not)) | .isDraft')" "true"
 
 cp -r "$work/bodies" "$work/bodies-typo"
 printf 'A {{TYPO}}\n' > "$work/bodies-typo/A.md"
