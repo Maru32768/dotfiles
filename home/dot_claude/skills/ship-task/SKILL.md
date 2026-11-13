@@ -59,7 +59,7 @@ description: issueや依頼に着手してから、完了条件の言い直し�
 
 - **直接。** スライスのブランチをデフォルトブランチへ早送りでマージする。
 - **PR。** 1つのスライスを1本のPRにする。前のスライスに依存し、前がまだマージされていなければ、前のブランチをbaseにする。依存しなければ、デフォルトブランチをbaseにする。同じheadとbaseの開いたPRが無いことを確かめてから作る。積んだPRは、下から順にmerge commitでマージする。上から、またはsquashでマージしたときのGitHubの振る舞いは、`split-pr-stack`の「形」にある。
-- **PRの本文。** `mattpocock-skills:pr`の型で書き、Summaryの次に、`split-pr-stack/references/templates.md`の子PRの型にある「なぜ要るか」と「なぜこの形か」を、本文の言語で入れる。「動作確認」は、`bash <review-loopのディレクトリ>/scripts/evidence.sh <台帳のディレクトリ>/evidence.tsv table`で作る。作る前に、同じスクリプトの`check`で、記録が最後のツリーのものかを確かめる。書いた後の「なぜ」の確かめ方は、`split-pr-stack`の4と同じにする。最後に`prose-polish`にかける。
+- **PRの本文。** `mattpocock-skills:pr`の型で書き、Summaryの次に、`split-pr-stack/references/templates.md`の子PRの型にある「なぜ要るか」と「なぜこの形か」を、本文の言語で入れる。Evidenceの節には、`bash <review-loopのディレクトリ>/scripts/evidence.sh <台帳のディレクトリ>/evidence.tsv table`の出力を置く。作る前に、同じスクリプトの`check <検証の名前...>`で、記録が最後のツリーのものかを確かめる。書いた後の「なぜ」の確かめ方は、`split-pr-stack`の4と同じにする。最後に`prose-polish`にかける。
 - **下のスライスを後から直したとき。** 下のブランチを、上のブランチへマージする。rebaseしない。force pushが要らず、レビューで作った指摘ごとのコミットが残る。
 - push、PRの作成は、確認を取ってから行う。
 
