@@ -304,8 +304,8 @@ for layer in A B; do
 done
 printf 'A\tstack/A\t-\r\nB\tstack/B\tA' > "$work/layers.tsv"
 
-# $1は記録するJSON、$2は本文のディレクトリ、$3は閉じる元のPRの番号(既定は#1)。
-# 記録には、元のPRの#1と、forkの同じ名前のブランチからmainへ開いた#2がある
+# $1は記録するJSON、$2は本文のディレクトリ、$3は閉じる元のPRの番号(既定は#1)、$4は層の一覧(既定は
+# $work/layers.tsv)。出力は$1.outに書く。記録には、元のPRの#1と、forkの同じ名前のブランチからmainへ開いた#2がある
 publish() {
   printf '[%s, %s]' \
     '{"number": 1, "baseRefName": "main", "headRefName": "feature", "state": "OPEN", "isCrossRepository": false}' \
@@ -316,7 +316,7 @@ REPO=o/r
 BASE_BRANCH=stack/base
 BASE_TARGET=main
 BASE_TITLE=base
-LAYERS_TSV="$work/layers.tsv"
+LAYERS_TSV="${4:-$work/layers.tsv}"
 BODY_DIR="$2"
 VERIFY_DIR="$work/verify-md"
 CHILD_DRAFT=false
@@ -371,6 +371,11 @@ state="$work/state4.json"
 publish "$state" "$work/bodies-close" > "$work/publish5.log" 2>&1
 rc=$?
 check "閉じるときのコメントにプレースホルダが残ると0以外で止まり、元のPRを閉じない" '[ "$rc" -ne 0 ] && [ "$(q "$state" ".[0].state")" = OPEN ]'
+
+state="$work/state5.json"
+mkdir -p "$state.out"
+cp "$work/layers.tsv" "$state.out/layers.tsv"
+check "層の一覧を出力のディレクトリに置いても、一覧を壊さない" 'publish "$state" "$work/bodies" 1 "$state.out/layers.tsv" > "$work/publish6.log" 2>&1 && [ "$(q "$state" ".[0].state")" = CLOSED ]'
 
 state="$work/state3.json"
 publish "$state" "$work/bodies" 99 > "$work/publish4.log" 2>&1

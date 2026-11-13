@@ -27,8 +27,7 @@ set -euo pipefail
 source "$1"
 mkdir -p "$OUT"
 # The layer list may come from a Windows editor with CRLF line ends.
-tr -d '\r' < "$LAYERS_TSV" > "$OUT/layers.tsv"
-LAYERS_TSV=$OUT/layers.tsv
+layer_list=$(tr -d '\r' < "$LAYERS_TSV")
 ASSIGNEE=${ASSIGNEE:-@me}
 : > "$OUT/numbers.txt"
 placeholder='[{][{][A-Z]+(:[^{}]*)?[}][}]'
@@ -70,13 +69,13 @@ open_pr() {
 
 layers=()
 branches=("$BASE_BRANCH")
-while IFS=$'\t' read -r layer branch prereq || [ -n "$layer" ]; do
+while IFS=$'\t' read -r layer branch prereq; do
   [ -z "$layer" ] && continue
   layers+=("$layer")
   branches+=("$branch")
-done < "$LAYERS_TSV"
-branch_of() { awk -F'\t' -v l="$1" '$1 == l {print $2}' "$LAYERS_TSV"; }
-prereq_of() { awk -F'\t' -v l="$1" '$1 == l {print $3}' "$LAYERS_TSV"; }
+done <<< "$layer_list"
+branch_of() { awk -F'\t' -v l="$1" '$1 == l {print $2}' <<< "$layer_list"; }
+prereq_of() { awk -F'\t' -v l="$1" '$1 == l {print $3}' <<< "$layer_list"; }
 
 git -C "$WT" push --atomic -u origin "${branches[@]}"
 
