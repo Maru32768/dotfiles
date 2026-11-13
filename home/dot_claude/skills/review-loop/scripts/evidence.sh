@@ -27,8 +27,8 @@
 #         does not build, or the mutant run exits 126 or 127 because the command cannot run; 128 and above count
 #         as Killed), 5 when the worktree did not come back (nothing is recorded or cleaned up), and 130 when HUP,
 #         INT or TERM arrives from just before the patch is applied until the worktree is rebuilt and checked after
-#         the revert: it waits for the running command, reverts the patch unless it still applies forward, runs
-#         $MUTATE_BUILD, checks the worktree as above, and records nothing.
+#         the revert: it waits for the running command (or lets git apply finish), reverts the patch if it is
+#         applied, runs $MUTATE_BUILD, checks the worktree as above, and records nothing.
 # Exits 2 without running anything on a usage error, a dirty worktree for mutate, $MUTATE_TIMEOUT without a timeout
 # command, or an <evidence.tsv> inside the worktree that is not ignored (every record would change the fingerprint).
 # Also exits 2, after running, when the record cannot be written.
@@ -159,15 +159,42 @@ invalid() {
   exit 4
 }
 
-# Reverts the patch unless it still applies forward (then it is not applied), rebuilds and checks the worktree, so
-# running it again changes nothing. A reverse --check would not do: when the patch's lines and context also appear
-# elsewhere in the file, the reverse applies to the reverted tree too and would change that other place. Nor would the
-# fingerprint, which misses ignored and assume-unchanged files. The check comes after the rebuild, which can leave
-# files of its own.
-restore() {
-  git -C "$top" apply --check -- "$patch" 2> /dev/null || git -C "$top" apply -R -- "$patch"
+# Whether the patch is applied is kept in $applied, not guessed with git apply --check: when the patch's lines and
+# context also appear elsewhere in the file, the patch applies both forward and in reverse in either state. git apply
+# runs with HUP, INT and TERM ignored so a signal cannot stop it halfway; a signal that arrives meanwhile is held in
+# $pending and handled once $applied is right.
+apply_patch() { (trap '' HUP INT TERM; exec git -C "$top" apply "$@" -- "$patch"); }
+
+revert() {
+  [ -n "$applied" ] || return 0
+  apply_patch -R
+  applied=
+}
+
+# Rebuilds before the check, since the build can leave files of its own.
+rebuild_and_check() {
   build || printf 'evidence.sh: warning: MUTATE_BUILD fails after reverting; build outputs may still hold the mutant\n' >&2
   intact "reverting $name"
+}
+
+on_signal() {
+  trap '' HUP INT TERM
+  revert
+  rebuild_and_check
+  exit 130
+}
+
+apply_forward() { apply_patch && applied=1; }
+
+# Runs "$@" (apply_forward or revert) while holding signals, then handles one that arrived.
+guarded() {
+  pending=
+  trap 'pending=1' HUP INT TERM
+  "$@"
+  local rc=$?
+  trap on_signal HUP INT TERM
+  [ -z "$pending" ] || on_signal
+  return "$rc"
 }
 
 mutate_cmd() {
@@ -195,8 +222,8 @@ mutate_cmd() {
     [ "$rc" -eq 0 ] || invalid "the command fails before mutating (exit $rc)"
     cmd=$key record run baseline 0 "$before"
   fi
-  trap 'trap "" HUP INT TERM; restore; exit 130' HUP INT TERM
-  git -C "$top" apply -- "$patch" || { trap - HUP INT TERM; intact "a failed git apply"; invalid "the patch does not apply"; }
+  applied=
+  guarded apply_forward || { trap - HUP INT TERM; intact "a failed git apply"; invalid "the patch does not apply"; }
   if ! build; then
     result=Invalid
   else
@@ -208,7 +235,8 @@ mutate_cmd() {
     else result=Killed
     fi
   fi
-  restore
+  guarded revert
+  rebuild_and_check
   trap - HUP INT TERM
   record mutate "$name" "$result" "$before"
   printf '%s %s\n' "$result" "$name"

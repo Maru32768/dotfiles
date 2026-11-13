@@ -258,6 +258,14 @@ kill -TERM "$pid"
 wait "$pid"
 rc=$?
 equals "戻している最中に止めて、もう一度戻す処理が走っても、同じ並びの別の場所を書き換えない" "$rc [$(git -C "$drepo" status --porcelain)]" "130 []"
+# 変える前の行と前後の3行が、同じファイルの別の場所にもあるパッチ。当てた後のツリーにも順向きに当たる
+printf 'top1\ntop2\np\nq\nr\nx=1\ns\nt\nu\nmid\np\nq\nr\nx=1\ns\nt\nu\nend1\nend2\n' > "$drepo/g.txt"
+git -C "$drepo" add -A && git -C "$drepo" commit -q -m pre
+sed '6s/x=1/x=2/' "$drepo/g.txt" > "$work/g.mut"
+diff -u --label a/g.txt --label b/g.txt "$drepo/g.txt" "$work/g.mut" > "$work/pre.patch"
+(cd "$drepo" && bash "$ev" "$work/pre.tsv" mutate "$work/pre.patch" -- sh -c '! sed -n 6p g.txt | grep -q x=2') > /dev/null 2>&1
+rc=$?
+equals "変える前の並びが別の場所にもあるパッチも、当てた後に戻す" "$rc [$(git -C "$drepo" status --porcelain)]" "0 []"
 # 戻した後のビルドが、無視されないファイルを残す
 lines=$(wc -l < "$mlog")
 MUTATE_BUILD='touch gen.txt' e "$mlog" mutate "$work/kill.patch" -- sh -c 'rm -f gen.txt; sh test.sh' > /dev/null 2>&1
