@@ -9,7 +9,7 @@ root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 scripts="$root/home/dot_claude/skills/split-pr-stack/scripts"
 work="$(mktemp -d)"
 # 落ちたときは、ログと記録を調べられるよう作業ディレクトリを残す
-trap '[ "${failures:-1}" -eq 0 ] && rm -rf "$work" || printf "作業ディレクトリを残した: %s\n" "$work"' EXIT
+trap '[ $? -eq 0 ] && rm -rf "$work" || printf "作業ディレクトリを残した: %s\n" "$work"' EXIT
 JQ_VERSION="1.8.2"
 
 failures=0
