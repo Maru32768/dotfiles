@@ -15,6 +15,7 @@
 | 設定ファイル | chezmoi (`home/`) | Windows にも実ファイルを置ける。環境の違いをテンプレートで表せる |
 | 開発ツール | mise (`home/dot_config/mise/`) | Windows と WSL でバージョンを揃えられる。`mise.lock` で固定する (`docs/tools.md`) |
 | エージェントのスキル | chezmoi の external (`home/.chezmoidata/skills.toml`) | 出どころとコミットだけを書き、中身は取ってくる (`docs/skills.md`) |
+| エージェントの開発の流れ | 自作のスキル(`home/dot_claude/skills/`) | モデルとツールが変わり続けるので、決めた根拠と測り直す手順を残す(`docs/agentic-workflow.md`) |
 | Claude Code と Codex の設定 | chezmoi の `modify_` | アプリも書き換えるので、共通の部分だけをマージする (`docs/claude.md`、`docs/codex.md`) |
 | OS パッケージ | `packages/apt.txt` | mise で入らないものだけに絞り、OS 更新の影響を減らす |
 | Windows アプリ | `packages/winget.json` | `winget import` で入れる |
