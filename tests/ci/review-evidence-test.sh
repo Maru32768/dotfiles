@@ -209,6 +209,27 @@ done
 equals "止めたときに変異の実行がファイルを残すと、5で終わり、記録しない" "$(interrupt TERM 'touch junk.txt' dirty)" "5 0"
 rm -f "$repo/junk.txt"
 same || g checkout -q -- .
+# evidence.shがgitに$PAUSEを含む引数を渡す直前に、$GO.startedを作ってから$GOができるまで待つgit
+mkdir -p "$work/gitbin"
+printf '#!/bin/sh\ncase " $* " in *" $PAUSE "*) : > "$GO.started"; until [ -e "$GO" ]; do sleep 0.1; done ;; esac\nexec %q "$@"\n' "$(command -v git)" > "$work/gitbin/git"
+chmod +x "$work/gitbin/git"
+# gitに$1を渡す直前で待たせ、その間にTERMを送る。終了コードとmutateの行の数を出す
+paused() {
+  local go="$work/go-$2" pid
+  (cd "$repo" && PAUSE=$1 GO=$go PATH="$work/gitbin:$PATH" exec bash "$ev" "$work/signal-$2.tsv" mutate "$work/kill.patch" -- sh test.sh) > /dev/null 2>&1 &
+  pid=$!
+  for _ in $(seq 600); do [ -e "$go.started" ] && break; sleep 0.1; done
+  kill -TERM "$pid"
+  : > "$go"
+  wait "$pid"
+  echo "$? $(grep -c '	mutate	' "$work/signal-$2.tsv")"
+}
+equals "パッチを当てている最中にTERMを受けても、変異を戻してから130で終わり、記録しない" "$(paused 'apply --' apply)" "130 0"
+check "当てている最中に止めた後、作業ツリーがきれいで指紋も同じ" same
+same || g checkout -q -- .
+equals "パッチを戻している最中にTERMを受けても、戻し終えてから130で終わり、記録しない" "$(paused 'apply -R --' revert)" "130 0"
+check "戻している最中に止めた後、作業ツリーがきれいで指紋も同じ" same
+same || g checkout -q -- .
 
 e "$mlog" mutate "$work/kill.patch" -- sh -c 'cat app.sh >> "$0"; exit 1' "$work/seen" > /dev/null 2>&1
 rc=$?

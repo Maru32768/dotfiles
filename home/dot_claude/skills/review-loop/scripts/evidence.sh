@@ -26,8 +26,9 @@
 #         Exits 0 Killed, 1 Survived, 3 Timeout, 4 Invalid (the baseline fails, the patch does not apply, the mutant
 #         does not build, or the mutant run exits 126 or 127 because the command cannot run; 128 and above count
 #         as Killed), 5 when the worktree did not come back (nothing is recorded or cleaned up), and 130 when HUP,
-#         INT or TERM arrived after the patch was applied: it waits for the running command, reverts, checks the
-#         worktree as above, and records nothing.
+#         INT or TERM arrives from just before the patch is applied until the revert is checked and rebuilt: it waits
+#         for the running command, reverts the patch if it is still applied, checks the worktree as above, runs
+#         $MUTATE_BUILD, and records nothing.
 # Exits 2 without running anything on a usage error, a dirty worktree for mutate, $MUTATE_TIMEOUT without a timeout
 # command, or an <evidence.tsv> inside the worktree that is not ignored (every record would change the fingerprint).
 set -uo pipefail
@@ -155,9 +156,11 @@ invalid() {
   exit 4
 }
 
+# Reverts the patch if it is still applied, checks the worktree and rebuilds, so running it again changes nothing.
 restore() {
-  git -C "$top" apply -R -- "$patch"
+  ! git -C "$top" apply -R --check -- "$patch" 2> /dev/null || git -C "$top" apply -R -- "$patch"
   intact "reverting $name"
+  build || printf 'evidence.sh: warning: MUTATE_BUILD fails after reverting; build outputs may still hold the mutant\n' >&2
 }
 
 mutate_cmd() {
@@ -185,8 +188,8 @@ mutate_cmd() {
     [ "$rc" -eq 0 ] || invalid "the command fails before mutating (exit $rc)"
     cmd=$key record run baseline 0 "$before"
   fi
-  git -C "$top" apply -- "$patch" || { intact "a failed git apply"; invalid "the patch does not apply"; }
   trap 'trap "" HUP INT TERM; restore; exit 130' HUP INT TERM
+  git -C "$top" apply -- "$patch" || { trap - HUP INT TERM; intact "a failed git apply"; invalid "the patch does not apply"; }
   if ! build; then
     result=Invalid
   else
@@ -198,9 +201,8 @@ mutate_cmd() {
     else result=Killed
     fi
   fi
-  trap - HUP INT TERM
   restore
-  build || printf 'evidence.sh: warning: MUTATE_BUILD fails after reverting; build outputs may still hold the mutant\n' >&2
+  trap - HUP INT TERM
   record mutate "$name" "$result" "$before"
   printf '%s %s\n' "$result" "$name"
   case $result in Killed) exit 0 ;; Survived) exit 1 ;; Timeout) exit 3 ;; *) exit 4 ;; esac
