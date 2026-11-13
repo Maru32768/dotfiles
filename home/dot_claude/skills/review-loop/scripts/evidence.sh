@@ -156,13 +156,14 @@ invalid() {
   exit 4
 }
 
-# Reverts the patch unless the worktree is already back, checks it and rebuilds, so running it again changes nothing.
+# Reverts the patch unless the worktree is already back, rebuilds and checks it, so running it again changes nothing.
 # A reverse --check would not do: when the patch's lines and context also appear elsewhere in the file, the reverse
-# applies to the reverted tree too and would change that other place.
+# applies to the reverted tree too and would change that other place. The check comes after the rebuild, which can
+# leave files of its own.
 restore() {
   { [ "$(fingerprint)" = "$before" ] && clean; } || git -C "$top" apply -R -- "$patch"
-  intact "reverting $name"
   build || printf 'evidence.sh: warning: MUTATE_BUILD fails after reverting; build outputs may still hold the mutant\n' >&2
+  intact "reverting $name"
 }
 
 mutate_cmd() {

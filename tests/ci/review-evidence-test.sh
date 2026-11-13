@@ -250,6 +250,12 @@ kill -TERM "$pid"
 wait "$pid"
 rc=$?
 equals "戻している最中に止めて、もう一度戻す処理が走っても、同じ並びの別の場所を書き換えない" "$rc [$(git -C "$drepo" status --porcelain)]" "130 []"
+# 戻した後のビルドが、無視されないファイルを残す
+lines=$(wc -l < "$mlog")
+MUTATE_BUILD='touch gen.txt' e "$mlog" mutate "$work/kill.patch" -- sh -c 'rm -f gen.txt; sh test.sh' > /dev/null 2>&1
+rc=$?
+check "戻した後のビルドが無視されないファイルを残すと、5で終わり変異の結果を記録しない" '[ "$rc" = 5 ] && ! tail -n "+$((lines + 1))" "$mlog" | grep -q "	mutate	"'
+rm -f "$repo/gen.txt"
 
 e "$mlog" mutate "$work/kill.patch" -- sh -c 'cat app.sh >> "$0"; exit 1' "$work/seen" > /dev/null 2>&1
 rc=$?
