@@ -355,6 +355,9 @@ equals "子PRの本文に、直下と先に読むPRと次のPRが入る" "$(q "$
 edits=$(q "$state" '[.[].edits] | add')
 check "もう一度実行し直しても、本文を書き直さない" 'rerun "$state" > "$work/publish2b.log" 2>&1 && [ "$(q "$state" "[.[].edits] | add")" = "$edits" ]'
 equals "もう一度実行し直しても、元のPRを2度は閉じない" "$(q "$state" '.[0].comments | length')" "1"
+edit_body "$state" stack/A '. + "edited on the web\r\n"'
+edits=$(q "$state" '[.[].edits] | add')
+check "CRLFを含む本文も、実行し直したときに書き直さない" 'rerun "$state" > "$work/publish2c.log" 2>&1 && [ "$(q "$state" "[.[].edits] | add")" = "$edits" ]'
 base_num=$(pr "$state" stack/base .number)
 equals "元のPRを閉じるコメントに、ベースPRを書く" "$(q "$state" '.[0].comments[0]')" "moved to #$base_num"
 equals "ベースPRはDraftで作る" "$(pr "$state" stack/base .isDraft)" "true"
