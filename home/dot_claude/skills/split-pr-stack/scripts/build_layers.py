@@ -35,7 +35,7 @@ def git(*args, paths=None):
     if paths is not None:
         args = (*args, "--pathspec-from-file=-", "--pathspec-file-nul")
     stdin = "\0".join(paths).encode("utf-8") if paths is not None else None
-    return subprocess.run(["git", "-C", WT, "--literal-pathspecs", *args], input=stdin, capture_output=True, check=True).stdout
+    return subprocess.run(["git", "-C", WT, "--literal-pathspecs", *args], input=stdin, stdout=subprocess.PIPE, check=True).stdout
 
 
 def split_nul(out):
