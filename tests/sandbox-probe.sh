@@ -1,7 +1,8 @@
 #!/bin/bash
 # Claude のサンドボックスの中で実行され、外に届くかを試す。verify-isolation.sh から呼ばれる。
 # 結果を <出力先> に「REACHED 名前」または「BLOCKED 名前」の形式で書く。
-# 届かないのが正しいものが基本で、work- と net-allowed は届くのが正しい。info- は開発で使えるかの参考。
+# 届かないのが正しいものが基本で、届くのが正しいものはプロファイルごとに verify-isolation.sh の表で決める。
+# info- は開発で使えるかの参考。
 # 使い方: sandbox-probe.sh <出力先> <nonce> <ポート (カンマ区切り)> <ゲートウェイ>
 set -uo pipefail
 
@@ -25,7 +26,7 @@ https_get() { curl -sS --max-time 10 -o /dev/null "$@"; }
 tcp_connect() { timeout 3 bash -c "exec 3<>/dev/tcp/$1/$2"; }
 unix_connect() { [ -S "$1" ] && timeout 3 socat -u OPEN:/dev/null "UNIX-CONNECT:$1"; }
 sees_host_init() { [ "$(cat /proc/1/comm)" = systemd ]; }
-token_in_env() { [ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ] || [[ "$(env)" == *sk-ant-* ]]; }
+token_in_env() { [ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ] || [ -n "${ANTHROPIC_API_KEY:-}" ] || [[ "$(env)" == *sk-ant-* ]]; }
 
 # 親から引き継いだファイルディスクリプタにトークンが残っていないこと
 token_in_fd() {
@@ -65,7 +66,7 @@ write_package_json() { touch package.json && printf '{}\n' >>package.json; }
 token_in_proc() {
   local environ
   for environ in /proc/[0-9]*/environ; do
-    grep -qa 'CLAUDE_CODE_OAUTH_TOKEN=' "$environ" 2>/dev/null && return 0
+    grep -qaE '(CLAUDE_CODE_OAUTH_TOKEN|ANTHROPIC_API_KEY)=' "$environ" 2>/dev/null && return 0
   done
   return 1
 }
