@@ -65,7 +65,7 @@ record() {
 
 # Prints "<result>\t<fingerprint>\t<command>" of the latest run of the label, or nothing.
 latest() {
-  L=$1 awk -F'\t' '$2 == "run" && $3 == ENVIRON["L"] { r = $4 "\t" $5 "\t" $6 } END { if (r != "") print r }' "$src"
+  L=$1 awk -F'\t' '$2 == "run" && ($3 "") == (ENVIRON["L"] "") { r = $4 "\t" $5 "\t" $6 } END { if (r != "") print r }' "$src"
 }
 
 labels() { awk -F'\t' '$2 == "run" && $3 != "baseline" && !seen[$3]++ { print $3 }' "$src"; }
@@ -160,7 +160,7 @@ mutate_cmd() {
   guard_file
   clean || die "the worktree has uncommitted changes or untracked files; commit them first so the revert can be checked"
   before=$(fingerprint) || die "cannot compute the fingerprint"
-  if ! FP=$before CMD=$cmd awk -F'\t' '$2 == "run" && $5 == ENVIRON["FP"] && $6 == ENVIRON["CMD"] { r = $4 }
+  if ! FP=$before CMD=$cmd awk -F'\t' '$2 == "run" && ($5 "") == (ENVIRON["FP"] "") && ($6 "") == (ENVIRON["CMD"] "") { r = $4 }
       END { exit r != "0" }' "$src"; then
     build || invalid "MUTATE_BUILD fails before mutating"
     target
