@@ -286,7 +286,8 @@ g worktree add -q "$work/wt" -b wt
 wlog="$work/wt.tsv"
 check "linked worktreeでrunとcheckが動く" '(cd "$work/wt" && bash "$ev" "$wlog" run w -- true && bash "$ev" "$wlog" check w)'
 printf 'y\n' >> "$work/wt/app.sh"
-check "linked worktreeの変更でSTALEになる" '! (cd "$work/wt" && bash "$ev" "$wlog" check w)'
+equals "linked worktreeの変更でSTALEになる" "$(cd "$work/wt" && bash "$ev" "$wlog" check w; echo "rc=$?")" "STALE w
+rc=1"
 check "linked worktreeの変更は、元の作業ツリーの指紋を変えない" same
 
 if [ "$failures" -gt 0 ]; then
