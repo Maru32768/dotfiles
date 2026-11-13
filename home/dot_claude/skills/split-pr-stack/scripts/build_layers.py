@@ -122,7 +122,12 @@ def main():
     files = {ref: set(split_nul(git("ls-tree", "-r", "-z", "--name-only", "--full-tree", ref))) for ref in (BASE, FINAL)}
     kept = {path: ref for path, ref in source.items() if path in files[ref]}
     icase = git("config", "--type=bool", "--default=false", "core.ignorecase").strip() == b"true"
-    places = Counter(path.casefold() if icase else path for path in kept)
+
+    def fold(path):
+        """Upper-case one character at a time, as NTFS does: straße.txt and strasse.txt are two files there."""
+        return "".join(c.upper() if len(c.upper()) == 1 else c for c in path) if icase else path
+
+    places = Counter(fold(path) for path in kept)
     dirs = {place[:i] for place in places for i, c in enumerate(place) if c == "/"}
     clash = sorted((dirs & places.keys()) | {place for place, n in places.items() if n > 1})
     assert not clash, f"OWNERS puts two entries at the same place on disk in {ORDER[L]}: {clash}"
