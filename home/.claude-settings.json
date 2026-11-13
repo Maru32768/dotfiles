@@ -53,6 +53,8 @@
   "inputNeededNotifEnabled": true,
   "agentPushNotifEnabled": true,
   "skipWorkflowUsageWarning": true,
+  "autoCompactWindow": 500000,
+  "idleCompaction": true,
   "hooks": {
     "PreToolUse": [
       {
