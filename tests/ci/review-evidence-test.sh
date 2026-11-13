@@ -230,6 +230,23 @@ same || g checkout -q -- .
 equals "パッチを戻している最中にTERMを受けても、戻し終えてから130で終わり、記録しない" "$(paused 'apply -R --' revert)" "130 0"
 check "戻している最中に止めた後、作業ツリーがきれいで指紋も同じ" same
 same || g checkout -q -- .
+# 変異の後の行と前後の3行が、同じファイルの別の場所にもあるパッチ。戻した後のツリーにも逆向きに当たる
+drepo="$work/dup"
+git init -q -b main "$drepo"
+git -C "$drepo" config user.name test
+git -C "$drepo" config user.email test@example.com
+printf 'top1\ntop2\np\nq\nr\nx=1\ns\nt\nu\nmid\np\nq\nr\nx=2\ns\nt\nu\nend1\nend2\n' > "$drepo/f.txt"
+git -C "$drepo" add -A && git -C "$drepo" commit -q -m base
+sed '6s/x=1/x=2/' "$drepo/f.txt" > "$work/f.mut"
+diff -u --label a/f.txt --label b/f.txt "$drepo/f.txt" "$work/f.mut" > "$work/dup.patch"
+(cd "$drepo" && PAUSE='apply -R --' GO="$work/go-dup" PATH="$work/gitbin:$PATH" exec bash "$ev" "$work/dup.tsv" mutate "$work/dup.patch" -- true) > /dev/null 2>&1 &
+pid=$!
+for _ in $(seq 600); do [ -e "$work/go-dup.started" ] && break; sleep 0.1; done
+kill -TERM "$pid"
+: > "$work/go-dup"
+wait "$pid"
+rc=$?
+equals "戻している最中に止めて、もう一度戻す処理が走っても、同じ並びの別の場所を書き換えない" "$rc [$(git -C "$drepo" status --porcelain)]" "130 []"
 
 e "$mlog" mutate "$work/kill.patch" -- sh -c 'cat app.sh >> "$0"; exit 1' "$work/seen" > /dev/null 2>&1
 rc=$?

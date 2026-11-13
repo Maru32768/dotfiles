@@ -27,8 +27,8 @@
 #         does not build, or the mutant run exits 126 or 127 because the command cannot run; 128 and above count
 #         as Killed), 5 when the worktree did not come back (nothing is recorded or cleaned up), and 130 when HUP,
 #         INT or TERM arrives from just before the patch is applied until the revert is checked and rebuilt: it waits
-#         for the running command, reverts the patch if it is still applied, checks the worktree as above, runs
-#         $MUTATE_BUILD, and records nothing.
+#         for the running command, reverts the patch unless the worktree is already back, checks the worktree as
+#         above, runs $MUTATE_BUILD, and records nothing.
 # Exits 2 without running anything on a usage error, a dirty worktree for mutate, $MUTATE_TIMEOUT without a timeout
 # command, or an <evidence.tsv> inside the worktree that is not ignored (every record would change the fingerprint).
 set -uo pipefail
@@ -156,9 +156,11 @@ invalid() {
   exit 4
 }
 
-# Reverts the patch if it is still applied, checks the worktree and rebuilds, so running it again changes nothing.
+# Reverts the patch unless the worktree is already back, checks it and rebuilds, so running it again changes nothing.
+# A reverse --check would not do: when the patch's lines and context also appear elsewhere in the file, the reverse
+# applies to the reverted tree too and would change that other place.
 restore() {
-  ! git -C "$top" apply -R --check -- "$patch" 2> /dev/null || git -C "$top" apply -R -- "$patch"
+  { [ "$(fingerprint)" = "$before" ] && clean; } || git -C "$top" apply -R -- "$patch"
   intact "reverting $name"
   build || printf 'evidence.sh: warning: MUTATE_BUILD fails after reverting; build outputs may still hold the mutant\n' >&2
 }
