@@ -350,6 +350,7 @@ check "サブディレクトリから、トップのファイルを変える変�
 # sub/でだけ通るコマンド。sub/で基準の実行を記録した後、トップから回すと、基準の実行が落ちる
 dlog="$work/dir.tsv"
 (cd "$repo/sub" && bash "$ev" "$dlog" mutate "$work/kill.patch" -- test -f here.txt) > /dev/null 2>&1
+equals "sub/からは基準の実行が通り、変異は生き残る" "$(last 2-4 "$dlog")" "mutate	kill.patch	Survived"
 e "$dlog" mutate "$work/kill.patch" -- test -f here.txt > /dev/null 2>&1
 rc=$?
 equals "作業ディレクトリが違えば、同じコマンドでも基準の実行をやり直す" "$rc $(last 2-4 "$dlog")" "4 mutate	kill.patch	Invalid"
