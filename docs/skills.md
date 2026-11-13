@@ -36,7 +36,7 @@ bash ~/.claude/skills/imos-humanizer/scripts/fetch-rules.sh --check
 | `yomiyasu` | prose-polish、imos-humanizer | `skills.toml` |
 | `clarity` | prose-polish | `skills.toml` |
 | `ronny:engineering-small-prs` | ship-task、split-pr-stack | プラグイン (`home/.claude-settings.json`) |
-| `grill-me`、`grill-with-docs` | ship-task | プラグイン (`mattpocock-skills`) |
+| `mattpocock-skills:grilling`、`mattpocock-skills:domain-modeling` | ship-task | プラグイン (`mattpocock-skills`) |
 | `pstack:poteto-mode`、`pstack:technical-writing` | ship-task、prose-polish | プラグイン (`pstack`) |
 | `ponytail:ponytail-review` | review-loop | プラグイン (`ponytail`) |
 | `codex review` (Codex の CLI) | review-loop | Linux は mise (`docs/codex.md`)、Windows は Codex のアプリ |
