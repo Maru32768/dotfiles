@@ -28,7 +28,7 @@ layer() {
   # XML files must be strictly newer than the marker; mtime resolution is one second on some filesystems.
   sleep 1
   local start=$SECONDS
-  (cd "$WT/$dir" && "$@") > "$LOG/$name.log" 2>&1
+  (cd "$WT/$dir" && "$@") >> "$LOG/$name.log" 2>&1
   local rc=$?
   [ "$rc" -eq 0 ] || failed=$((failed + 1))
   local dirty tests=""
