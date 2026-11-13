@@ -34,7 +34,7 @@ L = ORDER.index(sys.argv[2])
 def git(*args, paths=None):
     """Run git in WT; `paths` are passed as literal pathspecs on stdin, so any number of any names fit.
 
-    An empty `paths` runs nothing: git fails on an empty pathspec file instead of matching nothing.
+    An empty `paths` runs nothing: git rm and git restore fail on an empty pathspec file instead of matching nothing.
     """
     stdin = None
     if paths is not None:
