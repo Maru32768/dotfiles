@@ -79,6 +79,7 @@ CI で確かめられない WSL の挙動は、`lab.ps1 restore-test` で実物�
 | [docs/claude.md](docs/claude.md) | Claude Code の設定と、署名の回避を止めるフック |
 | [docs/codex.md](docs/codex.md) | Codex の設定 |
 | [docs/skills.md](docs/skills.md) | エージェントのスキルの管理 |
+| [docs/agentic-workflow.md](docs/agentic-workflow.md) | エージェントの開発の流れと、それを決めた根拠、測り直す手順 |
 | [docs/agent.md](docs/agent.md) | エージェント用の環境と隔離 |
 | [docs/research.md](docs/research.md) | Web を読ませる調べもの用の環境と、LAN への通信の制限 |
 | [docs/secrets.md](docs/secrets.md) | API キーの扱い (Bitwarden Secrets Manager と `bws-run`) |
