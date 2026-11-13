@@ -14,6 +14,7 @@ over as they are. A shared file must be text.
 """
 import subprocess
 import sys
+from collections import Counter
 
 # ---- CONFIG -----------------------------------------------------------------------------------
 FINAL = "<sha of the branch being split>"
@@ -120,8 +121,11 @@ def main():
     source = {path: BASE if L < ORDER.index(owners[0]) else FINAL for path, owners in OWNERS.items()}
     files = {ref: set(split_nul(git("ls-tree", "-r", "-z", "--name-only", "--full-tree", ref))) for ref in (BASE, FINAL)}
     kept = {path: ref for path, ref in source.items() if path in files[ref]}
-    dirs = {path[:i] for path in kept for i, c in enumerate(path) if c == "/"}
-    assert not dirs & kept.keys(), f"OWNERS puts a file and a directory at {sorted(dirs & kept.keys())} in {ORDER[L]}"
+    icase = git("config", "--type=bool", "--default=false", "core.ignorecase").strip() == b"true"
+    places = Counter(path.casefold() if icase else path for path in kept)
+    dirs = {place[:i] for place in places for i, c in enumerate(place) if c == "/"}
+    clash = sorted((dirs & places.keys()) | {place for place, n in places.items() if n > 1})
+    assert not clash, f"OWNERS puts two entries at the same place on disk in {ORDER[L]}: {clash}"
     # Remove first, then restore: when a file becomes a directory, or a rename changes only the case, both
     # paths share one place on disk, and removing one after restoring the other would undo the restore.
     gone = [path for path in source if path not in kept]

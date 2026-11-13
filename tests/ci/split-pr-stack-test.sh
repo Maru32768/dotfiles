@@ -138,17 +138,31 @@ equals "モードの変更を再現する" "$(g ls-tree stack/A run.sh | cut -c1
 equals "シンボリックリンクを再現する" "$(g ls-tree stack/A link | cut -c1-6)" "120000"
 equals "バイナリのファイルを再現する" "$(g rev-parse stack/A:bin.dat)" "$(g rev-parse "$final:bin.dat")"
 
-# dfを消すのを層Bに、df/x.txtを足すのを層Aにすると、層Aにはファイルのdfとディレクトリのdfが両方要る
-python3 -I - "$work/build_layers.py" "$work/bad_layers.py" <<'EOF'
+# $1に、OWNERSの文字列を$2から$3へ、$4から$5へ置き換えたbuild_layers.pyを作る
+misowned() {
+  python3 -I - "$work/build_layers.py" "$@" <<'EOF'
 import sys
 
-src, dst = sys.argv[1:]
+src, dst, *pairs = sys.argv[1:]
 t = open(src, encoding="utf-8").read()
-t = t.replace('"df/x.txt": ["B"]', '"df/x.txt": ["A"]').replace('"df": ["A"]', '"df": ["B"]')
+for old, new in zip(pairs[::2], pairs[1::2]):
+    assert t.count(old) == 1, old
+    t = t.replace(old, new)
 open(dst, "w", encoding="utf-8", newline="").write(t)
 EOF
+}
 g switch -q --detach stack/base
-check "同じ層にファイルとディレクトリの両方が要る割り当てでは、何も変えずに止まる" '! python3 -I "$work/bad_layers.py" "$repo" A 2>/dev/null && [ -z "$(g status --porcelain)" ]'
+# dfを消すのを層Bに、df/x.txtを足すのを層Aにすると、層Aにはファイルのdfとディレクトリのdfが両方要る
+misowned "$work/bad_df.py" '"df/x.txt": ["B"]' '"df/x.txt": ["A"]' '"df": ["A"]' '"df": ["B"]'
+check "同じ層にファイルとディレクトリの両方が要る割り当てでは、何も変えずに止まる" '! python3 -I "$work/bad_df.py" "$repo" A 2>/dev/null && [ -z "$(g status --porcelain)" ]'
+# README.mdを足すのを層Aにすると、層AにはReadme.mdとREADME.mdが両方要る。大文字と小文字を区別しない
+# ファイルシステムでは1つになるので、Linuxでもignorecaseをtrueにして試す
+misowned "$work/bad_case.py" '"README.md": ["B"]' '"README.md": ["A"]'
+icase=$(g config --type=bool --default=false core.ignorecase)
+g config core.ignorecase true
+check "ignorecaseのもとで、大文字と小文字だけが違う2つのパスが同じ層に要る割り当てでは、何も変えずに止まる" '! python3 -I "$work/bad_case.py" "$repo" A 2>/dev/null && [ -z "$(g status --porcelain)" ]'
+g config core.ignorecase "$icase"
+g reset -q --hard && g clean -qffd
 
 # verify.shは、層の行をDONEの行の前に入れて回す。run.shは層AとBで中身が同じなので、
 # 層Aのビルドが残した変更は、戻さなければ層Bに持ち越される
