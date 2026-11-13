@@ -31,7 +31,8 @@
 #         applied, runs $MUTATE_BUILD, checks the worktree as above, and records nothing.
 # Exits 2 without running anything on a usage error, a dirty worktree for mutate, $MUTATE_TIMEOUT without a timeout
 # command, or an <evidence.tsv> inside the worktree that is not ignored (every record would change the fingerprint).
-# Also exits 2, after running, when the record cannot be written.
+# Also exits 2 when the record cannot be written: before running when the file is not writable, after running when
+# the write fails.
 set -uo pipefail
 
 die() { printf 'evidence.sh: %s\n' "$1" >&2; exit 2; }
@@ -96,6 +97,7 @@ run_cmd() {
   parse_command "$@"
   mkdir -p "$(dirname -- "$file")" || die "cannot create the directory of $file"
   guard_file
+  : >> "$file" 2> /dev/null || die "cannot write the record to $file"
   before=$(fingerprint) || die "cannot compute the fingerprint"
   (command -- "${command[@]}")
   rc=$?
@@ -210,6 +212,7 @@ mutate_cmd() {
   patch="$(cd "$(dirname -- "$patch")" && pwd)/$name"
   mkdir -p "$(dirname -- "$file")" || die "cannot create the directory of $file"
   guard_file
+  : >> "$file" 2> /dev/null || die "cannot write the record to $file"
   clean || die "the worktree has uncommitted changes or untracked files; commit them first so the revert can be checked"
   before=$(fingerprint) || die "cannot compute the fingerprint"
   printf -v key 'PWD=%q MUTATE_BUILD=%q MUTATE_TIMEOUT=%q %s' "$PWD" "${MUTATE_BUILD:-}" "${MUTATE_TIMEOUT:-}" "$cmd"

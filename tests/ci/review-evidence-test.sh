@@ -345,6 +345,9 @@ done
 (cd "$repo" && MUTATE_TIMEOUT=2 PATH="$nobin" "$BASH" "$ev" "$mlog" mutate "$work/kill.patch" -- sh -c 'echo run >> "$0"; sh test.sh' "$count") > /dev/null 2> "$work/nobin.err"
 rc=$?
 check "MUTATE_TIMEOUTがあってtimeoutのコマンドが無いと、2で終わり、記録もせず、パッチも当てない" 'untouched && grep -q "no timeout command" "$work/nobin.err"'
+e "$work/unwritable.tsv" mutate "$work/kill.patch" -- sh -c 'echo run >> "$0"; sh test.sh' "$count" > /dev/null 2>&1
+rc=$?
+check "記録を書けなければ、mutateは基準の実行も回さずに2で終わり、パッチも当てない" untouched
 
 # 中身が変われば、同じコマンドでも基準の実行をやり直す
 printf 'there\n' >> "$repo/sub/here.txt"
