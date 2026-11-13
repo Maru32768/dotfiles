@@ -28,6 +28,7 @@ source "$1"
 mkdir -p "$OUT"
 ASSIGNEE=${ASSIGNEE:-@me}
 : > "$OUT/numbers.txt"
+placeholder='[{][{][A-Z]+(:[^{}]*)?[}][}]'
 
 render() {
   python3 -I - "$@" <<'PY'
@@ -124,7 +125,7 @@ fill_body "$base_pr" "${pairs[@]}"
 unresolved=0
 while read -r _ num _; do
   line=$(gh pr view "$num" --repo "$REPO" --json number,baseRefName,headRefName,isDraft,changedFiles,assignees,body \
-    --jq '"#\(.number) draft=\(.isDraft) \(.headRefName) -> \(.baseRefName) files=\(.changedFiles) assignees=\([.assignees[].login] | join(",")) unresolved=\(.body | test("[{][{][A-Z]+(:[^{}]*)?[}][}]"))"' < /dev/null)
+    --jq '"#\(.number) draft=\(.isDraft) \(.headRefName) -> \(.baseRefName) files=\(.changedFiles) assignees=\([.assignees[].login] | join(",")) unresolved=\(.body | test("'"$placeholder"'"))"' < /dev/null)
   echo "$line"
   if [[ $line == *unresolved=true ]]; then unresolved=$((unresolved + 1)); fi
 done < "$OUT/numbers.txt"
@@ -137,6 +138,10 @@ if [ -n "${ORIGINAL_PR:-}" ]; then
   state=$(gh pr view "$ORIGINAL_PR" --repo "$REPO" --json state --jq .state)
   if [ "$state" = OPEN ]; then
     render "$BODY_DIR/CLOSE.md" "$OUT/CLOSE.md" "BASE=#$base_pr"
+    if grep -qE "$placeholder" "$OUT/CLOSE.md"; then
+      echo "$OUT/CLOSE.md still has {{...}}; fix $BODY_DIR/CLOSE.md, then rerun" >&2
+      exit 1
+    fi
     gh pr close "$ORIGINAL_PR" --repo "$REPO" --comment "$(cat "$OUT/CLOSE.md")"
   fi
 fi

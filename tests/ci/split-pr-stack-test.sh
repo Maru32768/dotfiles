@@ -321,6 +321,13 @@ check "未置換のプレースホルダが残ると0以外で止まり、元の
 edit_body "$state" stack/A 'sub("[{][{]TYPO[}][}]"; "fixed")'
 check "GitHubで本文を直してから実行し直すと、直した本文のまま元のPRを閉じる" 'rerun "$state" > "$work/publish3b.log" 2>&1 && [ "$(q "$state" ".[0].state")" = CLOSED ] && [ "$(q "$state" ".[] | select(.headRefName == \"stack/A\") | .body")" = "A fixed" ]'
 
+cp -r "$work/bodies" "$work/bodies-close"
+printf 'moved to {{BASE}} {{TYPO}}\n' > "$work/bodies-close/CLOSE.md"
+state="$work/state4.json"
+publish "$state" "$work/bodies-close" > "$work/publish5.log" 2>&1
+rc=$?
+check "閉じるときのコメントにプレースホルダが残ると0以外で止まり、元のPRを閉じない" '[ "$rc" -ne 0 ] && [ "$(q "$state" ".[0].state")" = OPEN ]'
+
 state="$work/state3.json"
 publish "$state" "$work/bodies" 99 > "$work/publish4.log" 2>&1
 rc=$?
