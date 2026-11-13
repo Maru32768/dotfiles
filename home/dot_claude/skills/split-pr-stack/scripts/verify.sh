@@ -24,9 +24,11 @@ layer() {
     failed=$((failed + 1))
     return
   fi
-  touch "$LOG/$name.start"
-  # XML files must be strictly newer than the marker; mtime resolution is one second on some filesystems.
-  sleep 1
+  if [ -n "$JUNIT_DIR" ]; then
+    touch "$LOG/$name.start"
+    # XML files must be strictly newer than the marker; mtime resolution is one second on some filesystems.
+    sleep 1
+  fi
   local start=$SECONDS
   (cd "$WT/$dir" && "$@") >> "$LOG/$name.log" 2>&1
   local rc=$?
