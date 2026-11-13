@@ -26,8 +26,8 @@ g config user.email test@example.com
 # 利用者のquotepath=falseで、日本語のパスを改行で割る退行を見逃さないよう、gitの既定値に固定する
 g config core.quotepath true
 
-# BASEからFINALへ、層Aはモード、削除、空白や日本語のパス、バイナリ、シンボリックリンク、
-# [id]/new.txtをglobとして読むと当たるd/new.txtを、層Bはリネームを持つ。shared.txtは両方の層が変える。
+# BASEからFINALへ、層Aはモード、削除、空白や日本語のパス、バイナリ、シンボリックリンク、g[x]/f.txtを、
+# 層Bはリネームと、g[x]/f.txtをglobとして読むと当たるgx/f.txtを持つ。shared.txtは両方の層が変える。
 # ファイルのdfは層Aで消え、層Bでディレクトリになる。逆にディレクトリのfdは、中身が層Aで消え、層Bでファイルになる。
 # Readme.mdは層Bで大文字と小文字だけを変える。
 # OWNERSでは、同じ場所を指す2つのパスのうち、FINALにあるほうを先に書く。
@@ -43,7 +43,7 @@ printf 'y\n' > "$repo/fd/y.txt"
 printf 'readme\n' > "$repo/Readme.md"
 g add -A && g commit -q -m base
 base=$(g rev-parse HEAD)
-mkdir -p "$repo/[id]" "$repo/d"
+mkdir -p "$repo/[id]" "$repo/g[x]" "$repo/gx"
 g mv old.txt '[id]/new.txt'
 g rm -q gone.txt df fd/y.txt
 mkdir -p "$repo/df"
@@ -54,7 +54,8 @@ printf 'base\na\nb\n' > "$repo/shared.txt"
 printf 'base\na\nc\n' > "$repo/ac.txt"
 mkdir -p "$repo/new"
 printf 'b\nc\n' > "$repo/new/bc.txt"
-printf 'd\n' > "$repo/d/new.txt"
+printf 'literal\n' > "$repo/g[x]/f.txt"
+printf 'glob\n' > "$repo/gx/f.txt"
 printf 'space\n' > "$repo/with space.txt"
 printf '日本語\n' > "$repo/日本語.md"
 printf '\000\001\377' > "$repo/bin.dat"
@@ -77,7 +78,8 @@ OWNERS = {{
     "new/bc.txt": ["B", "C"],
     "run.sh": ["A"],
     "gone.txt": ["A"],
-    "d/new.txt": ["A"],
+    "g[x]/f.txt": ["A"],
+    "gx/f.txt": ["B"],
     "with space.txt": ["A"],
     "日本語.md": ["A"],
     "bin.dat": ["A"],
@@ -130,7 +132,7 @@ done
 equals "先端のツリーが元のブランチと一致する" "$(g rev-parse 'stack/C^{tree}')" "$(g rev-parse "$final^{tree}")"
 check "リネームの元のパスは、リネームする層まで残る" 'g cat-file -e stack/A:old.txt && ! g cat-file -e stack/B:old.txt'
 check "リネームの先のパスは、リネームする層で現れる" '! g cat-file -e "stack/A:[id]/new.txt" && g cat-file -e "stack/B:[id]/new.txt"'
-check "パスをglobとして読まない" 'g cat-file -e stack/A:d/new.txt'
+check "パスをglobとして読まない" 'g cat-file -e "stack/A:g[x]/f.txt" && ! g cat-file -e stack/A:gx/f.txt'
 check "消したファイルは、消す層で消える" '! g cat-file -e stack/A:gone.txt'
 check "ディレクトリになるファイルの場所に、上の層の中身を入れない" '! g cat-file -e stack/A:df && ! g cat-file -e stack/A:df/x.txt && g cat-file -e stack/B:df/x.txt'
 check "ファイルになるディレクトリは、中身を消した層で消え、ファイルを足す層でファイルになる" '! g cat-file -e stack/A:fd && ! g cat-file -e stack/A:fd/y.txt && [ "$(g cat-file -t stack/B:fd)" = blob ]'
