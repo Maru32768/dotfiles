@@ -314,11 +314,14 @@ equals "もう一度実行し直しても、元のPRを2度は閉じない" "$(q
 
 cp -r "$work/bodies" "$work/bodies-typo"
 printf 'A {{TYPO}}\n' > "$work/bodies-typo/A.md"
+printf '{{PR:A}} {{PR:Z}}\n' > "$work/bodies-typo/BASE.md"
 state="$work/state2.json"
 publish "$state" "$work/bodies-typo" > "$work/publish3.log" 2>&1
 rc=$?
 check "未置換のプレースホルダが残ると0以外で止まり、元のPRを閉じない" '[ "$rc" -ne 0 ] && [ "$(q "$state" ".[0].state")" = OPEN ]'
+check "層の一覧に無い{{PR:<層>}}も未置換とみなす" 'grep -q "stack/base -> main .*unresolved=true" "$work/publish3.log"'
 edit_body "$state" stack/A 'sub("[{][{]TYPO[}][}]"; "fixed")'
+edit_body "$state" stack/base 'sub("[{][{]PR:Z[}][}]"; "#0")'
 check "GitHubで本文を直してから実行し直すと、直した本文のまま元のPRを閉じる" 'rerun "$state" > "$work/publish3b.log" 2>&1 && [ "$(q "$state" ".[0].state")" = CLOSED ] && [ "$(q "$state" ".[] | select(.headRefName == \"stack/A\") | .body")" = "A fixed" ]'
 
 cp -r "$work/bodies" "$work/bodies-close"
