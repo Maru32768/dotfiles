@@ -138,6 +138,18 @@ equals "モードの変更を再現する" "$(g ls-tree stack/A run.sh | cut -c1
 equals "シンボリックリンクを再現する" "$(g ls-tree stack/A link | cut -c1-6)" "120000"
 equals "バイナリのファイルを再現する" "$(g rev-parse stack/A:bin.dat)" "$(g rev-parse "$final:bin.dat")"
 
+# dfを消すのを層Bに、df/x.txtを足すのを層Aにすると、層Aにはファイルのdfとディレクトリのdfが両方要る
+python3 -I - "$work/build_layers.py" "$work/bad_layers.py" <<'EOF'
+import sys
+
+src, dst = sys.argv[1:]
+t = open(src, encoding="utf-8").read()
+t = t.replace('"df/x.txt": ["B"]', '"df/x.txt": ["A"]').replace('"df": ["A"]', '"df": ["B"]')
+open(dst, "w", encoding="utf-8", newline="").write(t)
+EOF
+g switch -q --detach stack/base
+check "同じ層にファイルとディレクトリの両方が要る割り当てでは、何も変えずに止まる" '! python3 -I "$work/bad_layers.py" "$repo" A 2>/dev/null && [ -z "$(g status --porcelain)" ]'
+
 # verify.shは、層の行をDONEの行の前に入れて回す。run.shは層AとBで中身が同じなので、
 # 層Aのビルドが残した変更は、戻さなければ層Bに持ち越される
 verify() {

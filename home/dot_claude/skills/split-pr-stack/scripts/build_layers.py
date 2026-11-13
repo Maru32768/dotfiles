@@ -119,15 +119,18 @@ def main():
             assert path in TRANSFORMS, f"{path}: shared file without a transform"
     source = {path: BASE if L < ORDER.index(owners[0]) else FINAL for path, owners in OWNERS.items()}
     files = {ref: set(split_nul(git("ls-tree", "-r", "-z", "--name-only", "--full-tree", ref))) for ref in (BASE, FINAL)}
+    kept = {path: ref for path, ref in source.items() if path in files[ref]}
+    dirs = {path[:i] for path in kept for i, c in enumerate(path) if c == "/"}
+    assert not dirs & kept.keys(), f"OWNERS puts a file and a directory at {sorted(dirs & kept.keys())} in {ORDER[L]}"
     # Remove first, then restore: when a file becomes a directory, or a rename changes only the case, both
     # paths share one place on disk, and removing one after restoring the other would undo the restore.
-    gone = [path for path, ref in source.items() if path not in files[ref]]
+    gone = [path for path in source if path not in kept]
     if gone:
         git("rm", "-r", "-q", "-f", "--ignore-unmatch", paths=gone)
     for ref in (BASE, FINAL):
-        kept = [path for path, r in source.items() if r == ref and path in files[ref]]
-        if kept:
-            git("restore", f"--source={ref}", "--staged", "--worktree", paths=kept)
+        paths = [path for path, r in kept.items() if r == ref]
+        if paths:
+            git("restore", f"--source={ref}", "--staged", "--worktree", paths=paths)
     between = [path for path, owners in OWNERS.items() if ORDER.index(owners[0]) <= L < ORDER.index(owners[-1])]
     for path in between:
         text = TRANSFORMS[path](git("show", f"{FINAL}:{path}").decode("utf-8"))
