@@ -346,6 +346,8 @@ publish "$state" "$work/bodies-typo" > "$work/publish3.log" 2>&1
 rc=$?
 check "未置換のプレースホルダが残ると0以外で止まり、元のPRを閉じない" '[ "$rc" -ne 0 ] && [ "$(q "$state" ".[0].state")" = OPEN ]'
 check "層の一覧に無い{{PR:<層>}}も未置換とみなす" 'grep -q "stack/base -> main .*unresolved=true" "$work/publish3.log"'
+base_edits=$(q "$state" '.[] | select(.headRefName == "stack/base" and (.isCrossRepository | not)) | .edits')
+check "埋められないプレースホルダが残ったまま実行し直しても、本文を書き直さない" '! rerun "$state" > "$work/publish3a.log" 2>&1 && [ "$(q "$state" ".[] | select(.headRefName == \"stack/base\" and (.isCrossRepository | not)) | .edits")" = "$base_edits" ]'
 edit_body "$state" stack/A 'sub("[{][{]TYPO[}][}]"; "fixed")'
 edit_body "$state" stack/base 'sub("[{][{]PR:Z[}][}]"; "#0")'
 check "GitHubで本文を直してから実行し直すと、直した本文のまま元のPRを閉じる" 'rerun "$state" > "$work/publish3b.log" 2>&1 && [ "$(q "$state" ".[0].state")" = CLOSED ] && [ "$(q "$state" ".[] | select(.headRefName == \"stack/A\") | .body")" = "A fixed" ]'
