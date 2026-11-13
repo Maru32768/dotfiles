@@ -38,7 +38,7 @@ wsl -d dev -u root passwd maru
 ~/dotfiles/provision/setup-credentials.sh
 ```
 
-名前が `agent-` で始まるインスタンスは、エージェント用の隔離した環境になる (`docs/agent.md`)。
+名前が `agent-` で始まるインスタンスは、エージェント用の隔離した環境になる (`docs/agent.md`)。`research-` で始まると、同じ隔離で Web を読ませる調べもの用の環境になる (`docs/research.md`)。
 
 ### 設定を変えたあと
 
@@ -55,7 +55,7 @@ packages/      apt.txt (mise で入らないもの) と winget.json (Windows ア
 bootstrap.ps1  Windows の入口
 lab/lab.ps1    WSL のインスタンスの作成、削除、復元テスト
 provision/     インスタンスの初期設定
-tests/         doctor (環境の確認)、verify-isolation (agent の隔離の確認)、ci/ (CI の検査)
+tests/         doctor (環境の確認)、verify-isolation (agent と research の隔離の確認)、ci/ (CI の検査)
 docs/          設計と、話題ごとの説明
 ```
 
@@ -65,7 +65,7 @@ CI (`.github/workflows/ci.yml`) と同じ検査を手元でも実行できる。
 
 ```bash
 bash tests/ci/static.sh          # shellcheck、テスト、不変条件、レンダリング、gitleaks、actionlint
-bash tests/ci/container.sh main  # コンテナで環境を作って確かめる (agent も可)
+bash tests/ci/container.sh main  # コンテナで環境を作って確かめる (agent と research も可)
 ```
 
 CI で確かめられない WSL の挙動は、`lab.ps1 restore-test` で実物のインスタンスを作って確かめる (`docs/ci.md`)。
@@ -80,6 +80,7 @@ CI で確かめられない WSL の挙動は、`lab.ps1 restore-test` で実物�
 | [docs/codex.md](docs/codex.md) | Codex の設定 |
 | [docs/skills.md](docs/skills.md) | エージェントのスキルの管理 |
 | [docs/agent.md](docs/agent.md) | エージェント用の環境と隔離 |
+| [docs/research.md](docs/research.md) | Web を読ませる調べもの用の環境と、LAN への通信の制限 |
 | [docs/secrets.md](docs/secrets.md) | API キーの扱い (Bitwarden Secrets Manager と `bws-run`) |
 | [docs/gpg.md](docs/gpg.md) | GPG のコミット署名 |
 | [docs/ci.md](docs/ci.md) | CI、復元テスト、`stable` タグ |
