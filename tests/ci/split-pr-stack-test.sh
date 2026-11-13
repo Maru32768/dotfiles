@@ -28,9 +28,11 @@ g config core.quotepath true
 # BASEからFINALへ、層Aはモード、削除、空白や日本語のパス、バイナリ、シンボリックリンク、
 # [id]/new.txtをglobとして読むと当たるd/new.txtを、層Bはリネームを持つ。shared.txtは両方の層が変える。
 # ファイルのdfは層Aで消え、層Bでディレクトリになる。Readme.mdは層Bで大文字と小文字だけを変える。
-# OWNERSでは、同じ場所を指す2つのパスのうち、FINALにあるほうを先に書く
+# OWNERSでは、同じ場所を指す2つのパスのうち、FINALにあるほうを先に書く。
+# 層Cは、層AとCが変えるac.txtと、層BとCが変え、BASEには無いディレクトリにあるnew/bc.txtを仕上げる
 printf 'old\n' > "$repo/old.txt"
 printf 'base\n' > "$repo/shared.txt"
+printf 'base\n' > "$repo/ac.txt"
 printf 'echo\n' > "$repo/run.sh"
 printf 'gone\n' > "$repo/gone.txt"
 printf 'df\n' > "$repo/df"
@@ -44,6 +46,9 @@ mkdir -p "$repo/df"
 printf 'x\n' > "$repo/df/x.txt"
 g mv Readme.md README.md
 printf 'base\na\nb\n' > "$repo/shared.txt"
+printf 'base\na\nc\n' > "$repo/ac.txt"
+mkdir -p "$repo/new"
+printf 'b\nc\n' > "$repo/new/bc.txt"
 printf 'd\n' > "$repo/d/new.txt"
 printf 'space\n' > "$repo/with space.txt"
 printf '日本語\n' > "$repo/日本語.md"
@@ -61,8 +66,10 @@ import sys
 src, dst, final, base = sys.argv[1:]
 config = f'''FINAL = "{final}"
 BASE = "{base}"
-ORDER = ["A", "B"]
+ORDER = ["A", "B", "C"]
 OWNERS = {{
+    "ac.txt": ["A", "C"],
+    "new/bc.txt": ["B", "C"],
     "run.sh": ["A"],
     "gone.txt": ["A"],
     "d/new.txt": ["A"],
@@ -84,7 +91,13 @@ transforms = '''def t_shared(t):
     return t
 
 
-TRANSFORMS = {"shared.txt": t_shared}'''
+def t_c(t):
+    if below("C"):
+        t = cut(t, "c\\n")
+    return t
+
+
+TRANSFORMS = {"shared.txt": t_shared, "ac.txt": t_c, "new/bc.txt": t_c}'''
 
 
 def swap(lines, marker, body):
@@ -100,14 +113,14 @@ EOF
 
 g switch -q -c stack/base "$base"
 g commit -q --allow-empty -m "ベース"
-for layer in A B; do
+for layer in A B C; do
   g switch -q -c "stack/$layer"
   check "層${layer}を書き出せる" 'python3 -I "$work/build_layers.py" "$repo" "$layer"'
   check "層${layer}を書き出すと、indexと作業ツリーが揃い、addせずにコミットできる" 'g diff --quiet'
   g commit -q --allow-empty -m "$layer"
 done
 
-equals "先端のツリーが元のブランチと一致する" "$(g rev-parse 'stack/B^{tree}')" "$(g rev-parse "$final^{tree}")"
+equals "先端のツリーが元のブランチと一致する" "$(g rev-parse 'stack/C^{tree}')" "$(g rev-parse "$final^{tree}")"
 check "リネームの元のパスは、リネームする層まで残る" 'g cat-file -e stack/A:old.txt && ! g cat-file -e stack/B:old.txt'
 check "リネームの先のパスは、リネームする層で現れる" '! g cat-file -e "stack/A:[id]/new.txt" && g cat-file -e "stack/B:[id]/new.txt"'
 check "パスをglobとして読まない" 'g cat-file -e stack/A:d/new.txt'
@@ -117,6 +130,10 @@ check "大文字と小文字だけを変えるリネームで、どちらかを�
 check "空白と日本語を含むパスを扱える" 'g cat-file -e "stack/A:with space.txt" && g cat-file -e "stack/A:日本語.md"'
 equals "共有ファイルは、上の層の部分を除いて書く" "$(g show stack/A:shared.txt)" "base
 a"
+check "共有ファイルは、最初の持ち主より下の層ではBASEのまま" '! g cat-file -e stack/A:new/bc.txt'
+equals "共有ファイルは、最初と最後の持ち主の間の層でも、上の層の部分を除いて書く" "$(g show stack/B:ac.txt)" "base
+a"
+equals "BASEに無いディレクトリの共有ファイルも、間の層で書ける" "$(g show stack/B:new/bc.txt)" "b"
 equals "モードの変更を再現する" "$(g ls-tree stack/A run.sh | cut -c1-6)" "100755"
 equals "シンボリックリンクを再現する" "$(g ls-tree stack/A link | cut -c1-6)" "120000"
 equals "バイナリのファイルを再現する" "$(g rev-parse stack/A:bin.dat)" "$(g rev-parse "$final:bin.dat")"
