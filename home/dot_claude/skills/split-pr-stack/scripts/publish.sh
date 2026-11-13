@@ -26,6 +26,9 @@ set -euo pipefail
 # shellcheck source=/dev/null
 source "$1"
 mkdir -p "$OUT"
+# The layer list may come from a Windows editor with CRLF line ends.
+tr -d '\r' < "$LAYERS_TSV" > "$OUT/layers.tsv"
+LAYERS_TSV=$OUT/layers.tsv
 ASSIGNEE=${ASSIGNEE:-@me}
 : > "$OUT/numbers.txt"
 placeholder='[{][{][A-Z]+(:[^{}]*)?[}][}]'

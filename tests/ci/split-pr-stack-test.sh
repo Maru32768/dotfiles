@@ -302,7 +302,7 @@ for layer in A B; do
   printf '%s below={{BELOW}} prereq={{PREREQ}} next={{NEXT}}\n{{VERIFY}}\n' "$layer" > "$work/bodies/$layer.md"
   printf -- '- ok\n' > "$work/verify-md/$layer.md"
 done
-printf 'A\tstack/A\t-\nB\tstack/B\tA' > "$work/layers.tsv"
+printf 'A\tstack/A\t-\r\nB\tstack/B\tA' > "$work/layers.tsv"
 
 # $1は記録するJSON、$2は本文のディレクトリ、$3は閉じる元のPRの番号(既定は#1)。
 # 記録には、元のPRの#1と、forkの同じ名前のブランチからmainへ開いた#2がある
