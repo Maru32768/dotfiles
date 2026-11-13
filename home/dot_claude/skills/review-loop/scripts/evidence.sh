@@ -21,8 +21,8 @@
 #         git apply -R, and checks that the worktree is back where it started. The baseline also runs $MUTATE_BUILD
 #         and the timeout, and $MUTATE_BUILD runs once more after the revert so no build output keeps the mutant.
 #         A passing baseline is recorded as a run labelled baseline whose command column is the key: the command
-#         with $MUTATE_BUILD and $MUTATE_TIMEOUT in front. The baseline is skipped when the latest baseline row with
-#         the same fingerprint and key passed; other runs of the same command do not count.
+#         with the working directory, $MUTATE_BUILD and $MUTATE_TIMEOUT in front. The baseline is skipped when the
+#         latest baseline row with the same fingerprint and key passed; other runs of the same command do not count.
 #         Exits 0 Killed, 1 Survived, 3 Timeout, 4 Invalid (the baseline fails, the patch does not apply, the mutant
 #         does not build, or the mutant run exits 126 or 127 because the command cannot run; 128 and above count
 #         as Killed), 5 when the worktree did not come back (nothing is recorded or cleaned up), and 130 when HUP,
@@ -178,7 +178,7 @@ mutate_cmd() {
   guard_file
   clean || die "the worktree has uncommitted changes or untracked files; commit them first so the revert can be checked"
   before=$(fingerprint) || die "cannot compute the fingerprint"
-  printf -v key 'MUTATE_BUILD=%q MUTATE_TIMEOUT=%q %s' "${MUTATE_BUILD:-}" "${MUTATE_TIMEOUT:-}" "$cmd"
+  printf -v key 'PWD=%q MUTATE_BUILD=%q MUTATE_TIMEOUT=%q %s' "$PWD" "${MUTATE_BUILD:-}" "${MUTATE_TIMEOUT:-}" "$cmd"
   if ! FP=$before KEY=$key awk -F'\t' '$2 == "run" && $3 == "baseline" && ($5 "") == (ENVIRON["FP"] "") &&
       ($6 "") == (ENVIRON["KEY"] "") { r = $4 } END { exit r != "0" }' "$src"; then
     build || { intact "the baseline build"; invalid "MUTATE_BUILD fails before mutating"; }

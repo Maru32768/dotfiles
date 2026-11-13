@@ -327,6 +327,12 @@ slog="$work/sub.tsv"
 check "サブディレクトリから、その場所でコマンドを回す" '(cd "$repo/sub" && bash "$ev" "$slog" run here -- test -f here.txt)'
 check "サブディレクトリからcheckできる" '(cd "$repo/sub" && bash "$ev" "$slog" check here) && e "$slog" check here'
 check "サブディレクトリから、トップのファイルを変える変異を当てられる" '(cd "$repo/sub" && bash "$ev" "$work/subm.tsv" mutate "$work/kill.patch" -- sh ../test.sh) && same'
+# sub/でだけ通るコマンド。sub/で基準の実行を記録した後、トップから回すと、基準の実行が落ちる
+dlog="$work/dir.tsv"
+(cd "$repo/sub" && bash "$ev" "$dlog" mutate "$work/kill.patch" -- test -f here.txt) > /dev/null 2>&1
+e "$dlog" mutate "$work/kill.patch" -- test -f here.txt > /dev/null 2>&1
+rc=$?
+equals "作業ディレクトリが違えば、同じコマンドでも基準の実行をやり直す" "$rc $(last 2-4 "$dlog")" "4 mutate	kill.patch	Invalid"
 g worktree add -q "$work/wt" -b wt
 wlog="$work/wt.tsv"
 check "linked worktreeでrunとcheckが動く" '(cd "$work/wt" && bash "$ev" "$wlog" run w -- true && bash "$ev" "$wlog" check w)'
