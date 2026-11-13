@@ -67,15 +67,16 @@ printf 'echo changed\n' >> "$repo/app.sh"
 fp1=$(fp)
 check "追跡しているファイルを変えると指紋が変わる" '[ "$fp1" != "$fp0" ]'
 printf 'new\n' > "$repo/untracked.txt"
-fp2=$(fp)
-check "未追跡のファイルを足すと指紋が変わる" '[ "$fp2" != "$fp1" ]'
-printf 'noise\n' > "$repo/ignored.log"
-equals "無視されたファイルでは指紋が変わらない" "$(fp)" "$fp2"
+# 未追跡のファイルが、まだ一度も指紋を通っていないうちに確かめる
 status=$(g status --porcelain)
 index=$(cksum < "$repo/.git/index")
 e "$log" run touch -- true
 equals "runは本物のindexを変えない" "$(cksum < "$repo/.git/index")" "$index"
 equals "runはgit statusを変えない" "$(g status --porcelain)" "$status"
+fp2=$(fp)
+check "未追跡のファイルを足すと指紋が変わる" '[ "$fp2" != "$fp1" ]'
+printf 'noise\n' > "$repo/ignored.log"
+equals "無視されたファイルでは指紋が変わらない" "$(fp)" "$fp2"
 g add -A && g commit -q -m change
 equals "同じ中身なら、コミットの後も指紋が同じ" "$(fp)" "$fp2"
 equals "指紋はコミットのツリーと同じ" "$fp2" "$(g rev-parse 'HEAD^{tree}')"
