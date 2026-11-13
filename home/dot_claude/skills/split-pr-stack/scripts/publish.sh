@@ -33,17 +33,26 @@ render() {
   python3 -I - "$@" <<'PY'
 import sys
 src, dst, *pairs = sys.argv[1:]
-text = open(src, encoding="utf-8").read()
+text = open(src, encoding="utf-8", newline="").read()
 for pair in pairs:
     key, value = pair.split("=", 1)
     if value.startswith("@"):
         value = open(value[1:], encoding="utf-8").read().strip()
     text = text.replace("{{%s}}" % key, value)
-open(dst, "w", encoding="utf-8").write(text)
+open(dst, "w", encoding="utf-8", newline="").write(text)
 PY
 }
 
 pr_of() { awk -v l="$1" '$1 == l {print $2}' "$OUT/numbers.txt"; }
+
+# usage: fill_body <PR number> <name=value...>; edits the live body only when something was filled in.
+fill_body() {
+  local num=$1
+  shift
+  gh pr view "$num" --repo "$REPO" --json body --jq .body > "$OUT/live_$num.md"
+  render "$OUT/live_$num.md" "$OUT/filled_$num.md" "$@"
+  cmp -s "$OUT/live_$num.md" "$OUT/filled_$num.md" || gh pr edit "$num" --repo "$REPO" --body-file "$OUT/filled_$num.md" > /dev/null
+}
 
 # usage: open_pr <base> <head> <gh pr create options...>; prints the URL of the open PR.
 open_pr() {
@@ -104,20 +113,13 @@ done
 count=${#layers[@]}
 for i in "${!layers[@]}"; do
   num=$(pr_of "${layers[$i]}")
-  gh pr view "$num" --repo "$REPO" --json body --jq .body > "$OUT/live_$num.md"
-  grep -qF '{{NEXT}}' "$OUT/live_$num.md" || continue
   if [ $((i + 1)) -lt "$count" ]; then next="#$(pr_of "${layers[$((i + 1))]}")"; else next="なし（スタックの一番上）"; fi
-  render "$OUT/live_$num.md" "$OUT/live_$num.md" "NEXT=$next"
-  gh pr edit "$num" --repo "$REPO" --body-file "$OUT/live_$num.md" > /dev/null
+  fill_body "$num" "NEXT=$next"
 done
 
 pairs=()
 for layer in "${layers[@]}"; do pairs+=("PR:$layer=#$(pr_of "$layer")"); done
-gh pr view "$base_pr" --repo "$REPO" --json body --jq .body > "$OUT/live_base.md"
-if grep -qF '{{PR:' "$OUT/live_base.md"; then
-  render "$OUT/live_base.md" "$OUT/live_base.md" "${pairs[@]}"
-  gh pr edit "$base_pr" --repo "$REPO" --body-file "$OUT/live_base.md" > /dev/null
-fi
+fill_body "$base_pr" "${pairs[@]}"
 
 unresolved=0
 while read -r _ num _; do
