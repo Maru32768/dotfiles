@@ -164,15 +164,16 @@ check "戻した後にビルドし直し、成果物に変異を残さない" 'c
 
 lines=$(wc -l < "$mlog")
 runs=$(wc -l < "$count")
+untouched() { [ "$rc" = 2 ] && [ "$(wc -l < "$mlog")" = "$lines" ] && [ "$(wc -l < "$count")" = "$runs" ] && grep -q "1 + " "$repo/app.sh"; }
 printf 'dirt\n' > "$repo/dirt.txt"
 mutate kill > /dev/null 2>&1
 rc=$?
-check "未追跡のファイルがあると2で終わり、記録もせず、パッチも当てない" '[ "$rc" = 2 ] && [ "$(wc -l < "$mlog")" = "$lines" ] && [ "$(wc -l < "$count")" = "$runs" ] && grep -q "1 + " "$repo/app.sh"'
+check "未追跡のファイルがあると2で終わり、記録もせず、パッチも当てない" untouched
 rm -f "$repo/dirt.txt"
 printf '# dirt\n' >> "$repo/test.sh"
 mutate kill > /dev/null 2>&1
 rc=$?
-check "未コミットの変更があると2で終わり、記録もせず、パッチも当てない" '[ "$rc" = 2 ] && [ "$(wc -l < "$mlog")" = "$lines" ] && [ "$(wc -l < "$count")" = "$runs" ] && grep -q "1 + " "$repo/app.sh"'
+check "未コミットの変更があると2で終わり、記録もせず、パッチも当てない" untouched
 g checkout -q -- test.sh
 
 # 中身が変われば、同じコマンドでも基準の実行をやり直す
