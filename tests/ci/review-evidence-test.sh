@@ -46,6 +46,13 @@ rc=$?
 equals "失敗するコマンドの終了コードを、そのまま返して記録する" "$rc $(last 4 "$log")" "7 7"
 e "$log" run quote -- sh -c 'printf "%s\n" "$1" > "$2"' _ 'a "b"  c' "$work/quote.out"
 equals "空白と引用符を含む引数を、そのまま渡す" "$(cat "$work/quote.out")" 'a "b"  c'
+# evidence.shの関数と同じ名前の、PATHにあるコマンド
+mkdir -p "$work/bin"
+printf '#!/bin/sh\nexit 7\n' > "$work/bin/build"
+chmod +x "$work/bin/build"
+PATH="$work/bin:$PATH" e "$log" run build -- build
+rc=$?
+equals "evidence.shの関数と同じ名前のコマンドは、PATHのコマンドを回す" "$rc $(last 4 "$log")" "7 7"
 lines=$(wc -l < "$log")
 check "タブを含むラベルは、実行も記録もせずに拒否する" '! e "$log" run "a	b" -- touch "$work/tab-ran" && [ ! -e "$work/tab-ran" ] && [ "$(wc -l < "$log")" = "$lines" ]'
 check "作業ツリーの中の、無視されていない記録は拒否する" '! e "$repo/evidence.tsv" run x -- true && [ ! -e "$repo/evidence.tsv" ]'
@@ -167,6 +174,9 @@ MUTATE_BUILD='mkdir -p build && cp app.sh build/app.sh' \
   e "$mlog" mutate "$work/kill.patch" -- sh -c '. build/app.sh; [ "$(add 2 3)" = 5 ]' > /dev/null 2>&1
 equals "MUTATE_BUILDでビルドした変異をテストが検出する" "$(last 2-4 "$mlog")" "mutate	kill.patch	Killed"
 check "戻した後にビルドし直し、成果物に変異を残さない" 'cmp -s "$repo/build/app.sh" "$repo/app.sh"'
+PATH="$work/bin:$PATH" e "$mlog" mutate "$work/kill.patch" -- build > /dev/null 2>&1
+rc=$?
+equals "mutateも、evidence.shの関数と同じ名前のPATHのコマンドを回す" "$rc $(last 2-4 "$mlog")" "4 mutate	kill.patch	Invalid"
 
 lines=$(wc -l < "$mlog")
 runs=$(wc -l < "$count")
