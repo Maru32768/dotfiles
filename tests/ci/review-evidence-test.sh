@@ -46,6 +46,9 @@ rc=$?
 equals "失敗するコマンドの終了コードを、そのまま返して記録する" "$rc $(last 4 "$log")" "7 7"
 e "$log" run quote -- sh -c 'printf "%s\n" "$1" > "$2"' _ 'a "b"  c' "$work/quote.out"
 equals "空白と引用符を含む引数を、そのまま渡す" "$(cat "$work/quote.out")" 'a "b"  c'
+tabnl=$(printf 'c\td\ne')
+e "$log" run argv -- true 'a b' "$tabnl" ''
+equals "記録したコマンドは、シェルで読み戻すと同じ引数になる" "$(eval "printf '[%s]' $(last 6 "$log")")" "$(printf '[%s]' true 'a b' "$tabnl" '')"
 # evidence.shの関数と同じ名前の、PATHにあるコマンド
 mkdir -p "$work/bin"
 printf '#!/bin/sh\nexit 7\n' > "$work/bin/build"
@@ -116,7 +119,7 @@ e "$tlog" run lint -- sh -c 'false || exit 3'
 equals "今の指紋の行だけを、パイプを逃がした表にする" "$(e "$tlog" table)" '| 検査 | 結果 | コマンド |
 |---|---|---|
 | new | 成功 | `true` |
-| lint | 失敗(終了コード 3) | `sh -c false \|\| exit 3` |'
+| lint | 失敗(終了コード 3) | `sh -c false\ \\|\\|\ exit\ 3` |'
 g add -A && g commit -q -m v2
 
 # --- mutate ---

@@ -7,7 +7,8 @@
 #        evidence.sh <evidence.tsv> check <label>...
 #        evidence.sh <evidence.tsv> table
 #
-# One line per record: <UTC time>\t<run|mutate>\t<label>\t<result>\t<fingerprint>\t<command>. The fingerprint is
+# One line per record: <UTC time>\t<run|mutate>\t<label>\t<result>\t<fingerprint>\t<command>. The command is quoted
+# with printf %q, so the shell reads it back as the same arguments, tabs and newlines included. The fingerprint is
 # the tree id of the worktree as it is (tracked files and untracked files that are not ignored), so it is the same
 # before and after committing the same content.
 #
@@ -74,7 +75,8 @@ parse_command() {
   [ "${1:-}" = "--" ] && [ $# -ge 2 ] || die "$sub needs -- <command...>"
   shift
   command=("$@")
-  cmd=${*//[$'\t\r\n']/ }
+  printf -v cmd '%q ' "$@"
+  cmd=${cmd% }
 }
 
 run_cmd() {
