@@ -63,6 +63,8 @@ mkdir -p "$work/dir.tsv"
 e "$work/dir.tsv" run ok -- true > /dev/null 2>&1
 equals "記録を書けなければ、コマンドが成功しても2で終わる" "$?" "2"
 lines=$(wc -l < "$log")
+check "runのラベルにbaselineは使えず、実行も記録もしない" '! e "$log" run baseline -- touch "$work/baseline-ran" && [ ! -e "$work/baseline-ran" ] && [ "$(wc -l < "$log")" = "$lines" ]'
+lines=$(wc -l < "$log")
 check "タブを含むラベルは、実行も記録もせずに拒否する" '! e "$log" run "a	b" -- touch "$work/tab-ran" && [ ! -e "$work/tab-ran" ] && [ "$(wc -l < "$log")" = "$lines" ]'
 check "作業ツリーの中の、無視されていない記録は拒否する" '! e "$repo/evidence.tsv" run x -- true && [ ! -e "$repo/evidence.tsv" ]'
 check "作業ツリーの中でも、無視された記録は使える" 'e "$repo/build/evidence.tsv" run x -- true'

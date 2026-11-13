@@ -91,6 +91,7 @@ parse_command() {
 run_cmd() {
   local label=$1 before rc
   valid_label "$label"
+  [ "$label" != baseline ] || die "the label baseline is kept for mutate"
   shift
   parse_command "$@"
   mkdir -p "$(dirname -- "$file")" || die "cannot create the directory of $file"
