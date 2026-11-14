@@ -130,6 +130,37 @@ if [ "$profile" = research ]; then
   launcher_want "API キーだけなら、資格情報の検査を通って隔離の検査まで進む" '[[ "$output" != *"両方があります"* && "$output" != *"がありません"* && ( "$output" == *"FAIL "* || "$output" == *"(Claude Code)"* ) ]]'
 fi
 
+if [ "$profile" != main ]; then
+  step "$profile の起動スクリプトは ~/work の下でだけ進む"
+  # wsl.exe は --cd に失敗しても / で続けるので、/ も含めて ~/work の外を断る。
+  # 進むかどうかは、上と同じく出力で判定する (コンテナでは隔離の検査が FAIL を出す)
+  case "$profile" in
+    agent) launcher=/usr/local/bin/agent-claude credential=CLAUDE_CODE_OAUTH_TOKEN=dummy ;;
+    research) launcher=/usr/local/bin/research-claude credential=ANTHROPIC_API_KEY=dummy ;;
+  esac
+  docker exec -u "$user" "$name" sh -c "mkdir -p /home/$user/workx /home/$user/work/run && ln -sfn / /home/$user/work/out" || failures=$((failures + 1))
+  # 使い方: run_in <作業ディレクトリ>
+  run_in() { docker exec -u "$user" -w "$1" -e "HOME=/home/$user" -e "$credential" "$name" "$launcher" --version 2>&1; }
+  for dir in / "/home/$user" "/home/$user/workx" "/home/$user/work/out"; do
+    output="$(run_in "$dir")"
+    if [[ "$output" == *"~/work の下で起動してください"* && "$output" != *"FAIL "* && "$output" != *"(Claude Code)"* ]]; then
+      echo "PASS $dir では、隔離の検査の前に止まる"
+    else
+      echo "FAIL $dir では、隔離の検査の前に止まる"
+      failures=$((failures + 1))
+    fi
+  done
+  for dir in "/home/$user/work" "/home/$user/work/run"; do
+    output="$(run_in "$dir")"
+    if [[ "$output" != *"~/work の下で起動してください"* && ( "$output" == *"FAIL "* || "$output" == *"(Claude Code)"* ) ]]; then
+      echo "PASS $dir では、隔離の検査まで進む"
+    else
+      echo "FAIL $dir では、隔離の検査まで進む"
+      failures=$((failures + 1))
+    fi
+  done
+fi
+
 step "もう一度適用しても差分が出ない"
 as_user '
   chezmoi apply --no-tty || exit 1
