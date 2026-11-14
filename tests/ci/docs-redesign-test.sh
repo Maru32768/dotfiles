@@ -125,6 +125,26 @@ printf '%s\n' "${fence}js${fence}は言語の名前。" '' "$fence" 'tool deploy
 want="$(printf '1 span\tbefore-inline3.md:1\tjs\ncode\tbefore-inline3.md:4\ttool deploy --prod')"
 out="$(bash "$lost" before-inline3.md -- after-fence.md)"
 equals "行頭のバッククォート3つのインラインコードを、フェンスにしない" "$? $out" "$want"
+# 記号の種類(*、1)、入れ子の-)と、閉じる行を記号の後ろより深く字下げした例。記号の幅を字下げに足さないと、
+# 閉じる行がフェンスを閉じず、次のフェンスと読み方が入れ替わる
+printf '%s\n' "* ${fence}sh" '    tool asterisk' "    $fence" '' "$fence" 'tool bare one' "$fence" '' "1) ${fence}sh" '   tool paren' "   $fence" '' "$fence" 'tool bare two' "$fence" '' '- item' "  - ${fence}sh" '    tool nested' "    $fence" '' "$fence" 'tool bare three' "$fence" > before-marker2.md
+want="$(printf '1 code\tbefore-marker2.md:2\ttool asterisk\ncode\tbefore-marker2.md:6\ttool bare one\ncode\tbefore-marker2.md:10\ttool paren\ncode\tbefore-marker2.md:14\ttool bare two\ncode\tbefore-marker2.md:19\ttool nested\ncode\tbefore-marker2.md:23\ttool bare three')"
+out="$(bash "$lost" before-marker2.md -- after-fence.md)"
+equals "箇条書きの記号の種類と幅を読み、閉じる行の字下げを記号の後ろから数える" "$? $out" "$want"
+
+# 箇条書きの記号と同じ行で開いたフェンスは、記号の幅より浅い3行目で、箇条書きと一緒に終わる。3行目は
+# 新しいフェンスを開く。8行目はバッククォート2つで始まるが、フェンスではない
+printf '%s\n' "- ${fence}sh" '  tool one' "$fence" 'tool two --prod' "$fence" '' '`tool three`を使う。' '``で始まる行。' "$fence" 'tool four' "$fence" > before-shallow-marker.md
+want="$(printf '1 code\tbefore-shallow-marker.md:2\ttool one\ncode\tbefore-shallow-marker.md:4\ttool two --prod\nspan\tbefore-shallow-marker.md:7\ttool three\npart\tbefore-shallow-marker.md:8\tで始まる行。\ncode\tbefore-shallow-marker.md:10\ttool four')"
+out="$(bash "$lost" before-shallow-marker.md -- after-fence.md)"
+equals "箇条書きの中のフェンスは、記号の幅より浅い行で終わる" "$? $out" "$want"
+
+# 3行目は、記号の後ろより2つ深く字下げして閉じる。4行目は、同じ項目の続きの地の文。8行目は、フェンスの中の
+# 空行で、フェンスを終わらせない。10行目は、次の項目で、前のフェンスを終わらせて新しいフェンスを開く
+printf '%s\n' "* ${fence}sh" '    tool alpha' "    $fence" '  `tool bravo`を使う。' '' "- ${fence}sh" '  tool charlie' '' '  tool delta' "- ${fence}sh" '  tool echo' "  $fence" > before-marker3.md
+want="$(printf '1 code\tbefore-marker3.md:2\ttool alpha\nspan\tbefore-marker3.md:4\ttool bravo\ncode\tbefore-marker3.md:7\ttool charlie\ncode\tbefore-marker3.md:9\ttool delta\ncode\tbefore-marker3.md:11\ttool echo')"
+out="$(bash "$lost" before-marker3.md -- after-fence.md)"
+equals "箇条書きのフェンスの後の続きの行、中の空行、次の項目のフェンスを読む" "$? $out" "$want"
 
 # 地の文だけを残した後の版。閉じない`の並びがある行の、地の文の切れ端が挙がらないようにする
 printf '%s\n' '次のように と を使う。' 'Use or to clean.' '記号の と と``と を書く。' '`x`と`y`を使う。' > after-prose.md

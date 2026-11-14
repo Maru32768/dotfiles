@@ -105,7 +105,8 @@ function spans(s, kind,   open, i, n, t, u, m, k, j) {
   }
   return open
 }
-# 行頭の`か~の数を返す。3つに満たなければ0。記号をfmarkに、後ろに何も無いかをfbareに、字下げの幅をfindに入れる。
+# 行頭の`か~の数を返す。3つに満たなければ0。記号をfmarkに、後ろに何も無いかをfbareに、字下げの幅をfindに、
+# 箇条書きの記号の幅をfleadに入れる。
 # フェンスの外では、箇条書きの記号の後ろから読む(- ```shは、フェンスを開く)。読まないと、閉じる行が
 # フェンスを開き、その先の地の文とコードブロックが入れ替わる。後ろに`がある`の並び(```js```)は、
 # インラインコードなので、フェンスにしない
@@ -117,15 +118,18 @@ function fence_len(s,   c, n, lead) {
   if (c != "`" && c != "~") return 0
   for (n = 1; substr(s, n + 1, 1) == c; n++) ;
   if (c == "`" && index(substr(s, n + 1), "`")) return 0
-  fmark = c; fbare = (n == length(s))
+  fmark = c; fbare = (n == length(s)); flead = lead + 0
   return n >= 3 ? n : 0
 }
 BEGIN { while ((getline line < ENVIRON["HAY"]) > 0) { hl[++nh] = norm(line); hay = hay "\n" hl[nh] } }
 FNR == 1 { fence = 0 }
 { n = fence_len($0) }
+# 箇条書きの記号と同じ行で開いたフェンスは、記号の幅より浅く字下げした行で、箇条書きと一緒に終わる。
+# その行は、フェンスの外の行として読み直す
+fence && fcol && /[^ \t\r]/ && match($0, /[^ \t]/) - 1 < fcol { fence = 0; n = fence_len($0) }
 # 閉じるのは、開いたときと同じ記号が同じ数以上あり、後ろに何も無く、開いた行より4つ以上深く字下げして
 # いない行だけ(中に別のフェンスを書ける)
-!fence && n { fence = n; fopen = fmark; fin = find; next }
+!fence && n { fence = n; fopen = fmark; fin = find; fcol = flead; next }
 fence && n >= fence && fmark == fopen && fbare && find <= fin + 3 { fence = 0; next }
 fence { probe("code", $0); next }
 {
