@@ -8,7 +8,7 @@ description: 日本語と英語の文書を、意味を保ったまま推敲す�
 ## 入力
 
 - **対象:** ファイルと、直してよい行範囲。base を渡されたら、`<base>...HEAD` で追加・変更された段落だけを対象にする（新規ファイルは全体）。差分に無い既存の文は直さない。直すと差分が膨らみ、レビュアーが本題を追えなくなる。PR/MR 本文は、GitLab なら `glab mr view -F json --jq .description`、GitHub なら `gh pr view --json body --jq .body` で取る。
-- **利用者が持つリポジトリの PR/MR 本文:** remote が GitHub の `Maru32768` のリポジトリでは、本文を読むのは利用者だけなので、2 と 3 を飛ばす。代わりに親が、日本語なら `yomiyasu`（この指示で名前を出して頼まれたものとして扱う）、英語なら `pstack:technical-writing` を 1 回だけかけ、`<work>/pr-body.final.md` に書く。1 の退避と 4 の反映は同じように行う。
+- **利用者が持つリポジトリの PR/MR 本文:** remote が GitHub の `Maru32768` のリポジトリでは、本文を読むのは利用者だけなので、2 と 3 を飛ばす。代わりに親が、日本語なら `yomiyasu`（この指示で名前を出して頼まれたものとして扱う）、英語なら `pstack:technical-writing` を 1 回だけかけ、`<work>/pr-body.final.md` に書く。yomiyasuスキルが回すスクリプトも、2と同じく`<work>`で実行する。1 の退避と 4 の反映は同じように行う。
 - **作業ディレクトリ `<work>`:** 呼び出し元が渡す(review-loopなら台帳のディレクトリの`prose/`)。渡されなければ、システムプロンプトにscratchpadのディレクトリが書かれていればその下に、無ければ`/tmp`の下に、`prose-polish-<対象の名前>/`を作る。WindowsのGit Bashでは、`cygpath -m`で`C:/...`の形に直したパスを使う。
 - **台帳:** 呼び出し元に台帳があれば、採らなかった変更をその「推敲で採らなかった変更」に書く。無ければ報告に書く。
 - **文書の規約:** リポジトリの `CLAUDE.md` などに文書の決まり（訳を行ごとに対応させる、表記の規則など）があれば、2 のサブエージェントと 3 の imos-humanizer スキルに制約として渡す。humanizer ルールより優先する。訳と行ごとに対応させている文書では、行を分けたりつないだりさせず、見出し・箇条書き・空行の位置も変えさせない。片方の言語だけ直した行は、対応を検査するリポジトリで引っかかることがあるので、報告に書かせる。
@@ -35,22 +35,22 @@ description: 日本語と英語の文書を、意味を保ったまま推敲す�
 1. **親が原文を退避する。** 原文を `<work>/<path>.orig`、PR/MR 本文を `<work>/pr-body.orig.md` に置く。これが検査の `--source` になり、PR/MR 本文を戻すときの控えにもなる。
 
 2. **1ファイル（PR/MR 本文も1件）につきサブエージェントを1つ、同じメッセージで並列に起動する。** worktree は要らない。本体ツリーには書かせない。プロンプトに以下を書く。
-   - 表の1段目のスキルを、順に Skill ツールで実行しろ。yomiyasu はこの指示で名前を出して頼まれたものとして扱え（yomiyasu はドキュメントの更新では名前を出されない限り動かない）。clarity は rewrite モードで実行し、`[TK: ...]` は本文に入れずに「書き手に確かめたい点」として報告しろ。
+   - 表の1段目のスキルを、順に Skill ツールで実行しろ。yomiyasu はこの指示で名前を出して頼まれたものとして扱え（yomiyasu はドキュメントの更新では名前を出されない限り動かない）。yomiyasuスキルが回すlint、run、verifyも、下の日本語の検査と同じ決まりで`<work>`で実行しろ。yomiyasuのSKILL.mdにある「コマンドに`cd`や`&&`を付けない」より、こちらを優先しろ。clarity は rewrite モードで実行し、`[TK: ...]` は本文に入れずに「書き手に確かめたい点」として報告しろ。
    - 原文のパスと、直してよい行範囲（新規ファイルなら全体）。**範囲外の行を変えるな。**
    - 文書の種類と読者。
    - **意味を変えるな。** 主張・条件・確度（「場合がある」「できる」「してよい」）・手順の順序・数値を保て。実装と食い違う記述を見つけても直さず報告しろ（推敲で黙って変えると誰も検証しない）。
    - 推敲稿を `<work>/<path>.h0`（PR/MR 本文は `pr-body.h0.md`）に書き、表の検査を通せ。`--source` には**推敲前の退避**を渡す。1段目の途中稿を渡すと、その組み替えが検査から漏れる。
-     - 日本語:
+     - 日本語: `<work>`で実行し、ファイルは`<work>`からの相対パスで渡す。yomiyasuは、実行したディレクトリの外のファイルと、そこからの道筋に点で始まる部分があるパスを読まずに、終了コード2で止まる。語の一覧は`<work>`から上のgitのリポジトリの`.yomiyasu-words/`しか探さないので、対象のリポジトリの最上位に`.yomiyasu-words/`があれば、`--words <その絶対パス>`を足す。
 
        ```bash
-       python3 ~/.claude/skills/yomiyasu/scripts/yomiyasu_check.py run \
+       cd <work> && python3 ~/.claude/skills/yomiyasu/scripts/yomiyasu_check.py run \
          --source <退避した原文> --final <推敲稿> --doc-type <種類> --reader expert \
-         --fail-on meaning-risk --fact-gaps --state-dir <work>/.yomiyasu
-       python3 ~/.claude/skills/yomiyasu/scripts/yomiyasu_check.py verify \
-         --final <推敲稿> --state-dir <work>/.yomiyasu
+         --fail-on meaning-risk --fact-gaps --state-dir .yomiyasu
+       cd <work> && python3 ~/.claude/skills/yomiyasu/scripts/yomiyasu_check.py verify \
+         --final <推敲稿> --state-dir .yomiyasu
        ```
 
-       `--state-dir` を省くと、リポジトリ直下に `.yomiyasu/` が作られる。終了コード1（meaning-risk）が出たら、その書き換えを戻すか、意味が同じだと言える根拠を報告しろ。
+       終了コード1（meaning-risk）が出たら、その書き換えを戻すか、意味が同じだと言える根拠を報告しろ。
      - 英語: `vale --output=line [--config <上の設定>] <推敲稿>`。指摘があると終了コードは1になる。指摘は直す合図ではなく候補として扱え。直してよい範囲の行の指摘だけを見て、直したか、残した理由を報告しろ。
    - 推敲稿には注記や質問を入れるな。報告は本文で返せ。変えたところ（5点まで）、書き手に確かめたい点、検査の指摘とその扱い（日本語は meaning-risk の候補と verify の出力の2行目）。
 
