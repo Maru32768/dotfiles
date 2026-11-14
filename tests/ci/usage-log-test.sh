@@ -42,7 +42,7 @@ def call(mid, model, ts, usage, skill=None, cwd="C:/repo", content=(), speed="st
             "message": {"id": mid, "model": model, "usage": usage, "content": list(content)}}
 
 opus = {"input_tokens": 10, "output_tokens": 100, "cache_read_input_tokens": 1000,
-        "cache_creation_input_tokens": 200, "cache_creation": {"ephemeral_5m_input_tokens": 0, "ephemeral_1h_input_tokens": 200}}
+        "cache_creation_input_tokens": 300, "cache_creation": {"ephemeral_5m_input_tokens": 100, "ephemeral_1h_input_tokens": 200}}
 lines = [
     {"type": "user", "timestamp": "2026-11-01T00:00:00Z", "message": {"role": "user", "content": "hi"}},
     call("m1", "claude-opus-5-5", "2026-11-01T00:00:01Z", opus, "review-loop", content=[{"type": "thinking"}]),
@@ -88,9 +88,9 @@ rm -rf "$work/claude" "$work/codex"
 equals "元のログを消しても、記録から集計できる" "$(field --by source -- "rows['claude']['calls'], rows['codex']['calls']")" "(6, 2)"
 equals "期間の前の呼び出しは数えない" "$(field --since 2025-12-01 --by source -- "rows['claude']['calls']")" "7"
 
-# 100万分の1ドルで、m1: 入力10×4 + 1時間の書き込み200×8 + 読み取り1000×0.2 + 出力100×20 = 3840、
+# 100万分の1ドルで、m1: 入力10×4 + 5分の書き込み100×5 + 1時間の書き込み200×8 + 読み取り1000×0.2 + 出力100×20 = 4340、
 # m2: 1×4 + 1×20 = 24、s1: 3×4 + 7×20 = 152
-equals "サブエージェントは、親が起こしたときのスキルに数える" "$(field --by skill -- "rows['review-loop']['calls'], round(rows['review-loop']['cost_usd'] * 1e6)")" "(3, 4016)"
+equals "サブエージェントは、親が起こしたときのスキルに数える" "$(field --by skill -- "rows['review-loop']['calls'], round(rows['review-loop']['cost_usd'] * 1e6)")" "(3, 4516)"
 equals "fastは2倍、Haikuは10万トークンを超えると高い単価にする" "$(field --by model -- "round(rows['claude-fable-5-2']['cost_usd'] * 1e6), round(rows['claude-haiku-5-5']['cost_usd'] * 1e6)")" "(96000, 28000)"
 equals "サブエージェントは、worktreeではなく親のセッションのプロジェクトに数える" "$(field --by project -- "sorted(rows)")" "['C:/repo']"
 equals "サブエージェントは説明ごとに分けられる" "$(field --by agent -- "rows['R1 correctness']['calls'], sorted((k, r['calls']) for k, r in rows.items() if k != 'R1 correctness')[0][1], len(rows)")" "(1, 7, 2)"
