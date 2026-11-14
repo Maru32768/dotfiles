@@ -76,6 +76,14 @@ want="$(printf '1 line\tbefore-words.md:2\ttool build --target linux --release\n
 out="$(bash "$lost" before-words.md -- after-words.md)"
 equals "語がすべて残っているコードの行はlineに、語が消えた行はcodeにする" "$? $out" "$want"
 
+# 1つ目のファイルはフェンスを閉じずに終わる。2つ目は~~~のフェンスで、中の行を落とす
+printf '%s\n' "${fence}bash" 'tool start' > before-open.md
+printf '%s\n' '~~~bash' 'tool deploy --region tokyo' '~~~' > before-tilde.md
+printf '%s\n' "${fence}bash" 'tool start' "$fence" > after-fence.md
+want="$(printf '1 code\tbefore-tilde.md:2\ttool deploy --region tokyo')"
+out="$(bash "$lost" before-open.md before-tilde.md -- after-fence.md)"
+equals "フェンスの状態と行番号は、ファイルごとに数え直す。~~~もフェンスとして読む" "$? $out" "$want"
+
 : > empty.md
 out="$(bash "$lost" empty.md before.md -- after.md | wc -l)"
 equals "前のファイルに空のファイルがあっても、次のファイルを読む" "$out" "4"
