@@ -92,6 +92,12 @@ want="$(printf '1 code\tbefore-nested.md:3\ttool deploy --prod\nspan\tbefore-nes
 out="$(bash "$lost" before-nested.md -- after-fence.md)"
 equals "フェンスの中のフェンスで、状態がずれない" "$? $out" "$want"
 
+# 3行目は、4つ字下げしたフェンス(箇条書きの中のコードブロックを、例として書いたもの)。外のフェンスを閉じない
+printf '%s\n' "$fence" 'tool keep' "    $fence" 'tool gone' "$fence" '`tool after`を使う。' > before-deep.md
+want="$(printf '1 code\tbefore-deep.md:2\ttool keep\ncode\tbefore-deep.md:4\ttool gone\nspan\tbefore-deep.md:6\ttool after')"
+out="$(bash "$lost" before-deep.md -- after-fence.md)"
+equals "フェンスの中の、深く字下げしたフェンスで閉じない" "$? $out" "$want"
+
 # 1〜2行目は、インラインコードが行の折り返しをまたぐ
 printf '%s\n' '次のように`tool run' '--jobs 4`と`tool gc`を使う。' > before-wrap.md
 want="$(printf '1 span\tbefore-wrap.md:2\ttool run --jobs 4\nspan\tbefore-wrap.md:2\ttool gc')"

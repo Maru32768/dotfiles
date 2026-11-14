@@ -76,8 +76,9 @@ function each(kind, s, re, left, right) {
   return s
 }
 function ticks(s) { return gsub(/`/, "`", s) }
-# 行頭の`か~の数を返す。3つに満たなければ0。記号をfmarkに、後ろに何も無いかをfbareに入れる
+# 行頭の`か~の数を返す。3つに満たなければ0。記号をfmarkに、後ろに何も無いかをfbareに、字下げの幅をfindに入れる
 function fence_len(s,   c, n) {
+  find = match(s, /[^ \t]/) - 1
   sub(/^[ \t]+/, "", s); sub(/[ \t\r]+$/, "", s)
   c = substr(s, 1, 1)
   if (c != "`" && c != "~") return 0
@@ -98,9 +99,10 @@ BEGIN {
 }
 FNR == 1 { fence = 0; carry = "" }
 { n = fence_len($0) }
-# 閉じるのは、開いたときと同じ記号が同じ数以上あり、後ろに何も無い行だけ(中に別のフェンスを書ける)
-!fence && n { fence = n; fopen = fmark; carry = ""; next }
-fence && n >= fence && fmark == fopen && fbare { fence = 0; next }
+# 閉じるのは、開いたときと同じ記号が同じ数以上あり、後ろに何も無く、開いた行より4つ以上深く字下げして
+# いない行だけ(中に別のフェンスを書ける)
+!fence && n { fence = n; fopen = fmark; fin = find; carry = ""; next }
+fence && n >= fence && fmark == fopen && fbare && find <= fin + 3 { fence = 0; next }
 fence { probe("code", $0); next }
 /^[ \t\r]*$/ { carry = ""; next }
 {
