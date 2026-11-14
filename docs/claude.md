@@ -44,7 +44,7 @@ compactが増えると、序盤の細かい指示が要約で落ちやすくな�
 - パスは、chezmoiの`.chezmoi.homeDir`から作った絶対パスにする。`~`で書いたパスを展開するかは、公式の文書に書かれていない。
 - `additionalDirectories`は、ファイルを読み書きできるようにするだけで、そこからCLAUDE.md、スキル、設定を読み込まない(公式の文書の「Additional directories grant file access, not configuration」)。
 - 台帳を初めて作るまで、このディレクトリは無い。無いディレクトリをClaude Codeがどう扱うかは確かめていない。
-- `agent`と`research`には`~/.claude`を置かないので、この許可も入らない。`tests/ci/render.sh`が、普段の環境の`permissions`がこの1つだけであることを確かめる。
+- `agent`と`research`には`~/.claude`を置かないので、この許可も入らない。`tests/ci/render.sh`が、共通の設定が`permissions`にこの1つだけを足すことと、既存の`permissions.allow`が残ることを確かめる。
 
 ## 署名回避を止めるフック
 
