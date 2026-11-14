@@ -55,7 +55,9 @@ flowchart LR
 EOF
 round="$(bash "$view" round.md </dev/null)"
 equals "本文を取り出して戻すと、入力と同じになる" "$? $(body_of "$round")" "0 $(cat round.md)"
-equals "<scriptで始まるタグは、外部の2つとインラインの1つだけ" "$(printf '%s' "$round" | grep -io '<script' | wc -l | tr -d ' ')" "3"
+equals "<scriptで始まるタグは、marked、mermaid、インラインの順に3つだけ" \
+  "$(printf '%s' "$round" | grep -io '<script[^>]*>' | sed -e 's/.*marked.*/marked/' -e 's/.*mermaid.*/mermaid/' | tr '\n' ' ')" \
+  "marked mermaid <script> "
 equals "外部のスタイルシートやフォントを読まない" "$(printf '%s' "$round" | grep -ciE '<link|@import|url\(')" "0"
 
 equals "題は最初の「# 」の行の見出しで、エスケープする" "$(title_of "$round")" "概観 &amp; &lt;計画&gt;"
