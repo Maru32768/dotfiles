@@ -157,9 +157,9 @@ equals "記号として書いたバッククォートの前後の地の文も、
 
 # 1行目の記述は、後の版では、前か後ろに英数字、_、-が続く別の語の一部になっている
 # 2行目の記述は、後ろに.、:、/と英数字が続く。3行目は、文の終わりの.、行の番号でない:、末尾の/の前にある
-printf '%s\n' '`-f`を付ける。`PORT`と`HOME`と`--yes`と`PATH`と`-version`と`DIR`を設定する。`tool start`で始める。' '`.env`と`npm run build`と[API](https://example.com/api)。' '`README.md`と`localhost`と`docs`を見る。' > before-part.md
-printf '%s\n' '`--force`を付ける。`PORTS`と`XHOME`と`--yes-all`と`PATH_INFO`と`--version`と`TMP_DIR`を見る。`sudo tool start --now`で始める。' '`.env.example`と`npm run build:prod`と[API](https://example.com/api/v2)。' 'See README.md. Open localhost: it works. The docs/ directory.' > after-part.md
-want="$(printf '1 span\tbefore-part.md:1\t-f\nspan\tbefore-part.md:1\tPORT\nspan\tbefore-part.md:1\tHOME\nspan\tbefore-part.md:1\t--yes\nspan\tbefore-part.md:1\tPATH\nspan\tbefore-part.md:1\t-version\nspan\tbefore-part.md:1\tDIR\nspan\tbefore-part.md:2\t.env\nspan\tbefore-part.md:2\tnpm run build\nlink\tbefore-part.md:2\thttps://example.com/api')"
+printf '%s\n' '`-f`を付ける。`PORT`と`HOME`と`--yes`と`PATH`と`-version`と`DIR`と`8080`と`--jobs 4`を設定する。`tool start`で始める。' '`.env`と`npm run build`と[API](https://example.com/api)。' '`README.md`と`localhost`と`docs`を見る。' > before-part.md
+printf '%s\n' '`--force`を付ける。`PORTS`と`XHOME`と`--yes-all`と`PATH_INFO`と`--version`と`TMP_DIR`と`18080`と`--jobs 42`を見る。`sudo tool start --now`で始める。' '`.env.example`と`npm run build:prod`と[API](https://example.com/api/v2)。' 'See README.md. Open localhost: it works. The docs/ directory.' > after-part.md
+want="$(printf '1 span\tbefore-part.md:1\t-f\nspan\tbefore-part.md:1\tPORT\nspan\tbefore-part.md:1\tHOME\nspan\tbefore-part.md:1\t--yes\nspan\tbefore-part.md:1\tPATH\nspan\tbefore-part.md:1\t-version\nspan\tbefore-part.md:1\tDIR\nspan\tbefore-part.md:1\t8080\nspan\tbefore-part.md:1\t--jobs 4\nspan\tbefore-part.md:2\t.env\nspan\tbefore-part.md:2\tnpm run build\nlink\tbefore-part.md:2\thttps://example.com/api')"
 out="$(bash "$lost" before-part.md -- after-part.md)"
 equals "別の語の一部になっている一致は、残っているとみなさない" "$? $out" "$want"
 
