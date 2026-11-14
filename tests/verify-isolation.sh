@@ -262,6 +262,13 @@ run_e2e() {
     return
   fi
 
+  # ~/work はサンドボックスから書けるので、前のセッションが ~/work/.git に設定を仕込むと、
+  # 検査のプローブの git がそれを実行する。そのインスタンスの結果は信用できない
+  if [ -e "$HOME/work/.git" ] || [ -L "$HOME/work/.git" ]; then
+    fail "~/work に .git がある (仕込まれた設定が検査の中で動く。インスタンスを作り直す)"
+    return
+  fi
+
   local nonce ports gateway probe_args item bashrc_before
   # 起動スクリプトは ~/work の下でしか動かないので、Claude の作業ディレクトリは ~/work に作る。
   # サンドボックスの外から書くログと対照の結果は、サンドボックスから書けない場所に置く。
