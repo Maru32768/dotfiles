@@ -62,7 +62,7 @@ EOF
 
 # Claude Code が書いた許可も、マージの後に残ることを確かめる
 mkdir -p "$work/windows-main/home/.claude"
-printf '{"permissions":{"allow":["Bash(ls)"],"additionalDirectories":["D:/x"]}}' >"$work/windows-main/home/.claude/settings.json"
+printf '{"model":"kept-model","permissions":{"allow":["Bash(ls)"],"additionalDirectories":["D:/x"]}}' >"$work/windows-main/home/.claude/settings.json"
 
 # gpg-agent.conf も、管理しない行は残る。Windows の Git の gpg は CRLF で書くこともある
 mkdir -p "$work/windows-main/home/.gnupg"
@@ -154,7 +154,7 @@ for name in linux-main windows-main; do
   check "$name: Claude の設定に台帳の置き場がある" 'jq -e --arg d "$ledger" ".permissions.additionalDirectories == [\$d]" "$work/$name/home/.claude/settings.json"'
 done
 check "linux-main: 共通の設定は permissions に台帳の置き場のほかを足さない" 'jq -e ".permissions | keys == [\"additionalDirectories\"]" "$work/linux-main/home/.claude/settings.json"'
-check "windows-main: 既存の permissions.allow が残る" 'jq -e ".permissions.allow == [\"Bash(ls)\"]" "$work/windows-main/home/.claude/settings.json"'
+check "windows-main: Claude の設定の既存のキーと permissions.allow が残る" 'jq -e ".model == \"kept-model\" and .permissions.allow == [\"Bash(ls)\"]" "$work/windows-main/home/.claude/settings.json"'
 
 # --- Windows ---
 for file in .wslconfig OneDrive/Documents/PowerShell/Microsoft.PowerShell_profile.ps1 .claude/settings.json .claude/CLAUDE.md .vimrc .local/bin/bws-run.ps1 .local/bin/bws-run.cmd .local/bin/split-pdf .local/bin/split-pdf.cmd; do
