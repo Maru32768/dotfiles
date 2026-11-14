@@ -196,6 +196,26 @@ for session in ("a", "b"):
 EOF
 equals "同じ応答が2つのログにあっても1回だけ数える" "$(collect "$work/copy")" "2個のログを読み、1件の呼び出しを足した"
 
+# サブエージェントは自分のスキルを先に使い、無ければ親のスキルを使う。スキルの無い呼び出しはモデルによらず1つにまとめる
+db="$work/skills.sqlite3"
+python3 -I - "$work/skills" <<'EOF'
+import json, sys
+from pathlib import Path
+base = Path(sys.argv[1]) / "claude/p"
+(base / "s/subagents").mkdir(parents=True)
+def call(mid, model="claude-opus-5-5", skill=None, agent=False):
+    return json.dumps({"type": "assistant", "timestamp": "2026-11-01T00:00:00Z", "sessionId": "s", "attributionSkill": skill,
+                       "message": {"id": mid, "model": model, "usage": {"input_tokens": 1, "output_tokens": 1},
+                                   "content": [{"type": "tool_use", "id": "toolu_7", "name": "Agent"}] if agent else []}})
+(base / "s.jsonl").write_text("\n".join([call("M", skill="ship-task", agent=True), call("N"), call("O", "claude-fable-5-2")]) + "\n", encoding="utf-8")
+for name, skill in (("agent-a", "simplify"), ("agent-b", None)):
+    (base / f"s/subagents/{name}.jsonl").write_text(call(name, skill=skill) + "\n", encoding="utf-8")
+    (base / f"s/subagents/{name}.meta.json").write_text(json.dumps({"agentType": "general-purpose", "toolUseId": "toolu_7"}), encoding="utf-8")
+EOF
+collect "$work/skills" >/dev/null
+equals "サブエージェントのスキルは自分のものを先に使い、無ければ親のものを使う" "$(field --by skill -- "rows['simplify']['calls'], rows['ship-task']['calls']")" "(1, 2)"
+equals "スキルの無い呼び出しは、モデルによらず1つにまとめる" "$(field --by skill -- "len(rows), sum(r['calls'] for k, r in rows.items() if k not in ('simplify', 'ship-task'))")" "(3, 2)"
+
 db="$work/usage.sqlite3"
 
 if [ "$failures" -ne 0 ]; then
