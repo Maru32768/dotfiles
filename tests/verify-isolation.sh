@@ -262,7 +262,8 @@ run_e2e() {
   fi
 
   local nonce ports gateway probe_args item bashrc_before
-  work="$(mktemp -d "$HOME/isolation-XXXXXX")"
+  # 起動スクリプトは ~/work の下でしか動かない
+  work="$(mktemp -d "$HOME/work/isolation-XXXXXX")"
   nonce="$(od -An -tx8 -N8 /dev/urandom | tr -d ' ')"
   ports="$(ss -ltnH | awk '{print $4}' | sed -n 's/^127\.0\.0\.1:\([0-9]*\)$/\1/p' | sort -un | paste -sd, -)"
   gateway="$(ip -4 route show default | awk '{print $3; exit}')"
