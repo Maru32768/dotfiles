@@ -54,7 +54,7 @@ docs/
 powershell -ExecutionPolicy Bypass -File bootstrap.ps1
 ```
 
-`winget` でアプリを入れ、リポジトリを `~\dotfiles` に clone し、mise と chezmoi で設定を適用して `tests\doctor.ps1` で確認する。
+Gitが無ければ`winget`で入れ、リポジトリを`~\dotfiles`にcloneする。次に、`packages\winget.json`のアプリを`winget import`で入れ、miseとchezmoiで設定を適用して`tests\doctor.ps1`で確認する。
 
 | 対象 | 扱い |
 |---|---|
