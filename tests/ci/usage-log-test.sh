@@ -135,7 +135,9 @@ sub.parent.mkdir(parents=True)
 main.write_text("\n".join([call("bad", cache_creation="n/a"), call("a1"), call("d1", output_tokens={"x": 1}),
                            call("d2", skill={"x": 1}), call("d3", output_tokens="5"), call("d4", content=5),
                            call("d5", output_tokens=float("inf")), call("d6", input_tokens=2**70),
-                           call("d7", top={"cwd": "\ud800"})]) + "\n", encoding="utf-8")
+                           call("d7", top={"cwd": "\ud800"}),
+                           # 集計に使わない属性の形が変わっても、呼び出しは数える
+                           call("d8", top={"effort": {"level": "high"}})]) + "\n", encoding="utf-8")
 # 読めないログ(名前が.jsonlのディレクトリ)は飛ばして、ほかのログを読む
 (odd / "claude/p/dir.jsonl").mkdir()
 sub.write_text(call("z1") + "\n", encoding="utf-8")
@@ -150,7 +152,7 @@ rollout.write_text("\n".join(json.dumps(e) for e in [
      "payload": {"type": "token_count", "info": {"total_token_usage": usage, "last_token_usage": usage}}},
 ]) + "\n", encoding="utf-8")
 EOF
-equals "型の違う行は飛ばし、ほかの行とログは読む" "$(collect "$work/odd" 2>/dev/null)" "3個のログを読み、4件の呼び出しを足した"
+equals "型の違う行は飛ばし、ほかの行とログは読む" "$(collect "$work/odd" 2>/dev/null)" "3個のログを読み、5件の呼び出しを足した"
 equals "読めたログは読み直さない" "$(collect "$work/odd" 2>/dev/null)" "0個のログを読み、0件の呼び出しを足した"
 equals "文字列で書かれたトークンも数として集計する" "$(field --by source -- "rows['claude']['output']")" "5"
 equals ".meta.jsonの中身が無くても、名前がagent-のログはサブエージェントとして分ける" "$(field --by agent-type -- "len(rows)")" "2"

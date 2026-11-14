@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS files (path TEXT PRIMARY KEY, size INTEGER, mtime_ns 
 """
 KEYS = ("skill", "agent", "agent-type", "model", "project", "session", "day", "source")
 TOKENS = ("input", "cache_write_5m", "cache_write_1h", "cache_read", "output")
+UNUSED = ("branch", "effort", "plugin")  # 集計に使わない属性。形が変わっても、呼び出しは残す
 
 
 def checked(call: dict) -> dict:
@@ -67,6 +68,8 @@ def checked(call: dict) -> dict:
                 raise ValueError(key)
         elif isinstance(value, str):
             value.encode("utf-8")  # 対になっていないサロゲートはSQLiteに入らない(UnicodeEncodeErrorはValueError)
+        elif value is not None and key in UNUSED:
+            call[key] = None
         elif value is not None:
             raise TypeError(key)
     return call
