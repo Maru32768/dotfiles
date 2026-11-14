@@ -56,6 +56,19 @@
   "autoCompactWindow": 500000,
   "idleCompaction": true,
   "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run --quiet --script \"$HOME/.local/bin/usage-log\" collect --quiet",
+            "async": true,
+            "timeout": 600
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Bash|Edit|Write",
