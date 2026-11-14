@@ -84,3 +84,5 @@ if ($failures -gt 0) {
     exit 1
 }
 Write-Host 'All passed'
+# The last case leaves LASTEXITCODE at 4, and the pwsh step of GitHub Actions exits with it
+exit 0
