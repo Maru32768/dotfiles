@@ -102,7 +102,7 @@ equals "単価の無いモデルは費用に入れず、件数を数える" "$(f
 equals "割合は単価のある呼び出しの費用の合計で割る" "$(field --by skill -- "round(rows['review-loop']['share'], 6)")" "$(python3 -I -c 'print(round(4516 / 128540, 6))' | tr -d '\r')"
 equals "単価の無い呼び出しは割合に入れない" "$(field --by source -- "round(rows['claude']['share'], 6), rows['codex']['share']")" "(1.0, 0.0)"
 
-# 既定の期間(直近7日): 1日前と10日前の呼び出しのうち、1日前だけを数える
+# 既定の期間(直近7日): 6日前と8日前の呼び出しのうち、6日前だけを数える
 python3 -I - "$work" <<'EOF'
 import json, sys
 from datetime import datetime, timedelta, timezone
@@ -113,7 +113,7 @@ now = datetime.now(timezone.utc)
 log.write_text("".join(json.dumps({"type": "assistant", "timestamp": (now - timedelta(days=d)).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
                                    "sessionId": "s", "message": {"id": f"d{d}", "model": "claude-opus-5-5",
                                                                  "usage": {"input_tokens": 1, "output_tokens": 1}}}) + "\n"
-                       for d in (1, 10)), encoding="utf-8")
+                       for d in (6, 8)), encoding="utf-8")
 EOF
 uv run --quiet --script "$script" --db "$work/recent.sqlite3" collect --claude-dir "$work/recent" --codex-dir "$work/none" >/dev/null
 equals "既定では直近7日を数える" "$(uv run --quiet --script "$script" --db "$work/recent.sqlite3" report --json | python3 -I -c 'import json, sys; print(sum(r["calls"] for r in json.load(sys.stdin)))' | tr -d '\r')" "1"
