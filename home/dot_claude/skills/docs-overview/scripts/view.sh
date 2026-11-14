@@ -5,11 +5,13 @@
 #   view.sh <概観のMarkdown>
 #
 # 概観は第三者の文書から作ることがあり、markedは生のHTMLを消毒しない。そこで、markedの出力を文書に直接は入れない。
-# 動かない文書(DOMParser)で解析し、決めた要素(TAGS)と、決めた属性だけを移す。ほかの要素は、画像やチェックボックスも
-# 含めて、文字として出す。先頭の<meta>や<style>は、DOMParserが<head>に入れるので、移らずに消える
+# <template>の中(動かない断片)で解析し、決めた要素(TAGS)と、決めた属性だけを移す。ほかの要素は、画像やチェックボックスも
+# 含めて、文字として出す
 # (<meta http-equiv="refresh">はCSPで止まらず、開いた人を別のサイトへ移動させる。markedの側で生のHTMLを文字に
-# 変える方法は、<code>の後ろのタグで抜けられた)。そのうえでCSPで、読み込む2つのスクリプトと、ハッシュの合う
-# インラインのスクリプトだけを動かす。インラインのスクリプトを変えたら、sha256-の値を計算し直す
+# 変える方法は、<code>の後ろのタグで抜けられた)。根と、要素を文字に替える呼び出しは、中身の要素の名前で上書きされない
+# ものを使う(仕様では、文書のbodyはname="body"の要素で、<form>のプロパティは中のname付きの要素で上書きされる)。
+# そのうえでCSPで、読み込む2つのスクリプトと、ハッシュの合うインラインのスクリプトだけを動かす。インラインの
+# スクリプトを変えたら、tests/ci/docs-overview-browser-check.mdをブラウザで確かめ直し、sha256-の値を計算し直す
 # (tests/ci/docs-overview-test.shが比べる)。
 set -uo pipefail
 
@@ -22,7 +24,7 @@ case "$f" in /* | ?:* | ./*) ;; *=* | -*) f="./$f" ;; esac
 page=$(cat <<'EOF'
 <!doctype html>
 <html lang="ja"><head><meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-QKTm0n8qJUJD48mskKbaaCTyeJ15YKm9BdBaGVXJSL4=' https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.8/mermaid.min.js; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-4fYRzTFVxtc3VQJRFqn746rPPB5qvHU7c1C62xdipjM=' https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.8/mermaid.min.js; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>@TITLE@</title>
 <style>
@@ -63,14 +65,15 @@ pre.mermaid{background:transparent;text-align:center;overflow-x:auto}
     (tag === 'CODE' && name === 'class' && /^language-[a-z0-9-]+$/i.test(value)) ||
     ((tag === 'TH' || tag === 'TD') && name === 'align' && /^(left|right|center)$/.test(value)) ||
     (tag === 'OL' && name === 'start' && /^[0-9]+$/.test(value));
-  const doc = new DOMParser().parseFromString(marked.parse(raw.textContent), 'text/html');
-  for (const el of [...doc.body.querySelectorAll('*')]) {
-    if (!TAGS.includes(el.tagName)) { el.replaceWith(el.outerHTML); continue; }
+  const tpl = document.createElement('template');
+  tpl.innerHTML = marked.parse(raw.textContent);
+  for (const el of [...tpl.content.querySelectorAll('*')]) {
+    if (!TAGS.includes(el.tagName)) { Element.prototype.replaceWith.call(el, String(el.outerHTML)); continue; }
     for (const a of [...el.attributes]) {
       if (!keep(el.tagName, a.name, a.value)) el.removeAttribute(a.name);
     }
   }
-  document.getElementById('out').replaceChildren(...doc.body.childNodes);
+  document.getElementById('out').replaceChildren(tpl.content);
   raw.style.display = 'none';
   const dark = matchMedia('(prefers-color-scheme: dark)').matches;
   mermaid.initialize({ startOnLoad: false, theme: dark ? 'dark' : 'default', securityLevel: 'strict' });
