@@ -11,7 +11,7 @@
 # 変える方法は、<code>の後ろのタグで抜けられた)。根と、要素を文字に替える呼び出しは、中身の要素の名前で上書きされない
 # ものを使う(仕様では、文書のbodyはname="body"の要素で、<form>のプロパティは中のname付きの要素で上書きされる)。
 # そのうえでCSPで、読み込む2つのスクリプトと、ハッシュの合うインラインのスクリプトだけを動かす。インラインの
-# スクリプトを変えたら、tests/ci/docs-overview-browser-check.mdをブラウザで確かめ直し、sha256-の値を計算し直す
+# スクリプトを変えたら、tests/ci/docs-overview-browser-check.mdを包んだHTMLをブラウザで確かめ直し、sha256-の値を計算し直す
 # (tests/ci/docs-overview-test.shが比べる)。
 set -uo pipefail
 

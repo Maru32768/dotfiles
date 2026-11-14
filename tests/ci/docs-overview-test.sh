@@ -92,7 +92,8 @@ csp="$(printf '%s' "$round" | grep -o 'http-equiv="Content-Security-Policy" cont
 want="http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; script-src 'sha256-$hash' $marked $mermaid; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'\""
 equals "CSPのsha256-の値は、インラインのスクリプトのハッシュと同じ" "$csp" "$want"
 # 消毒とMermaidの設定が効くかは、ブラウザでしか確かめられない。確かめた版のハッシュをここに固定する。インラインの
-# スクリプトを変えたら、tests/ci/docs-overview-browser-check.mdをブラウザで開いて確かめ直し、この値を直す
+# スクリプトを変えたら、tests/ci/docs-overview-browser-check.mdをview.shで包んでブラウザで開き、確かめ直してから、
+# この値を直す
 equals "インラインのスクリプトは、ブラウザで確かめた版と同じ" "$hash" '4fYRzTFVxtc3VQJRFqn746rPPB5qvHU7c1C62xdipjM='
 head="$(between "$round" '<head>' '</head>')"
 equals "CSPの<meta>は<head>の中にあり、<head>にスクリプトが無い" \
