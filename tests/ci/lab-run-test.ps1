@@ -66,6 +66,8 @@ try {
         }
         $r = Invoke-Run $shell @('-Path', 'work', '-Prompt', 'one two')
         Check "${shell}: -Prompt goes after -p as one argument, with an empty stdin" ((($r.Args -join '|') -eq (($call -f '~/work') + '|-p|one two')) -and $r.Out -match 'STDIN_LEN=0') $r
+        $r = Invoke-Run $shell @('-Prompt', 'see C:\x\y now')
+        Check "${shell}: a backslash inside -Prompt is passed on" (($r.Args -join '|') -eq (($call -f '~/work') + '|-p|see C:\x\y now')) $r
         foreach ($prompt in 'say "hi" now', 'dir x\') {
             $r = Invoke-Run $shell @('-Prompt', $prompt)
             Check "${shell}: -Prompt '$prompt' fails, and wsl.exe is not called" ($r.Code -eq 1 -and $r.Args.Count -eq 0 -and $r.Out -like '*-Prompt cannot contain*') $r
