@@ -104,6 +104,11 @@ want="$(printf '1 span\tbefore-part.md:1\t-f\nspan\tbefore-part.md:1\tPORT')"
 out="$(bash "$lost" before-part.md -- after-part.md)"
 equals "別の語の一部になっている一致は、残っているとみなさない" "$? $out" "$want"
 
+printf '%s\n' '[入れ方][i]と<a href="docs/setup.html">設定</a>を読む[^1]。' '' '[i]: docs/install.md' '[^1]: 脚注の文' > before-ref.md
+want="$(printf '1 link\tbefore-ref.md:1\tdocs/setup.html\nlink\tbefore-ref.md:3\tdocs/install.md')"
+out="$(bash "$lost" before-ref.md -- after-fence.md)"
+equals "hrefと、参照形式のリンクの定義も、リンク先として挙げる" "$? $out" "$want"
+
 printf '%s\n' '`tool gone`を使う。' '' 'もう一度`tool gone`を使う。' > before-twice.md
 want="$(printf '1 span\tbefore-twice.md:1\ttool gone')"
 out="$(bash "$lost" before-twice.md -- after-fence.md)"
