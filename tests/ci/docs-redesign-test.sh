@@ -84,6 +84,11 @@ want="$(printf '1 code\tbefore-tilde.md:2\ttool deploy --region tokyo')"
 out="$(bash "$lost" before-open.md before-tilde.md -- after-fence.md)"
 equals "フェンスの状態と行番号は、ファイルごとに数え直す。~~~もフェンスとして読む" "$? $out" "$want"
 
+printf '%s\n' '`tool gone`を使う。' '' 'もう一度`tool gone`を使う。' > before-twice.md
+want="$(printf '1 span\tbefore-twice.md:1\ttool gone')"
+out="$(bash "$lost" before-twice.md -- after-fence.md)"
+equals "同じ記述が2回あっても、最初の場所で1回だけ挙げる" "$? $out" "$want"
+
 : > empty.md
 out="$(bash "$lost" empty.md before.md -- after.md | wc -l)"
 equals "前のファイルに空のファイルがあっても、次のファイルを読む" "$out" "4"
