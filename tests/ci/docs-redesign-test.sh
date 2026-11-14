@@ -185,6 +185,8 @@ bash "$lost" a-dir -- after.md >/dev/null 2>&1
 equals "前のファイルにディレクトリを渡すと、終了コード2で止まる" "$?" "2"
 bash "$lost" -- after.md >/dev/null 2>&1 </dev/null
 equals "前のファイルが無ければ、終了コード2で止まる" "$?" "2"
+bash "$lost" - -- after.md >/dev/null 2>&1 </dev/null
+equals "前のファイルに-を渡しても、標準入力を読まずに終了コード2で止まる" "$?" "2"
 
 if [ "$failures" -gt 0 ]; then
   printf '\n%s 件のテストが失敗しました\n' "$failures"

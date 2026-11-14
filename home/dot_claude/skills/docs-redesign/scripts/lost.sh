@@ -21,8 +21,8 @@ die() { printf 'lost.sh: %s\n' "$1" >&2; exit 2; }
 
 before=()
 while [ $# -gt 0 ] && [ "$1" != "--" ]; do
-  # awkは「名前=値」の形の引数を、ファイルではなく変数への代入として読む
-  case "$1" in /* | ?:* | ./*) before+=("$1") ;; *=*) before+=("./$1") ;; *) before+=("$1") ;; esac
+  # awkは「名前=値」の形の引数を変数への代入として、-を標準入力として読む
+  case "$1" in /* | ?:* | ./*) before+=("$1") ;; *=* | -) before+=("./$1") ;; *) before+=("$1") ;; esac
   shift
 done
 [ $# -gt 0 ] || die "usage: lost.sh <前のファイル>... -- <後のファイル>..."
