@@ -4,7 +4,7 @@
 
 | ジョブ | スクリプト | 内容 |
 |---|---|---|
-| `static` | `tests/ci/static.sh` | shellcheck、フック・`bws-run`・`split-pdf`・`split-pr-stack`・review-loopの`evidence.sh`のテスト、不変条件、chezmoi のレンダリング、gitleaks、actionlint |
+| `static` | `tests/ci/static.sh` | shellcheck、フック・`bws-run`・`split-pdf`・`split-pr-stack`・review-loopの`evidence.sh`・docs-redesignのスクリプトのテスト、不変条件、chezmoi のレンダリング、gitleaks、actionlint |
 | `container` | `tests/ci/container.sh <main\|agent\|research>` | `ubuntu:26.04` で環境を作り、確認と再適用まで行う |
 | `windows` | `tests/ci/windows.ps1`、`tests/ci/bws-run-test.ps1` | Windows PowerShell 5.1 での構文、Windows 版の `bws-run` のテスト、PSScriptAnalyzer |
 
