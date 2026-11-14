@@ -145,6 +145,8 @@ main.write_text("\n".join([call("bad", cache_creation="n/a"), call("a1"), call("
                            call("d10", top={"cwd": 5}),
                            # 時刻の無い呼び出しはどの期間の集計にも入らないので、記録せずに数える。深い入れ子のJSONも飛ばす
                            call("d11", top={"timestamp": None}), "[" * 100000,
+                           # JSONとして読めても、オブジェクトでない行
+                           "null",
                            # 集計に使わない属性の形が変わっても、呼び出しは数える
                            call("d8", top={"effort": {"level": "high"}}),
                            # 使用量の無い行で、サブエージェントを起こしたときのスキルが辞書
@@ -164,6 +166,8 @@ text = {"input_tokens": "10", "cached_input_tokens": "4", "output_tokens": "1"}
 rollout.write_text("\n".join(json.dumps(e) for e in [
     {"type": "session_meta", "payload": {"id": "r", "cwd": "C:/repo", "source": {"subagent": ["x"]}}},
     {"type": "event_msg", "timestamp": "2026-11-01T00:00:00Z", "payload": {"type": "token_count", "info": "x"}},
+    # 枠の消費率だけを伝えるtoken_countは、使用量を持たないので数えない
+    {"type": "event_msg", "timestamp": "2026-11-01T00:00:00Z", "payload": {"type": "token_count", "info": None}},
     {"type": "event_msg", "timestamp": "2026-11-01T00:00:01Z",
      "payload": {"type": "token_count", "info": {"total_token_usage": usage, "last_token_usage": usage}}},
     {"type": "event_msg", "timestamp": "2026-11-01T00:00:02Z",
@@ -172,9 +176,9 @@ rollout.write_text("\n".join(json.dumps(e) for e in [
     {"type": "event_msg", "timestamp": "2026-11-01T00:00:03Z", "payload": {"type": "token_count", "info": {"last_token_usage": usage}}},
 ]) + "\n", encoding="utf-8")
 EOF
-equals "型の違う行は飛ばして数え、ほかの行とログは読む" "$(collect "$work/odd" 2>/dev/null)" "4個のログを読み、7件の呼び出しを足した。形の違う14行を飛ばした"
+equals "型の違う行は飛ばして数え、ほかの行とログは読む" "$(collect "$work/odd" 2>/dev/null)" "4個のログを読み、7件の呼び出しを足した。形の違う15行を飛ばした"
 equals "読めたログは読み直さない" "$(collect "$work/odd" 2>/dev/null)" "0個のログを読み、0件の呼び出しを足した"
-equals "飛ばした行は、ログをまたいで足して集計に出す" "$(usage report --since 2026-01-01 | grep '形が違う')" "これまでに読んだログで、形が違うので記録に入れなかった行: 14行"
+equals "飛ばした行は、ログをまたいで足して集計に出す" "$(usage report --since 2026-01-01 | grep '形が違う')" "これまでに読んだログで、形が違うので記録に入れなかった行: 15行"
 equals "文字列で書かれたトークンも数として集計する" "$(field --by source -- "rows['claude']['output'], rows['codex']['input'], rows['codex']['cache_read']")" "(5, 7, 4)"
 equals ".meta.jsonの中身が無いか文字列でなくても、名前がagent-のログはサブエージェントとして分ける" "$(field --source claude --by agent-type -- "sorted(r['calls'] for r in rows.values())")" "[2, 3]"
 
