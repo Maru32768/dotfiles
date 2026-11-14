@@ -90,7 +90,7 @@ def claude_file(path: Path) -> tuple[list[dict], dict]:
         if item.get("type") != "assistant" or not isinstance(message, dict):
             continue
         for block in message.get("content") or []:
-            if isinstance(block, dict) and block.get("type") == "tool_use" and block.get("name") in ("Agent", "Task"):
+            if isinstance(block, dict) and block.get("type") == "tool_use" and block.get("name") == "Agent":
                 agents[block.get("id")] = item.get("attributionSkill")
         usage, model = message.get("usage"), message.get("model")
         if not isinstance(usage, dict) or not message.get("id") or model in (None, "<synthetic>"):
