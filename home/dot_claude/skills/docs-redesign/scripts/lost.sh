@@ -16,6 +16,8 @@
 # 読まないもの: 折り返しの続きの行で、`の並びがすべて対になる行(閉じた後にまた開いて折り返す行)の
 # インラインコード。3行にまたがるインラインコードの間の行。後のファイルで折り返したインラインコードは、
 # 残っていても挙がる。
+# 記号だけのコードブロックの行(}や---)と、記号だけの切れ端は挙げない。記号だけのインラインコード(`/`や`--`)と
+# リンク先は挙げる。
 # 空白の違いは無視する。後のファイルのどこかの1行に同じ文字列があれば、残っているとみなす。
 # ただし、別の語の一部になっている一致は数えない(-fは--forceがあっても、.envは.env.exampleが
 # あっても、残っているとみなさない)。
@@ -62,7 +64,7 @@ function present(tok,   i, h, off, j, p) {
 }
 function probe(kind, tok,   s, w) {
   tok = norm(tok)
-  if (tok ~ /^[[:punct:] ]*$/ || seen[tok]++ || present(tok)) return
+  if (tok == "" || (kind ~ /^(code|part)$/ && tok ~ /^[[:punct:] ]*$/) || seen[tok]++ || present(tok)) return
   if (kind == "code") {
     s = tok
     while (match(s, /[A-Za-z0-9_]+/)) {

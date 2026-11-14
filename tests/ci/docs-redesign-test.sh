@@ -163,6 +163,16 @@ want="$(printf '1 span\tbefore-part.md:1\t-f\nspan\tbefore-part.md:1\tPORT\nspan
 out="$(bash "$lost" before-part.md -- after-part.md)"
 equals "別の語の一部になっている一致は、残っているとみなさない" "$? $out" "$want"
 
+# 記号だけのインラインコードとリンク先も調べる。空のインラインコード、記号だけのコードの行(3〜4行目)、
+# 記号だけの切れ端(7行目の-)は挙げない
+printf '%s\n' '区切りは`:`、ルートは`/`、親は`..`、空は` `。ファイル名の前に`--`を書く。[先頭へ](#)と[上へ](../)。' "$fence" '}' '---' "$fence" '' '- `tool keep' > before-punct.md
+printf '%s\n' 'ルートは`/usr`、親は`../lib`。`--force`と`a:b`と[別](#top)と[下](../x)。`tool keep`' > after-punct.md
+want="$(printf '1 span\tbefore-punct.md:1\t:\nspan\tbefore-punct.md:1\t/\nspan\tbefore-punct.md:1\t..\nspan\tbefore-punct.md:1\t--\nlink\tbefore-punct.md:1\t#\nlink\tbefore-punct.md:1\t../')"
+out="$(bash "$lost" before-punct.md -- after-punct.md)"
+equals "記号だけのインラインコードとリンク先も、無ければ挙げる" "$? $out" "$want"
+out="$(bash "$lost" before-punct.md -- before-punct.md)"
+equals "記号だけの記述も、同じファイルと比べれば挙げない" "$? $out" "0 "
+
 printf '%s\n' '[入れ方][i]と<a href="docs/setup.html">設定</a>を読む[^1]。' '' '[i]: docs/install.md' '[^1]: 脚注の文' > before-ref.md
 want="$(printf '1 link\tbefore-ref.md:1\tdocs/setup.html\nlink\tbefore-ref.md:3\tdocs/install.md')"
 out="$(bash "$lost" before-ref.md -- after-fence.md)"
