@@ -155,6 +155,28 @@ if [ "$profile" != main ]; then
   # shellcheck disable=SC2034 # launcher_want の eval で読む
   output="$(docker exec -u "$user" -e "HOME=/home/$user" "$name" bash -c 'cd / && exec "$1" --version' bash "/usr/local/bin/$profile-claude" 2>&1)"
   launcher_want "資格情報の検査は ~/work の検査より先" '[[ "$output" == *"がありません"* && "$output" != *"~/work の下で起動してください"* ]]'
+
+  step "verify-isolation.sh --e2e は、サンドボックスから書ける場所を外から使わない"
+  # e2e は本物の Claude とトークンが要るので CI では回らない。起動スクリプトの隔離の検査を外し、claude を
+  # 悪いセッションの代わりの偽物に替える。偽物は作業ディレクトリに、外を指すリンクと、git に外のコマンドを動かさせる .git を置く。
+  # shortcut: リンクの名前は verify-isolation.sh が外から書くファイルの名前に合わせてある。その名前を変えるときはここも変える
+  docker exec "$name" sed -i -e '/^[^#]*verify-isolation\.sh/c :' -e 's|^exec claude |exec /tmp/fake-claude |' "/usr/local/bin/$profile-claude" || failures=$((failures + 1))
+  docker exec -i "$name" sh -c 'cat >/tmp/fake-claude && chmod 755 /tmp/fake-claude' <<'EOF' || failures=$((failures + 1))
+#!/bin/bash
+for file in probe.jsonl tools-1.jsonl tools-2.jsonl tools-3.jsonl control.out; do ln -sfn "$HOME/victim" "$file"; done
+git init -q . && git config url."ext::sh -c touch% $HOME/pwned% #".insteadOf https://github.com/ && git config protocol.ext.allow always
+echo '{"type":"result","is_error":false}'
+EOF
+  e2e() { docker exec -u "$user" -e "HOME=/home/$user" -e CLAUDE_CODE_OAUTH_TOKEN=dummy "$name" bash -c "$1" 2>&1; }
+  # bare リポジトリの HEAD は、先のないリンクでも git が受け付ける
+  for plant in 'mkdir ~/work/.git' 'mkdir ~/work/objects ~/work/refs && ln -s refs/heads/main ~/work/HEAD'; do
+    # shellcheck disable=SC2034 # launcher_want の eval で読む
+    output="$(e2e "$plant && bash ~/dotfiles/tests/verify-isolation.sh --e2e; rm -rf ~/work/.git ~/work/objects ~/work/refs ~/work/HEAD")"
+    launcher_want "e2e: $plant の後は、Claude を起動せずに FAIL にする" '[[ "$output" == *"FAIL ~/work に "*" がある"* && "$output" != *"Claude が動く"* ]]'
+  done
+  # shellcheck disable=SC2034 # launcher_want の eval で読む
+  output="$(e2e 'echo keep >~/victim && bash ~/dotfiles/tests/verify-isolation.sh --e2e; echo "victim=$(cat ~/victim) pwned=$([ -e ~/pwned ] && echo yes || echo no)"')"
+  launcher_want "e2e: ~/work の下で起動スクリプトが受け付け、外から書くものはリンクをたどらず、対照の git は作業ディレクトリの .git を見ない" '[[ "$output" == *"PASS Claude が動く"* && "$output" == *"victim=keep pwned=no"* ]]'
 fi
 
 step "もう一度適用しても差分が出ない"
