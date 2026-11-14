@@ -80,6 +80,7 @@ try {
     }
     # A leading ~ passed to an exe would be expanded by this script's own PowerShell 7, so these
     # run lab.ps1 inside pwsh, where only lab.ps1's own calls to wsl.exe can expand it
+    $env:FAKE_WSL_EXIT = ''
     $ErrorActionPreference = 'Continue'
     $out = 'piped' | & pwsh -NoProfile -Command "& '$lab' run research-x -Path '~/work/x' -Prompt '~/work/y'" 2>&1 | Out-String
     $ErrorActionPreference = 'Stop'
@@ -94,5 +95,5 @@ if ($failures -gt 0) {
     exit 1
 }
 Write-Host 'All passed'
-# The last case leaves LASTEXITCODE at 4, and the pwsh step of GitHub Actions exits with it
+# The cases leave a nonzero LASTEXITCODE, and the pwsh step of GitHub Actions exits with it
 exit 0
