@@ -79,6 +79,9 @@ for name in x=1.md -n.md -; do
   equals "ファイルの名前「$name」も、ファイルとして読む" "$? $(title_of "$out") $(body_of "$out")" \
     "0 $name $(cat "./$name")"
 done
+mkdir -p 'k=v'
+printf '%s\n' '# 絶対パス' > 'k=v/o.md'
+equals "=を含む絶対パスに、./を足さない" "$(title_of "$(bash "$view" "$work/k=v/o.md" </dev/null)")" "絶対パス"
 
 hash="$(between "$round" '<script>' '</script>' | openssl dgst -sha256 -binary | openssl base64 -A)"
 marked='https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js'
@@ -86,6 +89,12 @@ mermaid='https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js'
 csp="$(printf '%s' "$round" | grep -o 'http-equiv="Content-Security-Policy" content="[^"]*"')"
 want="http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; script-src 'sha256-$hash' $marked $mermaid; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'\""
 equals "CSPのsha256-の値は、インラインのスクリプトのハッシュと同じ" "$csp" "$want"
+# 消毒とMermaidの設定が効くかは、ブラウザでしか確かめられない。確かめた版のハッシュをここに固定する。インラインの
+# スクリプトを変えたら、references/background.mdの「表示用のHTML」の入力をブラウザで開いて確かめ直し、この値を直す
+equals "インラインのスクリプトは、ブラウザで確かめた版と同じ" "$hash" 'QKTm0n8qJUJD48mskKbaaCTyeJ15YKm9BdBaGVXJSL4='
+head="$(between "$round" '<head>' '</head>')"
+equals "CSPの<meta>は<head>の中にあり、<head>にスクリプトが無い" \
+  "$(printf '%s' "$head" | grep -c 'http-equiv="Content-Security-Policy"') $(printf '%s' "$head" | grep -ci '<script')" "1 0"
 loads() { printf '%s' "$round" | grep -c -F "<script src=\"$1\" integrity=\"$2\" crossorigin=\"anonymous\"></script>"; }
 equals "markedを、決めたURLとintegrityで読む" \
   "$(loads "$marked" 'sha512-xeUh+KxNyTufZOje++oQHstlMQ8/rpyzPuM+gjMFYK3z5ILJGE7l2NvYL+XfliKURMpBIKKp1XoPN/qswlSMFA==')" "1"
