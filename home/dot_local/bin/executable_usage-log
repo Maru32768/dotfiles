@@ -137,14 +137,16 @@ def claude_file(path: Path) -> tuple[list[dict], dict]:
 def codex_file(path: Path) -> list[dict]:
     """Codexの記録は、ターンごとのtoken_countの直前の呼び出しの分(last_token_usage)を数える。"""
     session = project = model = effort = previous = agent_type = None
+    seen_meta = False
     calls = []
     for n, item in lines(path):
         try:
             payload = item.get("payload") or {}
             if item.get("type") == "session_meta":
-                if session is None:  # サブエージェントの記録は、自分のsession_metaの次に親のものを持つ
+                if not seen_meta:  # サブエージェントの記録は、自分のsession_metaの次に親のものを持つ
+                    seen_meta = True
                     session, project = payload.get("id"), payload.get("cwd")
-                    # サブエージェントの種類は "review" か {"thread_spawn": {...}} の形
+                    # サブエージェントの種類は "review" か、{"thread_spawn": {...}} や {"other": "guardian"} の形(キーを使う)
                     source = payload.get("source")
                     kind = source.get("subagent") if isinstance(source, dict) else None
                     agent_type = next(iter(kind), None) if isinstance(kind, dict) else kind if isinstance(kind, str) else None
