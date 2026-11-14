@@ -318,10 +318,14 @@ def report(db: Path, by: str, since: str, until: str | None, project: str | None
         print(f"これまでに読んだログで、形が違うので記録に入れなかった行: {skipped}行")
 
 
+def is_cap(value: str) -> bool:
+    return value.isascii() and value.isdigit() and 1 <= int(value) <= 100
+
+
 def cap_arg(value: str) -> int | str:
     if value == "off":
         return value
-    if value.isascii() and value.isdigit() and 1 <= int(value) <= 100:
+    if is_cap(value):
         return int(value)
     raise argparse.ArgumentTypeError("1〜100の整数か、offを渡す")
 
@@ -329,7 +333,13 @@ def cap_arg(value: str) -> int | str:
 def cap(path: Path, percent: int | str | None) -> None:
     """大きい仕事の上限を出すか、変える。usage-capスキルが、このファイルを読んで止まるかを決める。"""
     if percent is None:
-        print(f"{path.read_text(encoding='utf-8').strip()}%" if path.exists() else "上限なし")
+        if not path.exists():
+            print("上限なし")
+            return
+        text = path.read_text(encoding="utf-8", errors="replace").strip()
+        if not is_cap(text):  # 手で書き換えたファイル。usage-capスキルは止まる
+            sys.exit(f"上限のファイルが1〜100の整数でない: {text!r}(usage-log cap <%>で書き直すか、usage-log cap offで外す)")
+        print(f"{int(text)}%")
     elif percent == "off":
         path.unlink(missing_ok=True)
         print("上限を外した")

@@ -333,6 +333,9 @@ for bad in 0 101 abc 7.5; do
   equals "範囲の外の上限($bad)は、終了コード2で断り、ファイルを変えない" "$(usage cap "$bad" 2>/dev/null; echo "rc=$?"; cat "$work/cap/weekly-cap")" "rc=2
 70"
 done
+printf 'abc\n' >"$work/cap/weekly-cap"
+equals "手で壊した上限は、そのまま出さずに終了コード1で知らせる" "$({ usage cap 2>&1; echo "rc=$?"; } | tr -d '\r')" "上限のファイルが1〜100の整数でない: 'abc'(usage-log cap <%>で書き直すか、usage-log cap offで外す)
+rc=1"
 equals "上限を外す" "$(usage cap off)" "上限を外した"
 equals "外すとファイルを消す" "$([ -e "$work/cap/weekly-cap" ] && echo exists || echo gone)" "gone"
 equals "外した後に外しても、失敗しない" "$(usage cap off)" "上限を外した"
