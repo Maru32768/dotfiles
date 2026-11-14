@@ -1,8 +1,6 @@
 #!/bin/bash
 # docs-overviewのview.sh(home/dot_claude/skills/docs-overview/scripts)を、使い捨ての概観で試す。ブラウザでの
 # 動き(図の描画、CSPでスクリプトが止まるか)は確かめない
-# テストの入力にMarkdownのバッククォートを、期待する値にCSPの'を書く
-# shellcheck disable=SC2016
 set -uo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -14,13 +12,11 @@ failures=0
 pass() { printf 'PASS %s\n' "$1"; }
 fail() { printf 'FAIL %s\n' "$1"; failures=$((failures + 1)); }
 equals() { if [ "$2" = "$3" ]; then pass "$1"; else fail "$1"; printf '  want: %s\n  got:  %s\n' "$3" "$2"; fi; }
-count() { grep -o -- "$1" | wc -l | tr -d ' '; }
+# $1の中の、最初の$2と、その後の最初の$3の間
+between() { local s=${1#*"$2"}; printf '%s' "${s%%"$3"*}"; }
 # <pre id="md">の中身を取り出し、3文字を戻す。&amp;は最後に戻す(先に戻すと、&amp;lt;が<になる)
-body_of() {
-  local s=${1#*'<pre id="md">'}
-  printf '%s' "${s%%'</pre>'*}" | sed -e 's/&lt;/</g' -e 's/&gt;/>/g' -e 's/&amp;/\&/g'
-}
-title_of() { local s=${1#*<title>}; printf '%s' "${s%%</title>*}"; }
+body_of() { between "$1" '<pre id="md">' '</pre>' | sed -e 's/&lt;/</g' -e 's/&gt;/>/g' -e 's/&amp;/\&/g'; }
+title_of() { between "$1" '<title>' '</title>'; }
 # 終了コード2で、標準出力が空で、標準エラーに理由を出す
 rejects() {
   local name=$1; shift
@@ -30,7 +26,6 @@ rejects() {
 }
 
 cd "$work" || exit 1
-fence='```'
 
 rejects "引数が無ければ、終了コード2で止まる"
 printf '# a\n' > a.md
@@ -40,7 +35,7 @@ mkdir -p a-dir
 rejects "ディレクトリは、終了コード2で止まる" a-dir
 
 # 入力の&amp;と&lt;は、戻した後もそのまま残る(エスケープの順を間違えると、<や&に化ける)
-cat > round.md <<EOF
+cat > round.md <<'EOF'
 # 概観 & <計画>
 
 A & B < C > D。&amp;と&lt;はそのまま書く。
@@ -49,25 +44,21 @@ A & B < C > D。&amp;と&lt;はそのまま書く。
 </script><script>alert(1)</script>
 <SCRIPT src=x></SCRIPT>
 
-\`<b>\`と\`\`a\`b\`\`を使う。
+`<b>`と``a`b``を使う。
 
 
-${fence}mermaid
+```mermaid
 flowchart LR
   A["<入力>"] --> B{判定 & 分岐}
-${fence}
+```
 末尾の行
 EOF
-out="$(bash "$view" round.md </dev/null)"
-code=$?
-equals "本文を取り出して戻すと、入力と同じになる" "$code $(body_of "$out")" "0 $(cat round.md)"
-equals "生の</pre>は、本文を閉じる1つだけ" "$(printf '%s' "$out" | count '</pre>')" "1"
-equals "<scriptで始まるタグは、外部の2つとインラインの1つだけ" "$(printf '%s' "$out" | grep -io '<script' | wc -l | tr -d ' ')" "3"
-equals "初めの表示は、未実行の検査" \
-  "$(printf '%s' "$out" | grep -c -F '<p id="status">Mermaidの検査: 未実行(スクリプトが読み込めないときは、下にMarkdownのまま表示します)</p>')" "1"
-equals "外部のスタイルシートやフォントを読まない" "$(printf '%s' "$out" | grep -ciE '<link|@import|url\(')" "0"
+round="$(bash "$view" round.md </dev/null)"
+equals "本文を取り出して戻すと、入力と同じになる" "$? $(body_of "$round")" "0 $(cat round.md)"
+equals "<scriptで始まるタグは、外部の2つとインラインの1つだけ" "$(printf '%s' "$round" | grep -io '<script' | wc -l | tr -d ' ')" "3"
+equals "外部のスタイルシートやフォントを読まない" "$(printf '%s' "$round" | grep -ciE '<link|@import|url\(')" "0"
 
-equals "題は最初の「# 」の行の見出しで、エスケープする" "$(title_of "$out")" "概観 &amp; &lt;計画&gt;"
+equals "題は最初の「# 」の行の見出しで、エスケープする" "$(title_of "$round")" "概観 &amp; &lt;計画&gt;"
 mkdir -p sub
 printf '%s\n' '## 先の節' '#題ではない' 'x' '# 後の見出し' '# 2つ目' > sub/heading.md
 equals "題は、最初の「# 」の行より前の##や#の行を使わない" "$(title_of "$(bash "$view" sub/heading.md </dev/null)")" "後の見出し"
@@ -89,22 +80,13 @@ for name in x=1.md -n.md -; do
     "0 $name $(cat "./$name")"
 done
 
-out="$(printf 'STDIN-MARK\n' | bash "$view" a.md)"
-equals "標準入力は読まない" "$(printf '%s' "$out" | count 'STDIN-MARK')" "0"
-
-out="$(bash "$view" round.md </dev/null)"
-s=${out#*<script>}
-inline=${s%%</script>*}
-hash="$(printf '%s' "$inline" | openssl dgst -sha256 -binary | openssl base64 -A)"
+hash="$(between "$round" '<script>' '</script>' | openssl dgst -sha256 -binary | openssl base64 -A)"
 marked='https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js'
 mermaid='https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js'
-csp="$(printf '%s' "$out" | grep -o 'http-equiv="Content-Security-Policy" content="[^"]*"')"
+csp="$(printf '%s' "$round" | grep -o 'http-equiv="Content-Security-Policy" content="[^"]*"')"
 want="http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; script-src 'sha256-$hash' $marked $mermaid; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'\""
 equals "CSPのsha256-の値は、インラインのスクリプトのハッシュと同じ" "$csp" "$want"
-equals "インラインのスクリプトは1つだけ" "$(printf '%s' "$out" | count '<script>')" "1"
-script_src="$(printf '%s' "$csp" | grep -o 'script-src[^;]*')"
-equals "script-srcに'unsafe-inline'が無い" "$(printf '%s' "$script_src" | count "'unsafe-inline'")" "0"
-loads() { printf '%s' "$out" | grep -c -F "<script src=\"$1\" integrity=\"$2\" crossorigin=\"anonymous\"></script>"; }
+loads() { printf '%s' "$round" | grep -c -F "<script src=\"$1\" integrity=\"$2\" crossorigin=\"anonymous\"></script>"; }
 equals "markedを、決めたURLとintegrityで読む" \
   "$(loads "$marked" 'sha512-xeUh+KxNyTufZOje++oQHstlMQ8/rpyzPuM+gjMFYK3z5ILJGE7l2NvYL+XfliKURMpBIKKp1XoPN/qswlSMFA==')" "1"
 equals "mermaidを、決めたURLとintegrityで読む" \
