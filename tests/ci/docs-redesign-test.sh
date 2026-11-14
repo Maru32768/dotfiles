@@ -143,9 +143,9 @@ equals "対にならないバッククォートの次の行でも、インライ
 
 # 1行目の記述は、後の版では、前か後ろに英数字、_、-が続く別の語の一部になっている
 # 2行目の記述は、後ろに.、:、/と英数字が続く。3行目は、文の終わりの.、行の番号でない:、末尾の/の前にある
-printf '%s\n' '`-f`を付ける。`PORT`と`HOME`と`--yes`と`PATH`を設定する。`tool start`で始める。' '`.env`と`npm run build`と[API](https://example.com/api)。' '`README.md`と`localhost`と`docs`を見る。' > before-part.md
-printf '%s\n' '`--force`を付ける。`PORTS`と`XHOME`と`--yes-all`と`PATH_INFO`を見る。`sudo tool start --now`で始める。' '`.env.example`と`npm run build:prod`と[API](https://example.com/api/v2)。' 'See README.md. Open localhost: it works. The docs/ directory.' > after-part.md
-want="$(printf '1 span\tbefore-part.md:1\t-f\nspan\tbefore-part.md:1\tPORT\nspan\tbefore-part.md:1\tHOME\nspan\tbefore-part.md:1\t--yes\nspan\tbefore-part.md:1\tPATH\nspan\tbefore-part.md:2\t.env\nspan\tbefore-part.md:2\tnpm run build\nlink\tbefore-part.md:2\thttps://example.com/api')"
+printf '%s\n' '`-f`を付ける。`PORT`と`HOME`と`--yes`と`PATH`と`-version`と`DIR`を設定する。`tool start`で始める。' '`.env`と`npm run build`と[API](https://example.com/api)。' '`README.md`と`localhost`と`docs`を見る。' > before-part.md
+printf '%s\n' '`--force`を付ける。`PORTS`と`XHOME`と`--yes-all`と`PATH_INFO`と`--version`と`TMP_DIR`を見る。`sudo tool start --now`で始める。' '`.env.example`と`npm run build:prod`と[API](https://example.com/api/v2)。' 'See README.md. Open localhost: it works. The docs/ directory.' > after-part.md
+want="$(printf '1 span\tbefore-part.md:1\t-f\nspan\tbefore-part.md:1\tPORT\nspan\tbefore-part.md:1\tHOME\nspan\tbefore-part.md:1\t--yes\nspan\tbefore-part.md:1\tPATH\nspan\tbefore-part.md:1\t-version\nspan\tbefore-part.md:1\tDIR\nspan\tbefore-part.md:2\t.env\nspan\tbefore-part.md:2\tnpm run build\nlink\tbefore-part.md:2\thttps://example.com/api')"
 out="$(bash "$lost" before-part.md -- after-part.md)"
 equals "別の語の一部になっている一致は、残っているとみなさない" "$? $out" "$want"
 
@@ -203,8 +203,11 @@ bash "$lost" a-dir -- after.md >/dev/null 2>&1
 equals "前のファイルにディレクトリを渡すと、終了コード2で止まる" "$?" "2"
 bash "$lost" -- after.md >/dev/null 2>&1 </dev/null
 equals "前のファイルが無ければ、終了コード2で止まる" "$?" "2"
-bash "$lost" - -- after.md >/dev/null 2>&1 </dev/null
-equals "前のファイルに-を渡しても、標準入力を読まずに終了コード2で止まる" "$?" "2"
+# -という名前のファイルを置く。awkにそのまま渡すと、ファイルではなく標準入力を読む
+printf '%s\n' '`tool gone`を使う。' > ./-
+want="$(printf '1 span\t./-:1\ttool gone')"
+out="$(bash "$lost" - -- after-fence.md </dev/null)"
+equals "前のファイルの-は、標準入力ではなくファイルとして読む" "$? $out" "$want"
 
 if [ "$failures" -gt 0 ]; then
   printf '\n%s 件のテストが失敗しました\n' "$failures"
