@@ -142,8 +142,8 @@ if [ "$profile" != main ]; then
   run_in() { docker exec -u "$user" -e "HOME=/home/$user" -e CLAUDE_CODE_OAUTH_TOKEN=dummy "$name" bash -c 'cd "$1" && exec "$2" --version' bash "$1" "/usr/local/bin/$profile-claude" 2>&1; }
   for dir in / "/home/$user" "/home/$user/workx" "/home/$user/work/out"; do
     # shellcheck disable=SC2034 # launcher_want の eval で読む
-    output="$(run_in "$dir")"
-    launcher_want "$dir では、隔離の検査の前に止まる" '[[ "$output" == *"~/work の下で起動してください"* && "$output" != *"FAIL "* && "$output" != *"(Claude Code)"* ]]'
+    output="$(run_in "$dir")" rc=$?
+    launcher_want "$dir では、隔離の検査の前に 0 以外で止まる" '[[ $rc -ne 0 && "$output" == *"~/work の下で起動してください"* && "$output" != *"FAIL "* && "$output" != *"(Claude Code)"* ]]'
   done
   for dir in "/home/$user/work" "/home/$user/work/run"; do
     # shellcheck disable=SC2034 # launcher_want の eval で読む
