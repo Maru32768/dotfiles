@@ -47,7 +47,7 @@ description: いもすさんの humanizer ルール（https://imoz.jp/humanizer.
        --final <推敲稿> --state-dir .yomiyasu
      ```
 
-     `--doc-type` は、PR/MR 本文が `pr`、手順書・README が `manual`、設計書・仕様書が `formal`。当てはまらなければ指定しない。`--state-dir`を省くと、`<work>`より上にgitのリポジトリがあれば、その直下に`.yomiyasu/`が作られる。終了コード1（meaning-risk）が出たら、その書き換えを戻すか、意味が同じだと言える根拠を報告しろ。
+     `--doc-type` は、PR/MR 本文が `pr`、手順書・README が `manual`、設計書・仕様書が `formal`。当てはまらなければ指定しない。終了コード1（meaning-risk）が出たら、その書き換えを戻すか、意味が同じだと言える根拠を報告しろ。
    - 推敲稿には注記や質問を入れるな。報告は本文で返せ。採用した変更（5点まで）、ルールに照らして気づいたが制約で採らなかったもの、書き手に確かめたい点、検査の指摘とその扱い。
 
 3. **親がファイルごとに収束を判定する。**
