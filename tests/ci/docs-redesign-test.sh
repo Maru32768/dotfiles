@@ -99,8 +99,9 @@ want="$(printf '1 code\tbefore-deep.md:3\ttool inner\ncode\tbefore-deep.md:5\tto
 out="$(bash "$lost" before-deep.md -- after-fence.md)"
 equals "情報文字列のある行、違う記号の行、深く字下げした行では、フェンスを閉じない" "$? $out" "$want"
 
-# 1行目はバッククォート2つで始まるが、フェンスではない。5行目のフェンスは、箇条書きの中で字下げしている
-printf '%s\n' '``tool start``と書く。' '' '1. 入れる。' '' "   ${fence}bash" '   tool install --global' "   $fence" > before-list.md
+# 1行目はバッククォート2つで始まるが、フェンスではない。5行目のフェンスは、箇条書きの中で字下げしていて、
+# 同じ字下げの7行目で閉じる
+printf '%s\n' '``tool start``と書く。' '' '1. 入れる。' '' "      ${fence}bash" '      tool install --global' "      $fence" '`tool start`で始める。' > before-list.md
 want="$(printf '1 code\tbefore-list.md:6\ttool install --global')"
 out="$(bash "$lost" before-list.md -- after-fence.md)"
 equals "字下げしたフェンスを読み、バッククォート2つの行をフェンスにしない" "$? $out" "$want"
