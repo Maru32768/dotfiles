@@ -37,7 +37,7 @@ bash ~/.claude/skills/imos-humanizer/scripts/fetch-rules.sh --check
 | `clarity` | prose-polish | `skills.toml` |
 | `web-design-guidelines`、`frontend-design` | docs-redesign(サイトの見た目は扱わず、この2つを案内する) | `skills.toml`、プラグイン(`frontend-design`) |
 | docs-redesignの`scripts/outline.sh`と`references/reader-test.md` | docs-overview(見出しの一覧と、頼まれたときの読者テストに使う) | 同じく自作のスキルで、`home/dot_claude/skills/docs-redesign/`にある |
-| cdnjsの`marked` 12.0.2と`mermaid` 10.9.1 | docs-overview(`scripts/view.sh`が作る表示用のHTMLが、開いたときに読み込む) | 入れない。版とSRIのハッシュを`view.sh`に固定してある。読み込めないときは、HTMLがMarkdownのまま表示する |
+| cdnjsの`marked` 12.0.2と`mermaid` 10.9.1 | docs-overview(`scripts/view.sh`が作る表示用のHTMLが、開かれたときに読み込む) | 入れない。版とSRIのハッシュを`view.sh`に固定してある。読み込めないときは、HTMLがMarkdownのまま表示する |
 | `ronny:engineering-small-prs` | split-pr-stack | プラグイン (`home/.claude-settings.json`) |
 | `mattpocock-skills:grilling`、`mattpocock-skills:domain-modeling`、`mattpocock-skills:pr` | ship-task | プラグイン (`mattpocock-skills`) |
 | `pstack:poteto-mode`、`pstack:technical-writing` | ship-task、prose-polish | プラグイン (`pstack`) |
