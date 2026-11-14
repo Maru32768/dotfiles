@@ -92,11 +92,18 @@ want="$(printf '1 code\tbefore-nested.md:3\ttool deploy --prod\nspan\tbefore-nes
 out="$(bash "$lost" before-nested.md -- after-fence.md)"
 equals "フェンスの中のフェンスで、状態がずれない" "$? $out" "$want"
 
-# 3行目は、4つ字下げしたフェンス(箇条書きの中のコードブロックを、例として書いたもの)。外のフェンスを閉じない
-printf '%s\n' "$fence" 'tool keep' "    $fence" 'tool gone' "$fence" '`tool after`を使う。' > before-deep.md
-want="$(printf '1 code\tbefore-deep.md:2\ttool keep\ncode\tbefore-deep.md:4\ttool gone\nspan\tbefore-deep.md:6\ttool after')"
+# 2行目は情報文字列があり、4行目は記号が違い、6行目は4つ字下げしている(箇条書きの中のコードブロックを、
+# 例として書いたもの)。どれも外のフェンスを閉じない。8行目は、開いた行より長いフェンスで閉じる
+printf '%s\n' "$fence" "${fence}bash" 'tool inner' '~~~' 'tool tilde' "    $fence" 'tool deep' "${fence}\`" '`tool after`を使う。' > before-deep.md
+want="$(printf '1 code\tbefore-deep.md:3\ttool inner\ncode\tbefore-deep.md:5\ttool tilde\ncode\tbefore-deep.md:7\ttool deep\nspan\tbefore-deep.md:9\ttool after')"
 out="$(bash "$lost" before-deep.md -- after-fence.md)"
-equals "フェンスの中の、深く字下げしたフェンスで閉じない" "$? $out" "$want"
+equals "情報文字列のある行、違う記号の行、深く字下げした行では、フェンスを閉じない" "$? $out" "$want"
+
+# 1行目はバッククォート2つで始まるが、フェンスではない。5行目のフェンスは、箇条書きの中で字下げしている
+printf '%s\n' '``tool start``と書く。' '' '1. 入れる。' '' "   ${fence}bash" '   tool install --global' "   $fence" > before-list.md
+want="$(printf '1 code\tbefore-list.md:6\ttool install --global')"
+out="$(bash "$lost" before-list.md -- after-fence.md)"
+equals "字下げしたフェンスを読み、バッククォート2つの行をフェンスにしない" "$? $out" "$want"
 
 # 1〜2行目は、インラインコードが行の折り返しをまたぐ
 printf '%s\n' '次のように`tool run' '--jobs 4`と`tool gc`を使う。' > before-wrap.md
