@@ -113,6 +113,19 @@ want="$(printf '1 code\tbefore-list.md:6\ttool install --global')"
 out="$(bash "$lost" before-list.md -- after-fence.md)"
 equals "字下げしたフェンスを読み、バッククォート2つの行をフェンスにしない" "$? $out" "$want"
 
+# 1行目と5行目のフェンスは、箇条書きの記号と同じ行で開く。閉じる行(3行目、7行目)がフェンスを開くと、
+# その先の地の文とコードブロックが入れ替わる。フェンスの中の箇条書きの行(11行目)は、フェンスを閉じない(閉じると、12行目が地の文になる)
+printf '%s\n' "- ${fence}bash" '  tool one' "  $fence" '' "1. ${fence}sh" '   tool two' "   $fence" '`tool prose`を使う。' "$fence" 'tool three' "- $fence" 'tool four' "$fence" > before-marker.md
+want="$(printf '1 code\tbefore-marker.md:2\ttool one\ncode\tbefore-marker.md:6\ttool two\nspan\tbefore-marker.md:8\ttool prose\ncode\tbefore-marker.md:10\ttool three\ncode\tbefore-marker.md:12\ttool four')"
+out="$(bash "$lost" before-marker.md -- after-fence.md)"
+equals "箇条書きの記号と同じ行で開くフェンスを読む" "$? $out" "$want"
+
+# 1行目は、バッククォート3つで囲んだインラインコードで始まる段落。フェンスを開かない
+printf '%s\n' "${fence}js${fence}は言語の名前。" '' "$fence" 'tool deploy --prod' "$fence" > before-inline3.md
+want="$(printf '1 span\tbefore-inline3.md:1\tjs\ncode\tbefore-inline3.md:4\ttool deploy --prod')"
+out="$(bash "$lost" before-inline3.md -- after-fence.md)"
+equals "行頭のバッククォート3つのインラインコードを、フェンスにしない" "$? $out" "$want"
+
 # 地の文だけを残した後の版。閉じない`の並びがある行の、地の文の切れ端が挙がらないようにする
 printf '%s\n' '次のように と を使う。' 'Use or to clean.' '記号の と と``と を書く。' '`x`と`y`を使う。' > after-prose.md
 
