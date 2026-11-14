@@ -311,6 +311,21 @@ equals "スキルの無い呼び出しは、モデルによらず1つにまと�
 db="$work/usage.sqlite3"
 equals "--helpもUTF-8で出す" "$(usage --help | grep -c '使用量だけを抜き出して貯め')" "1"
 
+# 大きい仕事の上限は、記録と同じディレクトリのweekly-capに、週の枠の%を1行で書く
+db="$work/cap/usage.sqlite3"
+equals "上限が無ければ、そう出す" "$(usage cap)" "上限なし"
+equals "上限を決める" "$(usage cap 70)" "週の枠(全モデル)の上限を70%にした"
+equals "上限はファイルに整数で書く" "$(cat "$work/cap/weekly-cap")" "70"
+equals "今の上限を出す" "$(usage cap)" "70%"
+for bad in 0 101 abc 7.5; do
+  equals "範囲の外の上限($bad)は、終了コード2で断り、ファイルを変えない" "$(usage cap "$bad" 2>/dev/null; echo "rc=$?"; cat "$work/cap/weekly-cap")" "rc=2
+70"
+done
+equals "上限を外す" "$(usage cap off)" "上限を外した"
+equals "外すとファイルを消す" "$([ -e "$work/cap/weekly-cap" ] && echo exists || echo gone)" "gone"
+equals "外した後に外しても、失敗しない" "$(usage cap off)" "上限を外した"
+db="$work/usage.sqlite3"
+
 if [ "$failures" -ne 0 ]; then
   printf '\n%d件の問題があります\n' "$failures"
   exit 1

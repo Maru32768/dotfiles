@@ -9,6 +9,7 @@
     usage-log report                           # 直近7日をスキル別に
     usage-log report --by agent --since 30d    # サブエージェントの説明別に
     usage-log report --by model --since 2026-11-01 --json
+    usage-log cap 70                           # 大きい仕事は週の枠(全モデル)の70%まで(offで外す)
 
 Claude Codeはセッションのログを30日で消すので、collectはAPI呼び出しごとの使用量だけを
 ~/.local/state/usage/usage.sqlite3に写し、会話の中身は残さない。SessionStartのフックが
@@ -317,6 +318,25 @@ def report(db: Path, by: str, since: str, until: str | None, project: str | None
         print(f"これまでに読んだログで、形が違うので記録に入れなかった行: {skipped}行")
 
 
+def cap_arg(value: str) -> int | str:
+    if value == "off" or value.isascii() and value.isdigit() and 1 <= int(value) <= 100:
+        return value if value == "off" else int(value)
+    raise argparse.ArgumentTypeError("1〜100の整数か、offを渡す")
+
+
+def cap(path: Path, percent: int | str | None) -> None:
+    """大きい仕事の上限を出すか、変える。usage-capスキルが、このファイルを読んで止まるかを決める。"""
+    if percent is None:
+        print(f"{path.read_text(encoding='utf-8').strip()}%" if path.exists() else "上限なし")
+    elif percent == "off":
+        path.unlink(missing_ok=True)
+        print("上限を外した")
+    else:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(f"{percent}\n", encoding="utf-8", newline="")
+        print(f"週の枠(全モデル)の上限を{percent}%にした")
+
+
 def main() -> None:
     # WindowsのPythonは、パイプにcp932で書く。--helpと引数の誤りはparse_argsの中で出るので、その前に切り替える
     sys.stdout.reconfigure(encoding="utf-8")
@@ -335,9 +355,13 @@ def main() -> None:
     r.add_argument("--project", help="プロジェクトのパスに、この文字列を含むものだけ")
     r.add_argument("--source", choices=("claude", "codex"))
     r.add_argument("--json", action="store_true")
+    k = sub.add_parser("cap", help="大きい仕事が使ってよい週の枠(全モデル)の割合を出すか、変える")
+    k.add_argument("percent", nargs="?", type=cap_arg, help="1〜100の整数(%%)か、上限を外すoff。省くと今の上限を出す")
     args = parser.parse_args()
     if args.command == "collect":
         collect(args.db, args.claude_dir, args.codex_dir, args.quiet)
+    elif args.command == "cap":
+        cap(args.db.parent / "weekly-cap", args.percent)  # 記録と同じディレクトリに置く
     else:
         report(args.db, args.by, args.since, args.until, args.project, args.source, args.json)
 
