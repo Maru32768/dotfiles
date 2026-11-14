@@ -14,11 +14,17 @@ if [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
   exit 1
 fi
 
-# サンドボックスは作業ディレクトリへの書き込みを許すので、ホームで動かすと ~/.local/bin まで書き換えられる
-if [ "$PWD" = "$HOME" ]; then
-  echo "ホームでは起動しません。~/work の下で起動してください" >&2
-  exit 1
-fi
+# サンドボックスは作業ディレクトリへの書き込みを許すので、~/work の外で動かすと ~/.local/bin などまで書き換えられる。
+# wsl.exe は --cd に失敗しても / で続けるので、ホームだけでなく外をすべて断る。
+# シンボリックリンクで外を指せないよう、実際のパスで比べる
+work="$(cd "$HOME/work" && pwd -P)"
+case "$(pwd -P)/" in
+  "$work"/*) ;;
+  *)
+    echo "作業ディレクトリ $PWD は ~/work の外です。~/work の下で起動してください" >&2
+    exit 1
+    ;;
+esac
 
 bash "$HOME/dotfiles/tests/verify-isolation.sh" --quiet
 
