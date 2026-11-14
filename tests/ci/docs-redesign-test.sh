@@ -127,6 +127,14 @@ want="$(printf '1 span\tbefore-join.md:1\ttool a b')"
 out="$(bash "$lost" before-join.md -- after-block.md)"
 equals "後の版のコードブロックの行は、つないで探さない" "$? $out" "$want"
 
+# 開いたままのインラインコードは、次のファイル、空行の先、フェンスの先へ続けない。続けると、`が奇数の行で
+# つないだ読み方だけを調べて、その行のインラインコードを見逃す
+printf '%s\n' '記号の`を書く。' > before-reset-1.md
+printf '%s\n' '`tool one`と`を書く。' '' '`tool two`と`を書く。' "$fence" 'tool start' "$fence" '`tool three`と`を書く。' > before-reset-2.md
+want="$(printf '1 span\tbefore-reset-2.md:1\ttool one\nspan\tbefore-reset-2.md:3\ttool two\nspan\tbefore-reset-2.md:7\ttool three')"
+out="$(bash "$lost" before-reset-1.md before-reset-2.md -- after-fence.md)"
+equals "開いたままのインラインコードを、ファイル、空行、フェンスをまたいで続けない" "$? $out" "$want"
+
 # 1行目のバッククォートは対にならない。2行目は、つないだ読み方の切れ端(を書く。、と)も挙がるが、インラインコードを見逃さない
 printf '%s\n' '記号の`を書く。' '`tool xx`と`tool yy`を使う。' > before-stray.md
 out="$(bash "$lost" before-stray.md -- after-fence.md | cut -f3 | LC_ALL=C sort | tr '\n' ' ')"
@@ -174,7 +182,8 @@ want="$(printf '1 code\tbefore-short.md:2\tcd ..')"
 out="$(bash "$lost" before-short.md -- after-match.md)"
 equals "3文字以上の語が1つも無い行は、lineにしない" "$? $out" "$want"
 
-printf '%s\r\n' "${fence}bash" 'tool run --jobs 4' "$fence" > before-crlf.md
+# 閉じるフェンスの後の行は、地の文として読む(CRを除かないと、フェンスが閉じない)
+printf '%s\r\n' "${fence}bash" 'tool run --jobs 4' "$fence" '`tool init`を使う。' > before-crlf.md
 out="$(bash "$lost" before-crlf.md -- after.md)"
 equals "改行がCRLFの行も、LFの行と同じとみなす" "$? $out" "0 "
 
