@@ -119,9 +119,10 @@ printf '%s\n' '記号の`を書く。' '`tool xx`と`tool yy`を使う。' > bef
 out="$(bash "$lost" before-stray.md -- after-fence.md | cut -f3 | LC_ALL=C sort | tr '\n' ' ')"
 equals "対にならないバッククォートの次の行でも、インラインコードを挙げる" "$out" "tool xx tool yy と を書く。 "
 
-printf '%s\n' '`-f`を付ける。`PORT`を設定する。`tool start`で始める。' > before-part.md
-printf '%s\n' '`--force`を付ける。`EXPORTS`を見る。`sudo tool start --now`で始める。' > after-part.md
-want="$(printf '1 span\tbefore-part.md:1\t-f\nspan\tbefore-part.md:1\tPORT')"
+# 2行目の記述は、後の版では、文の終わりの.、行の番号でない:、末尾の/の前にある
+printf '%s\n' '`-f`を付ける。`PORT`を設定する。`tool start`で始める。`.env`と`npm run build`と[API](https://example.com/api)。' '`README.md`と`localhost`と`docs`を見る。' > before-part.md
+printf '%s\n' '`--force`を付ける。`EXPORTS`を見る。`sudo tool start --now`で始める。`.env.example`と`npm run build:prod`と[API](https://example.com/api/v2)。' 'See README.md. Open localhost: it works. The docs/ directory.' > after-part.md
+want="$(printf '1 span\tbefore-part.md:1\t-f\nspan\tbefore-part.md:1\tPORT\nspan\tbefore-part.md:1\t.env\nspan\tbefore-part.md:1\tnpm run build\nlink\tbefore-part.md:1\thttps://example.com/api')"
 out="$(bash "$lost" before-part.md -- after-part.md)"
 equals "別の語の一部になっている一致は、残っているとみなさない" "$? $out" "$want"
 

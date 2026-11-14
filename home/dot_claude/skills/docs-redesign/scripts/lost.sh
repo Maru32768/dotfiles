@@ -11,7 +11,8 @@
 # 残っていればline、語のどれかが無いか、語が1つも無い行はcodeにする。lineは、書き方を変えたか、
 # 別の例に替えた行に多い。
 # 空白の違いは無視する。後のファイルのどこかの行に同じ文字列があれば、残っているとみなす。
-# ただし、英数字、_、-に挟まれた一致は数えない(-fは、--forceがあっても残っているとみなさない)。
+# ただし、別の語の一部になっている一致は数えない(-fは--forceがあっても、.envは.env.exampleが
+# あっても、残っているとみなさない)。
 # 同じ記述は、最初に見つけた場所で1回だけ出す。
 # 終了コードは、挙げるものが無ければ0、あれば1。使い方の誤りと読めないファイルは2。
 set -uo pipefail
@@ -38,14 +39,15 @@ for f in "$@"; do cat -- "$f" || die "後のファイルを読めない: $f"; ec
 # パスは環境変数で渡す。-vで渡すと、awkがパスの中の\を解釈する
 HAY="$hay" awk '
 function norm(s) { gsub(/\r/, "", s); gsub(/[ \t]+/, " ", s); sub(/^ /, "", s); sub(/ $/, "", s); return s }
-# 後のファイルのどこかの行に、tokが英数字、_、-に挟まれずに現れるか。-fを--forceの一部とはみなさない
+# 後のファイルのどこかの行に、tokが別の語の一部としてではなく現れるか。前後が英数字、_、-の一致と、
+# 後ろに.、:、/と英数字が続く一致は数えない(-fと--force、.envと.env.example、/apiと/api/v2)
 function present(tok,   i, h, off, j, p) {
   if (index(hay, tok) == 0) return 0
   for (i = 1; i <= nh; i++) {
     h = hl[i]; off = 0
     while ((j = index(substr(h, off + 1), tok)) > 0) {
       p = off + j
-      if ((p == 1 || substr(h, p - 1, 1) !~ /[A-Za-z0-9_-]/) && substr(h, p + length(tok), 1) !~ /[A-Za-z0-9_-]/) return 1
+      if ((p == 1 || substr(h, p - 1, 1) !~ /[A-Za-z0-9_-]/) && substr(h, p + length(tok), 2) !~ "^([A-Za-z0-9_-]|[.:/][A-Za-z0-9])") return 1
       off = p
     }
   }
