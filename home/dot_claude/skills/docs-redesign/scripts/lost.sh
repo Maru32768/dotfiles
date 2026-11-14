@@ -18,7 +18,11 @@ set -uo pipefail
 die() { printf 'lost.sh: %s\n' "$1" >&2; exit 2; }
 
 before=()
-while [ $# -gt 0 ] && [ "$1" != "--" ]; do before+=("$1"); shift; done
+while [ $# -gt 0 ] && [ "$1" != "--" ]; do
+  # awkは「名前=値」の形の引数を、ファイルではなく変数への代入として読む
+  case "$1" in /* | ?:* | ./*) before+=("$1") ;; *=*) before+=("./$1") ;; *) before+=("$1") ;; esac
+  shift
+done
 [ $# -gt 0 ] || die "usage: lost.sh <前のファイル>... -- <後のファイル>..."
 shift
 [ ${#before[@]} -gt 0 ] && [ $# -gt 0 ] || die "usage: lost.sh <前のファイル>... -- <後のファイル>..."
@@ -27,9 +31,11 @@ for f in "${before[@]}" "$@"; do [ -r "$f" ] && [ ! -d "$f" ] || die "読めな�
 # 後のファイルは、引数の長さの上限に当たらないよう、1つのファイルにまとめてawkに読ませる
 hay="$(mktemp)" || die "一時ファイルを作れない"
 trap 'rm -f "$hay"' EXIT
-cat -- "$@" > "$hay" || die "後のファイルを読めない"
+# 末尾に改行の無いファイルが、次のファイルの1行目とつながらないよう、ファイルごとに改行を足す
+for f in "$@"; do cat -- "$f" || die "後のファイルを読めない: $f"; echo; done > "$hay"
 
-awk -v hayfile="$hay" '
+# パスは環境変数で渡す。-vで渡すと、awkがパスの中の\を解釈する
+HAY="$hay" awk '
 function norm(s) { gsub(/\r/, "", s); gsub(/[ \t]+/, " ", s); sub(/^ /, "", s); sub(/ $/, "", s); return s }
 # 後のファイルのどこかの行に、tokが英数字、_、-に挟まれずに現れるか。-fを--forceの一部とはみなさない
 function present(tok,   i, h, off, j, p) {
@@ -76,7 +82,7 @@ function fence_len(s,   c, n) {
   fmark = c; fbare = (n == length(s))
   return n >= 3 ? n : 0
 }
-BEGIN { while ((getline line < hayfile) > 0) { hl[++nh] = norm(line); hay = hay "\n" hl[nh] } }
+BEGIN { while ((getline line < ENVIRON["HAY"]) > 0) { hl[++nh] = norm(line); hay = hay "\n" hl[nh] } }
 FNR == 1 { fence = 0; carry = "" }
 { n = fence_len($0) }
 # 閉じるのは、開いたときと同じ記号が同じ数以上あり、後ろに何も無い行だけ(中に別のフェンスを書ける)

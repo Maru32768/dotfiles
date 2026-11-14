@@ -109,6 +109,18 @@ want="$(printf '1 link\tbefore-ref.md:1\tdocs/setup.html\nlink\tbefore-ref.md:3\
 out="$(bash "$lost" before-ref.md -- after-fence.md)"
 equals "hrefと、参照形式のリンクの定義も、リンク先として挙げる" "$? $out" "$want"
 
+# 後の1つ目のファイルは改行で終わらない。2つ目の1行目とつなげると、消した行が残っているように見える
+printf '%s\n' "${fence}bash" 'tool --flagzzz' "$fence" > 'name=1.md'
+printf 'tool' > after-noeol.md
+printf ' --flagzzz\n' > after-next.md
+want="$(printf '1 line\t./name=1.md:2\ttool --flagzzz')"
+out="$(bash "$lost" 'name=1.md' -- after-noeol.md after-next.md </dev/null)"
+equals "名前に=があるファイルも読み、後のファイルどうしをつなげない" "$? $out" "$want"
+
+mkdir -p 'tmp\tdir'
+out="$(TMPDIR="$work/tmp\\tdir" bash "$lost" before.md -- before.md 2>&1)"
+equals "一時ファイルのパスに\\があっても、後のファイルを読める" "$? $out" "0 "
+
 printf '%s\n' '`tool gone`を使う。' '' 'もう一度`tool gone`を使う。' > before-twice.md
 want="$(printf '1 span\tbefore-twice.md:1\ttool gone')"
 out="$(bash "$lost" before-twice.md -- after-fence.md)"
