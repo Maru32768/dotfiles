@@ -136,10 +136,6 @@ check "linux-main: コミット署名が有効" 'grep -q "gpgsign = true" "$work
 check "linux-main: Claude の設定にフックがある" 'jq -e ".hooks.PreToolUse[0].hooks[0].command | test(\"block-signing-bypass\")" "$work/linux-main/home/.claude/settings.json"'
 # 初回は数分かかるので、セッションを待たせないようにバックグラウンドで動かす
 check "linux-main: 開始時に usage-log の collect をバックグラウンドで動かす" 'jq -e ".hooks.SessionStart[0].hooks[0] | .async == true and (.command | test(\"usage-log\\\" collect\"))" "$work/linux-main/home/.claude/settings.json"'
-# usage-cap が許すのは、上限のファイルを読むことと get_usage を呼ぶことだけ。許可を広げるときは、何を許すことになるかを確かめてから、期待する値を直す
-for name in linux-main windows-main; do
-  check "$name: usage-cap が、usage-log cap の書く上限のファイルだけを読む" 'grep -qx "allowed-tools: Read(~/.local/state/usage/weekly-cap) mcp__ccd_session_mgmt__get_usage" "$work/$name/home/.claude/skills/usage-cap/SKILL.md" && grep -qF "\".local/state/usage/usage.sqlite3\"" "$work/$name/home/.local/bin/usage-log" && grep -qF "\"weekly-cap\"" "$work/$name/home/.local/bin/usage-log"'
-done
 equals "linux-main: 実行するスクリプト" "$(scripts_of linux-main)" "10-mise-install.sh 20-build-hooks.sh 30-vim-plugins.sh 40-claude-code.sh 50-gh-extensions.sh"
 
 # --- knowledge-capture (docs/skills.md) ---
@@ -174,6 +170,12 @@ check "linux-main: 既存の review-loop の台帳が反映の後も残る" '[ "
 check "linux-main: 共通の設定は permissions に台帳の置き場のほかを足さない" 'jq -e ".permissions | keys == [\"additionalDirectories\"]" "$work/linux-main/home/.claude/settings.json"'
 check "windows-main: 共通の設定は permissions に台帳の置き場のほかを足さない" 'jq -e ".permissions | keys == [\"additionalDirectories\", \"allow\"]" "$work/windows-main/home/.claude/settings.json"'
 check "windows-main: Claude の設定の既存のキーと permissions.allow が残る" 'jq -e ".model == \"kept-model\" and .permissions.allow == [\"Bash(ls)\"]" "$work/windows-main/home/.claude/settings.json"'
+
+# --- usage-cap (docs/claude.md) ---
+# 許可を広げるときは、何を許すことになるかを確かめてから、期待する値を直す
+for name in linux-main windows-main; do
+  check "$name: usage-cap が、usage-log cap の書く上限のファイルだけを読む" 'grep -qx "allowed-tools: Read(~/.local/state/usage/weekly-cap) mcp__ccd_session_mgmt__get_usage" "$work/$name/home/.claude/skills/usage-cap/SKILL.md" && grep -qF "\".local/state/usage/usage.sqlite3\"" "$work/$name/home/.local/bin/usage-log" && grep -qF "\"weekly-cap\"" "$work/$name/home/.local/bin/usage-log"'
+done
 
 # --- Windows ---
 for file in .wslconfig OneDrive/Documents/PowerShell/Microsoft.PowerShell_profile.ps1 .claude/settings.json .claude/CLAUDE.md .vimrc .local/bin/bws-run.ps1 .local/bin/bws-run.cmd .local/bin/split-pdf .local/bin/split-pdf.cmd .local/bin/usage-log .local/bin/usage-log.cmd; do
