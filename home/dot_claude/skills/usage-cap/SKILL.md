@@ -20,12 +20,13 @@ allowed-tools: Read(~/.local/state/usage/weekly-cap) mcp__ccd_session_mgmt__get_
 
 1. 上限を読む。ホームの`.local/state/usage/weekly-cap`を、絶対パスにしてReadで読む。1〜100の整数(週の枠の%)が1行ある。
    - ファイルが無ければ、上限は無い。2に進まずに続ける
-   - 整数として読めなければ、止まって報告する
+   - 整数として読めないか、ファイルが無いこと以外でReadが失敗したら(確認を断られたなど)、止まって報告する
 2. `mcp__ccd_session_mgmt__get_usage`を呼ぶ。遅延ロードのツールなら、先にToolSearch(`select:mcp__ccd_session_mgmt__get_usage`)で読み込む。
    - `plan.status`が`ok`なら、`plan.windows`のうち`label`が`Weekly · all models`のものの`percentUsed`を、週の消費率とする。その枠が無ければ、表示が変わったので、止まって報告する
    - `not_applicable`なら、プランの枠が無い(APIキーなど)ので、続ける
-   - `unavailable`なら、`note`が呼び直せば読めると言うときだけ、1回呼び直す。それでも読めなければ、止まって報告する
+   - `unavailable`なら、`note`が呼び直せば読めると言うときだけ、1回呼び直す。呼び直さないときと、呼び直しても読めないときは、止まって報告する
    - ツールが無ければ(デスクトップアプリの外で動いている)、止まって報告する
+   - 上のどれにも当たらなければ(ほかの`status`、`percentUsed`が無い、呼ぶのを断られたなど)、止まって報告する
 3. 週の消費率が上限以上なら止まる。未満なら続ける。
 
 ## 止まるとき
