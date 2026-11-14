@@ -136,14 +136,15 @@ if [ "$profile" != main ]; then
   # wsl.exe は --cd に失敗しても / で続けるので、/ も含めて ~/work の外を断る。
   # 進むかどうかは、上と同じく出力で判定する (コンテナでは隔離の検査が FAIL を出す)。
   # 資格情報は、両方の起動スクリプトが受け付けるトークンにする
-  docker exec -u "$user" "$name" sh -c "mkdir -p /home/$user/workx /home/$user/work/run && ln -sfn / /home/$user/work/out" || failures=$((failures + 1))
+  # work<改行> は、末尾の改行を落とす $(pwd -P) では ~/work と同じに見える
+  docker exec -u "$user" "$name" bash -c "mkdir -p /home/$user/workx /home/$user/work/run \"/home/$user/work\"\$'\\n' && ln -sfn / /home/$user/work/out" || failures=$((failures + 1))
   # 使い方: run_in <作業ディレクトリ>
   # シェルで cd してから起動し、シンボリックリンクの見かけのパスを PWD に入れて渡す
   run_in() { docker exec -u "$user" -e "HOME=/home/$user" -e CLAUDE_CODE_OAUTH_TOKEN=dummy "$name" bash -c 'cd "$1" && exec "$2" --version' bash "$1" "/usr/local/bin/$profile-claude" 2>&1; }
-  for dir in / "/home/$user" "/home/$user/workx" "/home/$user/work/out"; do
+  for dir in / "/home/$user" "/home/$user/workx" "/home/$user/work/out" "/home/$user/work"$'\n'; do
     # shellcheck disable=SC2034 # launcher_want の eval で読む
     output="$(run_in "$dir")" rc=$?
-    launcher_want "$dir では、隔離の検査の前に 0 以外で止まる" '[[ $rc -ne 0 && "$output" == *"~/work の下で起動してください"* && "$output" != *"FAIL "* && "$output" != *"(Claude Code)"* ]]'
+    launcher_want "${dir//$'\n'/<改行>} では、隔離の検査の前に 0 以外で止まる" '[[ $rc -ne 0 && "$output" == *"~/work の下で起動してください"* && "$output" != *"FAIL "* && "$output" != *"(Claude Code)"* ]]'
   done
   for dir in "/home/$user/work" "/home/$user/work/run"; do
     # shellcheck disable=SC2034 # launcher_want の eval で読む
