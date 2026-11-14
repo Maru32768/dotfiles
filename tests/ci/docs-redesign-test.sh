@@ -86,6 +86,12 @@ want="$(printf '1 code\tbefore-tilde.md:2\ttool deploy --region tokyo')"
 out="$(bash "$lost" before-open.md before-tilde.md -- after-fence.md)"
 equals "フェンスの状態と行番号は、ファイルごとに数え直す。~~~もフェンスとして読む" "$? $out" "$want"
 
+# バッククォート4つのフェンスの中に、3つのフェンスを書いた例。外のフェンスが閉じた後は地の文に戻る
+printf '%s\n' "${fence}\`markdown" "${fence}bash" 'tool deploy --prod' "$fence" "${fence}\`" '' '`tool after`を使う。' > before-nested.md
+want="$(printf '1 code\tbefore-nested.md:3\ttool deploy --prod\nspan\tbefore-nested.md:7\ttool after')"
+out="$(bash "$lost" before-nested.md -- after-fence.md)"
+equals "フェンスの中のフェンスで、状態がずれない" "$? $out" "$want"
+
 printf '%s\n' '`tool gone`を使う。' '' 'もう一度`tool gone`を使う。' > before-twice.md
 want="$(printf '1 span\tbefore-twice.md:1\ttool gone')"
 out="$(bash "$lost" before-twice.md -- after-fence.md)"

@@ -47,9 +47,21 @@ function each(kind, re, left, right,   s) {
     s = substr(s, RSTART + RLENGTH)
   }
 }
+# 行頭の`か~の数を返す。3つに満たなければ0。記号をfmarkに、後ろに何も無いかをfbareに入れる
+function fence_len(s,   c, n) {
+  sub(/^[ \t]+/, "", s); sub(/[ \t\r]+$/, "", s)
+  c = substr(s, 1, 1)
+  if (c != "`" && c != "~") return 0
+  for (n = 1; substr(s, n + 1, 1) == c; n++) ;
+  fmark = c; fbare = (n == length(s))
+  return n >= 3 ? n : 0
+}
 BEGIN { while ((getline line < hayfile) > 0) hay = hay "\n" norm(line) }
 FNR == 1 { fence = 0 }
-/^[ \t]*(```|~~~)/ { fence = !fence; next }
+{ n = fence_len($0) }
+# 閉じるのは、開いたときと同じ記号が同じ数以上あり、後ろに何も無い行だけ(中に別のフェンスを書ける)
+!fence && n { fence = n; fopen = fmark; next }
+fence && n >= fence && fmark == fopen && fbare { fence = 0; next }
 fence { probe("code", $0); next }
 {
   each("span", "`[^`]+`", 1, 1)
