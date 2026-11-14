@@ -299,17 +299,24 @@ equals "前のファイルの-は、標準入力ではなくファイルとし�
 out="$(bash "$lost" before-twice.md -- - </dev/null)"
 equals "後のファイルの-も、標準入力ではなくファイルとして読む" "$? $out" "0 "
 
-# outline.sh。2〜6行目は、バッククォート4つのフェンスの中に3つのフェンスを書いている。8〜13行目は、~~~の
-# フェンスの中に、バッククォートのフェンスの行、後ろに文字が続く~~~の行、箇条書きの記号の後ろの~~~の行がある。
-# 15行目のフェンスは、箇条書きの記号と同じ行で開く。19行目は、バッククォート3つで囲んだインラインコードで始まる段落
-printf '%s\n' '# title' "$fence\`markdown" "${fence}sh" '# comment' "$fence" "$fence\`" '## section' '~~~' "$fence" '~~~sh' '- ~~~' '# comment 2' '~~~' '### sub' "- ${fence}sh" '# comment 3' "  $fence" '#### after list' "${fence}js${fence} is inline." '##### after inline' > outline.md
+# outline.sh。lost.shと同じフェンスの読み方で、中の#を拾わない。2〜6行目は、バッククォート4つのフェンスの中に
+# 3つのフェンスがある。8〜13行目は、~~~のフェンスの中に、バッククォートのフェンスの行と、後ろに文字が続く
+# ~~~の行がある。15〜17行目は、長いフェンスで閉じる。20行目は、4つ深く字下げしたフェンスの行で、外の
+# フェンスを閉じない。24〜35行目は、箇条書きの記号と同じ行で開くフェンス(-、*、1))で、26行目は
+# フェンスを終わらせない空行。38行目は、記号の幅より浅い行で、箇条書きのフェンスを終わらせる見出し。39行目は、
+# バッククォート3つのインラインコードで始まる段落。43行目は、次の項目で、前のフェンスを終わらせて新しい
+# フェンスを開く。48行目は、フェンスの中の箇条書きの行で、フェンスを閉じない
+printf '%s\n' '# title' "$fence\`markdown" "${fence}sh" '# c1' "$fence" "$fence\`" '## section' '~~~' "$fence" '# c2' '~~~sh' '# c3' '~~~' '### sub' "$fence" '# c4' "$fence\`" '#### long' "$fence" "    $fence" '# c5' "$fence" '##### deep' "- ${fence}sh" '  # c6' '' "  $fence" '###### dash' "* ${fence}sh" '    # c7' "    $fence" '# asterisk' "1) ${fence}sh" '   # c8' "   $fence" '# paren' "- ${fence}sh" '# shallow' "${fence}js${fence} is inline." '# inline' "- ${fence}sh" '  x' "- ${fence}sh" '  y' "  $fence" '# reread' "$fence" "- $fence" '# c9' "$fence" '# marker in fence' > outline.md
 printf '%s\n' "$fence" '# open at the end' > outline-open.md
+printf '%s\r\n' '# crlf' "${fence}sh" '# c8' "$fence" '## crlf2' > outline-crlf.md
 printf '%s\n' '# named' > 'x=1.md'
-want="$(printf '0 outline.md:1: # title\noutline.md:7: ## section\noutline.md:14: ### sub\noutline.md:18: #### after list\noutline.md:20: ##### after inline\n./x=1.md:1: # named')"
-out="$(bash "$outline" outline.md outline-open.md x=1.md)"
+want="$(printf '0 outline.md:1: # title\noutline.md:7: ## section\noutline.md:14: ### sub\noutline.md:18: #### long\noutline.md:23: ##### deep\noutline.md:28: ###### dash\noutline.md:32: # asterisk\noutline.md:36: # paren\noutline.md:38: # shallow\noutline.md:40: # inline\noutline.md:46: # reread\noutline.md:51: # marker in fence\noutline-crlf.md:1: # crlf\noutline-crlf.md:5: ## crlf2\n./x=1.md:1: # named')"
+out="$(bash "$outline" outline.md outline-open.md outline-crlf.md x=1.md | tr -d '\r')"
 equals "見出しの一覧は、フェンスの中の#を拾わない。フェンスの状態は、ファイルごとに数え直す" "$? $out" "$want"
 bash "$outline" >/dev/null 2>&1 </dev/null
 equals "見出しの一覧は、ファイルが無ければ終了コード2で止まる" "$?" "2"
+bash "$outline" a-dir >/dev/null 2>&1 </dev/null
+equals "見出しの一覧は、ディレクトリを渡すと終了コード2で止まる" "$?" "2"
 
 
 if [ "$failures" -gt 0 ]; then
