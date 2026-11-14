@@ -25,10 +25,10 @@ powershell -ExecutionPolicy Bypass -File lab\lab.ps1 new research-foo
 ```
 
 ```powershell
-bws-run research -- powershell -ExecutionPolicy Bypass -File lab\lab.ps1 run research-foo -Path ~/work/run
+bws-run research -- powershell -ExecutionPolicy Bypass -File lab\lab.ps1 run research-foo -Path work/run
 ```
 
-`run` は Claude を対話で起動する。プロンプトを引数で渡す (`-p`) 方法はない。
+`run` は Claude を対話で起動する。プロンプトを引数で渡す (`-p`) 方法はない。`-Path` の書き方は agent と同じ (`docs/agent.md`)。
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File lab\lab.ps1 rm research-foo
@@ -42,7 +42,6 @@ powershell -ExecutionPolicy Bypass -File lab\lab.ps1 rm research-foo
 - キーは専用の Anthropic のワークスペースで発行し、そのワークスペースに使用量の上限を設定する。インスタンスの中の Claude 本体はキーを持つので、持ち出されたときの被害は上限で抑える。
 - `lab.ps1` はキーを保存しない。1 回の `wsl.exe` の実行にだけ `WSLENV` で渡し、終われば `WSLENV` を元に戻す。
 - インスタンスの中では、キーは Claude 本体の環境変数にだけある。`sandbox.credentials.envVars` で Bash から隠す。
-
 `research-claude` は、`ANTHROPIC_API_KEY` と `CLAUDE_CODE_OAUTH_TOKEN` のどちらか 1 つだけを受け付ける。どちらもないとき、両方あるときは起動しない。トークンは `lab.ps1 verify` の検査で使う。起動前の `verify-isolation.sh` は `ANTHROPIC_` で始まる環境変数を漏れとみなすので、その検査にだけ `ANTHROPIC_API_KEY` を渡さない。
 
 ## ファイルの受け渡し

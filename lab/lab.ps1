@@ -7,8 +7,9 @@
 #   lab.ps1 new agent-foo          (a name starting with agent- gets the agent profile)
 #   lab.ps1 new research-foo       (research- gets the research profile: web reading, no LAN)
 #   lab.ps1 token                  (stores the token from claude setup-token)
-#   lab.ps1 run agent-foo [-Path ~/work/repo]   (the default path is ~/work)
-#   bws-run <project> -- powershell -ExecutionPolicy Bypass -File lab\lab.ps1 run research-foo -Path ~/work/run
+#   lab.ps1 run agent-foo [-Path work/repo]
+#                                  (-Path is inside the instance, relative to the home, default work)
+#   bws-run <project> -- powershell -ExecutionPolicy Bypass -File lab\lab.ps1 run research-foo -Path work/run
 #                                  (research runs on ANTHROPIC_API_KEY from the caller)
 #   lab.ps1 verify agent-foo
 #   lab.ps1 rm agent-foo           (only agent-*, research-* and restore-test*)
@@ -46,7 +47,7 @@ $Profiles = [ordered]@{
     agent    = @{ Prefix = 'agent-'; User = 'agent'; Home = 'agent'; Launcher = '/usr/local/bin/agent-claude'; RunWith = 'Invoke-WithToken'
                   Next = 'lab.ps1 token (once), then lab.ps1 run {0}' }
     research = @{ Prefix = 'research-'; User = 'research'; Home = 'agent'; Launcher = '/usr/local/bin/research-claude'; RunWith = 'Invoke-WithApiKey'
-                  Next = 'bws-run <project> -- powershell -ExecutionPolicy Bypass -File lab\lab.ps1 run {0} -Path ~/work/run' }
+                  Next = 'bws-run <project> -- powershell -ExecutionPolicy Bypass -File lab\lab.ps1 run {0} -Path work/run' }
 }
 
 function Get-ProfileName([string]$InstanceName) {
@@ -257,6 +258,14 @@ if ($Command -eq 'verify') {
 }
 
 if ($Command -eq 'run') {
+    # PowerShell 7 turns a leading ~ into the Windows home, even inside bws-run, so the
+    # portable form is a path relative to the home
+    if ($Path -match '[:\\]') {
+        throw "-Path must be a path inside the instance, such as work/run, not $Path"
+    }
+    if ($Path -notmatch '^[~/]') {
+        $Path = "~/$Path"
+    }
     & $labProfile.RunWith {
         & wsl.exe -d $Name -u $User --cd $Path -e $labProfile.Launcher
     }
