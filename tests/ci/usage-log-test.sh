@@ -163,9 +163,11 @@ parent = {"type": "session_meta", "payload": {"id": "P", "cwd": "C:/repo", "sour
 child = {"type": "session_meta", "payload": {"id": "C", "cwd": "C:/repo", "source": {"subagent": "review"}}}
 (base / "rollout-P.jsonl").write_text("\n".join(json.dumps(e) for e in [parent, {"type": "turn_context", "payload": {}}, count]) + "\n", encoding="utf-8")
 (base / "rollout-C.jsonl").write_text("\n".join(json.dumps(e) for e in [child, parent, count]) + "\n", encoding="utf-8")
+spawned = {"type": "session_meta", "payload": {"id": "T", "cwd": "C:/repo", "source": {"subagent": {"thread_spawn": {"parent_thread_id": "P"}}}}}
+(base / "rollout-T.jsonl").write_text("\n".join(json.dumps(e) for e in [spawned, parent, count]) + "\n", encoding="utf-8")
 EOF
-equals "Codexのサブエージェントの呼び出しを、親の呼び出しと別に数える" "$(collect "$work/fork")" "2個のログを読み、2件の呼び出しを足した"
-equals "Codexのサブエージェントは、その種類で分けられる" "$(field --by agent-type -- "rows.get('review', {}).get('calls'), len(rows)")" "(1, 2)"
+equals "Codexのサブエージェントの呼び出しを、親の呼び出しと別に数える" "$(collect "$work/fork")" "3個のログを読み、3件の呼び出しを足した"
+equals "Codexのサブエージェントは、その種類で分けられる" "$(field --by agent-type -- "rows.get('review', {}).get('calls'), rows.get('thread_spawn', {}).get('calls'), len(rows)")" "(1, 1, 3)"
 
 # SSHのリモートのセッションでは、サブエージェントのログが subagents/ の外にあり、.meta.json は toolUseId だけを持つ
 db="$work/ssh.sqlite3"
