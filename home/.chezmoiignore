@@ -22,6 +22,7 @@ OneDrive/**
 .local/bin/bws-run.ps1
 .local/bin/bws-run.cmd
 .local/bin/split-pdf.cmd
+.local/bin/usage-log.cmd
 10-mise-install.ps1
 20-build-hooks.ps1
 50-gh-extensions.ps1
@@ -37,6 +38,7 @@ OneDrive/**
 .agents/**
 .local/bin/bws-run
 .local/bin/split-pdf
+.local/bin/usage-log
 .local/state
 .local/state/**
 .config/environment.d

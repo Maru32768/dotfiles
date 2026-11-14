@@ -1,0 +1,278 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.12"
+# dependencies = []
+# ///
+"""Claude CodeとCodexのログから使用量だけを抜き出して貯め、スキルや工程ごとの費用の割合を出す。
+
+    usage-log collect                          # ログの新しい分を記録に足す
+    usage-log report                           # 直近7日をスキル別に
+    usage-log report --by agent --since 30d    # サブエージェントの説明別に
+    usage-log report --by model --since 2026-11-01 --json
+
+Claude Codeはセッションのログを30日で消すので、collectはAPI呼び出しごとの使用量だけを
+~/.local/state/usage/usage.sqlite3に写し、会話の中身は残さない。SessionStartのフックが
+collectを実行する(docs/claude.md)。ログの形式はClaude Codeの内部のもので版によって変わり
+うるので、読めない行は飛ばす。
+
+費用はトークン数をAPIの定価(PRICES)で換算したもので、プランの枠の消費ではない。
+サブエージェントの呼び出しは、親がそれを起こしたときに動いていたスキルに数える。
+日付はUTC。
+"""
+
+import argparse
+import json
+import os
+import sqlite3
+import sys
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+HOME = Path.home()
+DB = HOME / ".local/state/usage/usage.sqlite3"
+CLAUDE = Path(os.environ.get("CLAUDE_CONFIG_DIR") or HOME / ".claude") / "projects"
+CODEX = Path(os.environ.get("CODEX_HOME") or HOME / ".codex")
+
+# 100万トークンあたりの米ドル: 入力、5分のキャッシュ書き込み、1時間のキャッシュ書き込み、キャッシュ読み取り、出力。
+# https://platform.claude.com/docs/en/about-claude/pricing (2026-11-14)。既定のモデルが変わったら直す。
+PRICES = {
+    "claude-fable-5-2": (8, 10, 16, 0.20, 40),
+    "claude-opus-5-5": (4, 5, 8, 0.20, 20),
+    "claude-sonnet-5-5": (2, 2.50, 4, 0.10, 10),
+    "claude-haiku-5-5": (0.10, 0.125, 0.20, 0.01, 0.50),
+    "claude-fable-5-1": (10, 12.50, 20, 0.25, 50),
+    "claude-opus-5": (5, 6.25, 10, 0.50, 25),
+}
+HAIKU_LONG = (0.50, 0.625, 1, 0.05, 2.50)  # Haiku 5.5で入力が10万トークンを超えるとき
+FAST = 2  # speedがfastのときの倍率(Opus 5.5とFable 5.2)
+
+COLUMNS = ("id", "source", "ts", "session", "project", "branch", "model", "effort", "speed",
+           "skill", "plugin", "agent_type", "agent_desc", "parent_tool_use",
+           "input", "cache_write_5m", "cache_write_1h", "cache_read", "output")
+SCHEMA = f"""
+CREATE TABLE IF NOT EXISTS calls ({", ".join(c + (" TEXT PRIMARY KEY" if c == "id" else "") for c in COLUMNS)});
+CREATE TABLE IF NOT EXISTS agent_calls (tool_use TEXT PRIMARY KEY, skill TEXT);
+CREATE TABLE IF NOT EXISTS files (path TEXT PRIMARY KEY, size INTEGER, mtime_ns INTEGER);
+"""
+KEYS = ("skill", "agent", "agent-type", "model", "project", "session", "day", "source")
+
+
+def connect(path: Path) -> sqlite3.Connection:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    con = sqlite3.connect(path, timeout=60)  # 同時に始まったセッションのcollectを待つ
+    con.row_factory = sqlite3.Row
+    con.executescript(SCHEMA)
+    return con
+
+
+def lines(path: Path):
+    with open(path, encoding="utf-8", errors="replace") as f:
+        for n, line in enumerate(f):
+            try:
+                item = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(item, dict):
+                yield n, item
+
+
+def claude_file(path: Path) -> tuple[list[dict], dict]:
+    """1つのログから、API呼び出しの行と、サブエージェントを起こした呼び出しのスキルを返す。"""
+    meta = {}
+    meta_path = path.with_suffix(".meta.json")
+    if meta_path.exists():
+        try:
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            pass
+    calls, agents = {}, {}
+    for _, item in lines(path):
+        message = item.get("message")
+        if item.get("type") != "assistant" or not isinstance(message, dict):
+            continue
+        for block in message.get("content") or []:
+            if isinstance(block, dict) and block.get("type") == "tool_use" and block.get("name") in ("Agent", "Task"):
+                agents[block.get("id")] = item.get("attributionSkill")
+        usage, model = message.get("usage"), message.get("model")
+        if not isinstance(usage, dict) or not message.get("id") or model in (None, "<synthetic>"):
+            continue
+        writes = usage.get("cache_creation") or {}
+        write_5m, write_1h = writes.get("ephemeral_5m_input_tokens"), writes.get("ephemeral_1h_input_tokens")
+        if write_5m is None and write_1h is None:
+            write_5m, write_1h = usage.get("cache_creation_input_tokens"), 0
+        # 1つの応答はブロックごとに何行にも分かれるが、使用量はどの行も同じ
+        calls[message["id"]] = {
+            "id": "claude:" + message["id"], "source": "claude", "ts": item.get("timestamp"),
+            "session": item.get("sessionId"), "project": item.get("cwd"), "branch": item.get("gitBranch"),
+            "model": model, "effort": item.get("effort"), "speed": usage.get("speed"),
+            "skill": item.get("attributionSkill"), "plugin": item.get("attributionPlugin"),
+            "agent_type": meta.get("agentType"), "agent_desc": meta.get("description"),
+            "parent_tool_use": meta.get("toolUseId"),
+            "input": usage.get("input_tokens") or 0, "cache_write_5m": write_5m or 0,
+            "cache_write_1h": write_1h or 0, "cache_read": usage.get("cache_read_input_tokens") or 0,
+            "output": usage.get("output_tokens") or 0,
+        }
+    return list(calls.values()), agents
+
+
+def codex_file(path: Path) -> list[dict]:
+    """Codexの記録は、ターンごとのtoken_countの直前の呼び出しの分(last_token_usage)を数える。"""
+    session = project = model = effort = previous = None
+    calls = []
+    for n, item in lines(path):
+        payload = item.get("payload") or {}
+        if item.get("type") == "session_meta":
+            session, project = payload.get("id"), payload.get("cwd")
+        elif item.get("type") == "turn_context":
+            model, effort = payload.get("model"), payload.get("effort")
+        elif payload.get("type") == "token_count":
+            info = payload.get("info") or {}
+            total, last = info.get("total_token_usage"), info.get("last_token_usage")
+            # 枠の消費率だけが変わったときも同じ合計で記録されるので、合計が変わったときだけ数える
+            if not last or total == previous:
+                continue
+            previous = total
+            cached = last.get("cached_input_tokens") or 0
+            calls.append({
+                "id": f"codex:{session or path.stem}:{n}", "source": "codex", "ts": item.get("timestamp"),
+                "session": session, "project": project, "model": model, "effort": effort,
+                "input": (last.get("input_tokens") or 0) - cached, "cache_read": cached,
+                "cache_write_5m": last.get("cache_write_input_tokens") or 0, "cache_write_1h": 0,
+                "output": last.get("output_tokens") or 0,
+            })
+    return calls
+
+
+def collect(db: Path, claude_dir: Path, codex_dir: Path, quiet: bool) -> None:
+    con = connect(db)
+    seen = {row["path"]: (row["size"], row["mtime_ns"]) for row in con.execute("SELECT * FROM files")}
+    before = con.execute("SELECT count(*) FROM calls").fetchone()[0]
+    sources = [("claude", claude_dir)] + [("codex", codex_dir / d) for d in ("sessions", "archived_sessions")]
+    read = 0
+    for source, base in sources:
+        if not base.is_dir():
+            continue
+        for path in sorted(base.rglob("*.jsonl")):
+            stat = path.stat()
+            stamp = (stat.st_size, stat.st_mtime_ns)
+            if seen.get(str(path)) == stamp:
+                continue
+            calls, agents = claude_file(path) if source == "claude" else (codex_file(path), {})
+            with con:
+                con.executemany(f"INSERT OR REPLACE INTO calls ({', '.join(COLUMNS)}) VALUES ({', '.join('?' * len(COLUMNS))})",
+                                [tuple(call.get(c) for c in COLUMNS) for call in calls])
+                con.executemany("INSERT OR REPLACE INTO agent_calls VALUES (?, ?)", agents.items())
+                con.execute("INSERT OR REPLACE INTO files VALUES (?, ?, ?)", (str(path), *stamp))
+            read += 1
+    added = con.execute("SELECT count(*) FROM calls").fetchone()[0] - before
+    if not quiet:
+        print(f"{read}個のログを読み、{added}件の呼び出しを足した")
+
+
+def cost(call) -> float | None:
+    price = PRICES.get(call["model"])
+    if price is None:
+        return None
+    tokens = (call["input"], call["cache_write_5m"], call["cache_write_1h"], call["cache_read"], call["output"])
+    if call["model"] == "claude-haiku-5-5" and sum(tokens[:4]) > 100_000:
+        price = HAIKU_LONG
+    usd = sum(t * p for t, p in zip(tokens, price)) / 1_000_000
+    return usd * (FAST if call["speed"] == "fast" else 1)
+
+
+def since_arg(value: str) -> str:
+    if value.endswith("d") and value[:-1].isdigit():
+        return (datetime.now(timezone.utc) - timedelta(days=int(value[:-1]))).strftime("%Y-%m-%dT%H:%M:%S")
+    return datetime.strptime(value, "%Y-%m-%d").strftime("%Y-%m-%d")
+
+
+def key_of(call, by: str) -> str:
+    if by == "skill":
+        return call["eff_skill"] or "(なし)"
+    if by == "agent":
+        return (call["agent_desc"] or call["agent_type"]) if call["agent_type"] else "(本体)"
+    if by == "agent-type":
+        return call["agent_type"] or "(本体)"
+    if by == "project":
+        return call["main_project"] or "(不明)"
+    if by == "day":
+        return (call["ts"] or "")[:10]
+    return call[by] or "(不明)"
+
+
+def report(db: Path, by: str, since: str, until: str | None, project: str | None, source: str | None, as_json: bool) -> None:
+    con = connect(db)
+    # サブエージェントは、親の呼び出しのスキルと、親のセッションのプロジェクトに数える
+    query = """
+        SELECT c.*, COALESCE(c.skill, a.skill) AS eff_skill, COALESCE(m.project, c.project) AS main_project
+        FROM calls c
+        LEFT JOIN agent_calls a ON a.tool_use = c.parent_tool_use
+        LEFT JOIN (SELECT session, MIN(project) AS project FROM calls WHERE agent_type IS NULL GROUP BY session) m
+            ON m.session = c.session
+        WHERE c.ts >= ?"""
+    params = [since]
+    if until:
+        query += " AND c.ts < ?"
+        params.append(until)
+    if source:
+        query += " AND c.source = ?"
+        params.append(source)
+    groups: dict[str, dict] = {}
+    unpriced: dict[str, int] = {}
+    for call in con.execute(query, params):
+        if project and project not in (call["main_project"] or ""):
+            continue
+        g = groups.setdefault(key_of(call, by), {"calls": 0, "input": 0, "output": 0, "cache_read": 0,
+                                                 "cache_write": 0, "cost_usd": 0.0, "unpriced": 0})
+        g["calls"] += 1
+        g["input"] += call["input"]
+        g["output"] += call["output"]
+        g["cache_read"] += call["cache_read"]
+        g["cache_write"] += call["cache_write_5m"] + call["cache_write_1h"]
+        usd = cost(call)
+        if usd is None:
+            g["unpriced"] += 1
+            unpriced[call["model"] or "(不明)"] = unpriced.get(call["model"] or "(不明)", 0) + 1
+        else:
+            g["cost_usd"] += usd
+    total = sum(g["cost_usd"] for g in groups.values())
+    rows = sorted(({"key": k, **g, "share": g["cost_usd"] / total if total else 0.0} for k, g in groups.items()),
+                  key=lambda r: (-r["cost_usd"], -r["calls"]))
+    if as_json:
+        print(json.dumps(rows, ensure_ascii=False, indent=2))
+        return
+    print(f"{'費用(USD)':>10} {'割合':>6} {'呼び出し':>8} {'入力':>12} {'出力':>12} {'キャッシュ読':>14} {'キャッシュ書':>12}  {by}")
+    for r in rows:
+        print(f"{r['cost_usd']:>10.2f} {r['share']:>6.1%} {r['calls']:>8} {r['input']:>12,} {r['output']:>12,} "
+              f"{r['cache_read']:>14,} {r['cache_write']:>12,}  {r['key']}")
+    print(f"{total:>10.2f} {'':>6} {sum(r['calls'] for r in rows):>8}  合計(期間の始まり {since}、UTC)")
+    if unpriced:
+        print("単価が無いので費用に入れていない呼び出し: " + "、".join(f"{m} {n}件" for m, n in sorted(unpriced.items())))
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--db", type=Path, default=DB)
+    sub = parser.add_subparsers(dest="command", required=True)
+    c = sub.add_parser("collect", help="ログの新しい分を記録に足す")
+    c.add_argument("--claude-dir", type=Path, default=CLAUDE)
+    c.add_argument("--codex-dir", type=Path, default=CODEX)
+    c.add_argument("--quiet", action="store_true")
+    r = sub.add_parser("report", help="記録を集計する")
+    r.add_argument("--by", choices=KEYS, default="skill")
+    r.add_argument("--since", type=since_arg, default="7d", help="7dのような日数か、YYYY-MM-DD(UTC)")
+    r.add_argument("--until", type=since_arg, help="この日の0時(UTC)より前まで")
+    r.add_argument("--project", help="プロジェクトのパスに、この文字列を含むものだけ")
+    r.add_argument("--source", choices=("claude", "codex"))
+    r.add_argument("--json", action="store_true")
+    args = parser.parse_args()
+    sys.stdout.reconfigure(encoding="utf-8")  # WindowsのPythonは、パイプにcp932で書く
+    if args.command == "collect":
+        collect(args.db, args.claude_dir, args.codex_dir, args.quiet)
+    else:
+        report(args.db, args.by, args.since, args.until, args.project, args.source, args.json)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

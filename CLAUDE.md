@@ -7,11 +7,12 @@ Windows と WSL (Ubuntu 26.04) の設定とツールを chezmoi と mise で管�
 ## コマンド
 
 ```bash
-bash tests/ci/static.sh                 # 環境を作らずにできる検査をすべて (shellcheck、フックのテスト、bws-run のテスト、split-pdf のテスト、split-pr-stackのテスト、review-loopの記録のテスト、不変条件、レンダリング、gitleaks、actionlint)
+bash tests/ci/static.sh                 # 環境を作らずにできる検査をすべて (shellcheck、フックのテスト、bws-run のテスト、split-pdf のテスト、usage-logのテスト、split-pr-stackのテスト、review-loopの記録のテスト、不変条件、レンダリング、gitleaks、actionlint)
 bash tests/ci/invariants.sh             # 不変条件だけ
 bash tests/ci/render.sh                 # linux-main / linux-agent / windows-main を描画して置かれるものを確かめる (スキルの取得でネットワークを使う)
 bash tests/ci/bws-run-test.sh           # bws-run (bash 版) のテスト
 bash tests/ci/split-pdf-test.sh         # split-pdf のテスト (pypdf を PyPI から取得する)
+bash tests/ci/usage-log-test.sh         # usage-logのテスト(作ったClaude CodeとCodexのログで試す)
 bash tests/ci/split-pr-stack-test.sh    # split-pr-stackのスクリプトのテスト(偽のghで試す。jqをmiseで取得する)
 bash tests/ci/review-evidence-test.sh   # review-loopのevidence.shのテスト(使い捨てのリポジトリで、記録、指紋、mutationを試す)
 cd home/.hooks-src/block-signing-bypass && go test ./...            # フックのテスト
