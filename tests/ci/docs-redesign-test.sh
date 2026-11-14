@@ -1,0 +1,77 @@
+#!/bin/bash
+# docs-redesignのlost.sh(home/dot_claude/skills/docs-redesign/scripts)を、使い捨ての文書で試す
+set -uo pipefail
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+lost="$root/home/dot_claude/skills/docs-redesign/scripts/lost.sh"
+work="$(mktemp -d)"
+trap 'rm -rf "$work"' EXIT
+
+failures=0
+pass() { printf 'PASS %s\n' "$1"; }
+fail() { printf 'FAIL %s\n' "$1"; failures=$((failures + 1)); }
+equals() { if [ "$2" = "$3" ]; then pass "$1"; else fail "$1"; printf '  want: %s\n  got:  %s\n' "$3" "$2"; fi; }
+
+cd "$work" || exit 1
+fence='```'
+cat > before.md <<EOF
+# tool
+
+\`tool init\`で始める。設定は\`~/.config/tool.toml\`に置く。[入れ方](docs/install.md#linux)と https://example.com/api を読む。
+
+${fence}bash
+tool init --force
+    tool run   --jobs 4
+}
+${fence}
+
+もう一度\`tool init\`を実行する。
+EOF
+
+# 記述を、別のファイル、インラインコード、字下げの違う行へ移す
+cat > after.md <<EOF
+# tool
+
+始めるには次を実行する。詳しくは[入れ方](docs/install.md#linux)と https://example.com/api にある。
+
+${fence}bash
+tool init
+tool run --jobs 4
+${fence}
+EOF
+cat > after-guide.md <<EOF
+設定は\`~/.config/tool.toml\`に置く。作り直すときは\`tool init --force\`を使う。
+EOF
+
+out="$(bash "$lost" before.md -- after.md after-guide.md)"
+equals "別のファイルや別の書き方へ移した記述は挙げない" "$? $out" "0 "
+
+# コードの行、インラインコード、リンク先、URLを1つずつ落とす
+cat > after.md <<EOF
+# tool
+
+\`tool init\`で始める。
+
+${fence}bash
+tool run --jobs 4
+${fence}
+EOF
+want="$(printf '1 span\tbefore.md:3\t~/.config/tool.toml\nlink\tbefore.md:3\tdocs/install.md#linux\nurl\tbefore.md:3\thttps://example.com/api\ncode\tbefore.md:6\ttool init --force')"
+out="$(bash "$lost" before.md -- after.md)"
+equals "落とした記述を、種類と元の場所を付けて1回ずつ挙げる" "$? $out" "$want"
+
+: > empty.md
+out="$(bash "$lost" empty.md before.md -- after.md | wc -l)"
+equals "前のファイルに空のファイルがあっても、次のファイルを読む" "$out" "4"
+
+bash "$lost" before.md >/dev/null 2>&1
+equals "--が無ければ、終了コード2で止まる" "$?" "2"
+bash "$lost" before.md -- >/dev/null 2>&1
+equals "後のファイルが無ければ、終了コード2で止まる" "$?" "2"
+bash "$lost" before.md -- no-such.md >/dev/null 2>&1
+equals "読めないファイルがあれば、終了コード2で止まる" "$?" "2"
+
+if [ "$failures" -gt 0 ]; then
+  printf '\n%s 件のテストが失敗しました\n' "$failures"
+  exit 1
+fi

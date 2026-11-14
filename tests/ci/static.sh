@@ -41,6 +41,7 @@ section "bws-run のテスト" bash tests/ci/bws-run-test.sh
 section "split-pdf のテスト" bash tests/ci/split-pdf-test.sh
 section "split-pr-stackのテスト" bash tests/ci/split-pr-stack-test.sh
 section "review-loopの記録のテスト" bash tests/ci/review-evidence-test.sh
+section "docs-redesignの欠落検査のテスト" bash tests/ci/docs-redesign-test.sh
 section "不変条件" bash tests/ci/invariants.sh
 section "chezmoi のレンダリング" bash tests/ci/render.sh
 section "秘密情報の検出 (履歴すべて)" mise exec "gitleaks@$GITLEAKS_VERSION" -- gitleaks git --redact --no-banner .
