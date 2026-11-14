@@ -62,7 +62,7 @@ EOF
 
 # Claude Code が書いた許可も、マージの後に残ることを確かめる
 mkdir -p "$work/windows-main/home/.claude"
-printf '{"permissions":{"allow":["Bash(ls)"]}}' >"$work/windows-main/home/.claude/settings.json"
+printf '{"permissions":{"allow":["Bash(ls)"],"additionalDirectories":["D:/x"]}}' >"$work/windows-main/home/.claude/settings.json"
 
 # gpg-agent.conf も、管理しない行は残る。Windows の Git の gpg は CRLF で書くこともある
 mkdir -p "$work/windows-main/home/.gnupg"
