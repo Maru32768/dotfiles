@@ -45,7 +45,7 @@ compactが増えると、序盤の細かい指示が要約で落ちやすくな�
 - `additionalDirectories`はファイルを読み書きできるようにするだけで、そこからCLAUDE.md、スキル、設定を読み込まない(公式の文書の「Additional directories grant file access, not configuration」)。
 - Claude Codeは、セッションの開始時に無い追加のディレクトリを、警告を出さずに外す(本体のコードで確かめた)。そこで、chezmoiが`home/dot_local/state/review-loop/.keep`から、このディレクトリを反映のときに作る。
 - 配列は丸ごと置き換わるので、環境ごとに`permissions.additionalDirectories`へ足したディレクトリは、反映のたびに消える。
-- `agent`と`research`には`~/.claude`を置かないので、この許可も入らない。
+- `agent`と`research`には`~/.claude`を置かないので、この許可も入らない。台帳の置き場も作らない(`home/.chezmoiignore`)。
 - `tests/ci/render.sh`は、反映で`permissions`に足されるのが台帳の置き場だけであることと、既存の`permissions.allow`が残ることを確かめる。
 
 ## 署名回避を止めるフック
