@@ -41,6 +41,7 @@ bash ~/.claude/skills/imos-humanizer/scripts/fetch-rules.sh --check
 | `ponytail:ponytail-review` | review-loop | プラグイン (`ponytail`) |
 | `codex review` (Codex の CLI) | review-loop | Linux は mise (`docs/codex.md`)、Windows は Codex のアプリ |
 | `~/work/blog/marulabs-knowledge` (Private のリポジトリ `Maru32768/marulabs-knowledge`) | knowledge-capture | dotfiles では管理しない。無ければ、スキルが `gh repo clone` で clone する (clone の方式は端末ごとの gh の設定に従う)。記録を調べる gitleaks の版は、marulabs-knowledge の `.mise.toml` と `mise.lock` が固定する |
+| デスクトップアプリの`get_usage`ツール、`usage-log cap`が書く`~/.local/state/usage/weekly-cap` | usage-cap | `get_usage`はデスクトップアプリが持つ。`usage-log`はchezmoiが置く(`docs/tools.md`) |
 | `explain-before-shorten` | prose-polish | 管理しない。記事 (`https://zenn.dev/microsoft/articles/explain-before-shorten`) に本文があるだけで、リポジトリもライセンスも無い。使う端末に手で置く |
 
 `update-skills.sh` は gh の拡張のタグを上げない。gh-stack の `commit` を上げたら、`run_onchange_after_50-gh-extensions.sh` と `.ps1` のタグも上流の最新のリリースに揃える。
