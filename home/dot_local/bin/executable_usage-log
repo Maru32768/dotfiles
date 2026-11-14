@@ -247,7 +247,10 @@ def cost(call) -> float | None:
 
 def since_arg(value: str) -> str:
     if value.endswith("d") and value[:-1].isdigit():
-        return (datetime.now(timezone.utc) - timedelta(days=int(value[:-1]))).strftime("%Y-%m-%dT%H:%M:%S")
+        try:
+            return (datetime.now(timezone.utc) - timedelta(days=int(value[:-1]))).strftime("%Y-%m-%dT%H:%M:%S")
+        except OverflowError:  # 1年1月1日より前に出る日数は、記録のすべてを指す。argparseはOverflowErrorを拾わない
+            return "0001-01-01T00:00:00"
     return datetime.strptime(value, "%Y-%m-%d").strftime("%Y-%m-%d")
 
 
