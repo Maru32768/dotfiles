@@ -1,5 +1,6 @@
 #!/bin/bash
-# docs-redesignのlost.sh(home/dot_claude/skills/docs-redesign/scripts)を、使い捨ての文書で試す
+# docs-redesignのlost.sh(home/dot_claude/skills/docs-redesign/scripts)と、reader-test.mdに書いた
+# 見出しの一覧を作るawkを、使い捨ての文書で試す
 # テストの入力にMarkdownのバッククォートを書く
 # shellcheck disable=SC2016
 set -uo pipefail
@@ -234,6 +235,13 @@ out="$(bash "$lost" - -- after-fence.md </dev/null)"
 equals "前のファイルの-は、標準入力ではなくファイルとして読む" "$? $out" "$want"
 out="$(bash "$lost" before-twice.md -- - </dev/null)"
 equals "後のファイルの-も、標準入力ではなくファイルとして読む" "$? $out" "0 "
+
+# reader-test.mdに書いた、見出しの一覧を作るawkを取り出して試す。2〜6行目は、バッククォート4つのフェンスの
+# 中に3つのフェンスを書いている。8〜12行目は、~~~のフェンスの中に、バッククォートのフェンスの行と、後ろに文字が続く~~~の行がある
+outline="$(sed -n "s/^ *\(awk 'FNR == 1 .*}'\) .*\$/\1/p" "$root/home/dot_claude/skills/docs-redesign/references/reader-test.md")"
+printf '%s\n' '# title' "$fence\`markdown" "${fence}sh" '# comment' "$fence" "$fence\`" '## section' '~~~' "$fence" '~~~sh' '# comment 2' '~~~' '### sub' > outline.md
+out="$(eval "$outline outline.md")"
+equals "読者テストの見出しの一覧は、フェンスの中の#を拾わない" "$out" "$(printf 'outline.md:1: # title\noutline.md:7: ## section\noutline.md:13: ### sub')"
 
 if [ "$failures" -gt 0 ]; then
   printf '\n%s 件のテストが失敗しました\n' "$failures"
