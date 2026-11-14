@@ -78,12 +78,10 @@ def lines(path: Path):
 def claude_file(path: Path) -> tuple[list[dict], dict]:
     """1つのログから、API呼び出しの行と、サブエージェントを起こした呼び出しのスキルを返す。"""
     meta = {}
-    meta_path = path.with_suffix(".meta.json")
-    if meta_path.exists():
-        try:
-            meta = json.loads(meta_path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
-            pass
+    try:
+        meta = json.loads(path.with_suffix(".meta.json").read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        pass
     calls, agents = {}, {}
     for _, item in lines(path):
         message = item.get("message")
