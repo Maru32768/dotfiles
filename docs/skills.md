@@ -35,6 +35,7 @@ bash ~/.claude/skills/imos-humanizer/scripts/fetch-rules.sh --check
 | `gh stack` (gh の拡張) | gh-stack | `home/run_onchange_after_50-gh-extensions.*` がタグを固定して入れる |
 | `yomiyasu` | prose-polish、imos-humanizer | `skills.toml` |
 | `clarity` | prose-polish | `skills.toml` |
+| `web-design-guidelines`、`frontend-design` | docs-redesign(サイトの見た目は扱わず、この2つを案内する) | `skills.toml`、プラグイン(`frontend-design`) |
 | `ronny:engineering-small-prs` | split-pr-stack | プラグイン (`home/.claude-settings.json`) |
 | `mattpocock-skills:grilling`、`mattpocock-skills:domain-modeling`、`mattpocock-skills:pr` | ship-task | プラグイン (`mattpocock-skills`) |
 | `pstack:poteto-mode`、`pstack:technical-writing` | ship-task、prose-polish | プラグイン (`pstack`) |
