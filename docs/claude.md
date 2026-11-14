@@ -5,7 +5,7 @@ Windows と WSL で同じ設定を使うため、共通部分を chezmoi で管�
 | ファイル | 内容 |
 |---|---|
 | `home/.claude-settings.json` | 共通の設定 (プラグイン、マーケットプレイス、フックなど) |
-| `home/dot_claude/modify_settings.json` | 共通の設定を `settings.json` へマージする (chezmoi のテンプレートなので両 OS で動く) |
+| `home/dot_claude/modify_settings.json` | 共通の設定を `settings.json` へマージする (chezmoi のテンプレートなので両 OS で動く)。review-loopの台帳の置き場への許可も足す(「review-loopの台帳」) |
 | `home/dot_claude/CLAUDE.md` | ユーザー全体の指示。dotfiles で設定を管理していることのほか、日本語の表記、タスクの進め方、コミットとレビューの決まりと、技術的な知見の記録を提案する決まりを書く。指示として読まれるだけで、強制はしない。`agent` には置かない |
 | `home/dot_claude/pstack-models.md` | pstack のロールごとのモデル。`/setup-pstack` が書き、`CLAUDE.md` の `@` 行で読み込む |
 | `home/dot_claude/skills/` | 自分で書いたスキル (`docs/skills.md`) |
@@ -35,6 +35,16 @@ chezmoi apply   # 反映する
 - `idleCompaction: true`: 20万トークン以上の会話から離れると、1時間のキャッシュが切れる前にcompactする。戻ったときに、会話全体をキャッシュへ書き直さずに済む。1時間のキャッシュが使われるのは定額プランのmain会話だけなので、キャッシュが5分で切れるサブエージェントでは動かない。
 
 compactが増えると、序盤の細かい指示が要約で落ちやすくなる。決めたことは会話の外(issue、PR、コミット)に残す。
+
+## review-loopの台帳
+
+`modify_settings.json`が、`permissions.additionalDirectories`に`<ホーム>/.local/state/review-loop`を足す。review-loopは台帳をここに置く(`home/dot_claude/skills/review-loop/SKILL.md`の0)ので、ReadとWriteで確認が出ない。
+
+- ほかの置き場は使えない。セッションのscratchpadは、セッションが終わると消えることがあり、別のセッションからも見つからない。リポジトリの`.git`と`.claude`はClaude Codeの保護パスで、書き込みのたびに確認が出る。作業ツリーに置くと、リポジトリごとに無視の規則を足さない限り、`evidence.sh`の指紋に入る。
+- パスは、chezmoiの`.chezmoi.homeDir`から作った絶対パスにする。`~`で書いたパスを展開するかは、公式の文書に書かれていない。
+- `additionalDirectories`は、ファイルを読み書きできるようにするだけで、そこからCLAUDE.md、スキル、設定を読み込まない(公式の文書の「Additional directories grant file access, not configuration」)。
+- 台帳を初めて作るまで、このディレクトリは無い。無いディレクトリをClaude Codeがどう扱うかは確かめていない。
+- `agent`と`research`には`~/.claude`を置かないので、この許可も入らない。`tests/ci/render.sh`が、普段の環境の`permissions`がこの1つだけであることを確かめる。
 
 ## 署名回避を止めるフック
 

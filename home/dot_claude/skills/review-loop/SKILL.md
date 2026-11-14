@@ -37,7 +37,7 @@ description: 実装済みの差分を片づけてから、correctnessとテス�
   - 軽: 文書、設定値、機械的な改名、テストだけの変更
   - 通常: 軽にも高にも当たらないもの
   - 高: 認可、権限、隔離、秘密情報、永続化と移行、並行と冪等とリトライ、公開APIの互換性、CI/CD、信頼できない入力の解釈、取り消せない外部への作用。検証できる不変条件(例: 同じイベントを再配送しても二重に更新しない)を台帳に書く。認可や秘密情報に触れるなら、専用のセキュリティレビュー(`/security-review`など)を足す
-- **台帳。** 台帳のディレクトリを作る。場所は、システムプロンプトにscratchpadのディレクトリが書かれていれば`<scratchpad>/review-loop/<名前>/`、無ければ`/tmp/review-loop/<名前>/`にする。WindowsのGit Bashでは、`cygpath -m`で`C:/...`の形に直したパスを使う。`/tmp/...`のままだと、ReadやWriteは別の場所を指す。`<名前>`は、ブランチ名の`/`を`-`に替えたもの。ブランチが無ければ(detached HEAD)、開始時のHEADの短いSHAにする。同じ名前のディレクトリが既にあれば、中断した同じレビューを続けるときだけそれを使う。それ以外は、名前の末尾に`-2`のように番号を足して新しく作る。scratchpadはセッションごとに別の場所なので、別のセッションで続けるときは、前の台帳の絶対パスを利用者に尋ねる。分からなければ、新しく作る。その中に`ledger.md`を作り、絶対パスを利用者に伝える。型と行の印は`references/ledger.md`にある。ラウンドごとにプロンプトへ手で書き写さず、絶対パスを渡す。
+- **台帳。** 台帳のディレクトリを、`mkdir -p`で`~/.local/state/review-loop/<リポジトリ>/<名前>/`に作る。セッションが終わっても残り、別のセッションからも同じ名前で見つかる。dotfilesの設定が`~/.local/state/review-loop`をClaude Codeの`permissions.additionalDirectories`に入れるので、ReadとWriteで確認が出ない。WindowsのGit Bashでは、`cygpath -m`で`C:/...`の形に直したパスをReadとWriteに渡す。`<リポジトリ>`は`basename "$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")"`で、worktreeの中でも元のリポジトリの名前になる。`<名前>`は、ブランチ名の`/`を`-`に替えたもの。ブランチが無ければ(detached HEAD)、開始時のHEADの短いSHAにする。同じ名前のディレクトリが既にあれば、その`ledger.md`の開始時のHEADが今のHEADの祖先(`git merge-base --is-ancestor <SHA> HEAD`)のときだけ、同じ作業の続きとしてそれを使う。それ以外は、名前の末尾に`-2`のように番号を足して新しく作る。その中に`ledger.md`を作り、絶対パスを利用者に伝える。型と行の印は`references/ledger.md`にある。ラウンドごとにプロンプトへ手で書き写さず、絶対パスを渡す。
 
 ## 1. 片づける(ツリーを変える作業はここまで)
 

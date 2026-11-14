@@ -142,6 +142,14 @@ allowed-tools: $knowledge_tools"
   check "$name: CLAUDE.md に記録の提案の形がある" 'grep -qF "記録候補: <タイトル案>(/knowledge-capture)" "$work/$name/home/.claude/CLAUDE.md"'
 done
 
+# --- review-loop の台帳 (docs/claude.md) ---
+# 許可を広げるときは、何を許すことになるかを確かめてから、期待する値を直す
+for name in linux-main windows-main; do
+  ledger="$(cm "$name" execute-template '{{ .chezmoi.homeDir }}')/.local/state/review-loop"
+  check "$name: 台帳の置き場がホームの下" '[[ "$ledger" == ?*/.local/state/review-loop ]]'
+  check "$name: Claude の設定の permissions は台帳の置き場だけ" 'jq -e --arg d "$ledger" ".permissions == {additionalDirectories: [\$d]}" "$work/$name/home/.claude/settings.json"'
+done
+
 # --- Windows ---
 for file in .wslconfig OneDrive/Documents/PowerShell/Microsoft.PowerShell_profile.ps1 .claude/settings.json .claude/CLAUDE.md .vimrc .local/bin/bws-run.ps1 .local/bin/bws-run.cmd .local/bin/split-pdf .local/bin/split-pdf.cmd; do
   check "windows-main: $file がある" '[ -f "$work/windows-main/home/$file" ]'

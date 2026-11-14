@@ -53,7 +53,7 @@ awk -v sec=対応済み '/^```/{f=!f} !f && /^# /{s=(index($0, "# " sec) == 1)} 
 
 重大度が`-`の行は、片づけが出して採った提案で、欠陥ではない。
 
-台帳はセッションのscratchpadにあり、セッションが終わると消えることがある。数えたい台帳はreview-loopの最終報告にあるパスから写しておく。
+台帳は`~/.local/state/review-loop/<リポジトリ>/<名前>/ledger.md`に残る(review-loopの0)。WindowsとWSLはホームが別なので、台帳はレビューを回した側にしかない。
 
 工程と規則を消すか残すかは次で決める。
 
@@ -94,7 +94,6 @@ awk -v sec=対応済み '/^```/{f=!f} !f && /^# /{s=(index($0, "# " sec) == 1)} 
 
 - 評価セットのうち、どのブランチからも届かないコミット(B、D、K)を、手元のタグで残すか
 
-- 台帳を、別のセッションから見つけられる場所に置くか。リポジトリの`.git`と`.claude`はClaude Codeの保護パスで使えない。作業ディレクトリの外に置くなら、`permissions.additionalDirectories`に足す必要がある
 - GitHubのStacked PRへの登録(`gh stack link`)は試していない。`gh stack`の`push`と`submit`は、リモートにしか無い変更を上書きしうるので使わない
 - Codexのモデル(`gpt-6-astra`)とeffort(`high`)は、ほかの組み合わせと比べていない。Codexの費用はClaude Codeのログに残らない
 - split-pr-stackは一度も使わないまま、複数のスライスに分けた仕事が10件進んだら、消す候補にする
