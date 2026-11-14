@@ -24,6 +24,7 @@ import argparse
 import json
 import sqlite3
 import sys
+from collections import Counter
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -215,7 +216,7 @@ def report(db: Path, by: str, since: str, until: str | None, project: str | None
         query += " AND c.source = ?"
         params.append(source)
     groups: dict[str, dict] = {}
-    unpriced: dict[str, int] = {}
+    unpriced = Counter()
     for call in con.execute(query, params):
         if project and project not in (call["main_project"] or ""):
             continue
@@ -229,7 +230,7 @@ def report(db: Path, by: str, since: str, until: str | None, project: str | None
         usd = cost(call)
         if usd is None:
             g["unpriced"] += 1
-            unpriced[call["model"] or "(不明)"] = unpriced.get(call["model"] or "(不明)", 0) + 1
+            unpriced[call["model"] or "(不明)"] += 1
         else:
             g["cost_usd"] += usd
     total = sum(g["cost_usd"] for g in groups.values())
