@@ -182,6 +182,20 @@ EOF
 collect "$work/ssh" >/dev/null
 equals "subagents/ の外のサブエージェントも、本体と分ける" "$(field --by agent -- "len(rows), sorted(r['calls'] for r in rows.values())")" "(2, [1, 1])"
 equals "subagents/ の外のサブエージェントも、親のセッションのプロジェクトに数える" "$(field --by project -- "sorted(rows)")" "['C:/repo']"
+
+# 再開やforkで、同じ応答が別のセッションのログにも写される
+db="$work/copy.sqlite3"
+python3 -I - "$work/copy" <<'EOF'
+import json, sys
+from pathlib import Path
+base = Path(sys.argv[1]) / "claude/p"
+base.mkdir(parents=True)
+for session in ("a", "b"):
+    (base / f"{session}.jsonl").write_text(json.dumps({"type": "assistant", "timestamp": "2026-11-01T00:00:00Z", "sessionId": session,
+        "message": {"id": "same", "model": "claude-opus-5-5", "usage": {"input_tokens": 1, "output_tokens": 1}}}) + "\n", encoding="utf-8")
+EOF
+equals "同じ応答が2つのログにあっても1回だけ数える" "$(collect "$work/copy")" "2個のログを読み、1件の呼び出しを足した"
+
 db="$work/usage.sqlite3"
 
 if [ "$failures" -ne 0 ]; then
