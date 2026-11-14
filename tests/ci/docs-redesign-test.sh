@@ -98,6 +98,12 @@ want="$(printf '1 span\tbefore-wrap.md:2\ttool run --jobs 4\nspan\tbefore-wrap.m
 out="$(bash "$lost" before-wrap.md -- after-fence.md)"
 equals "折り返しをまたぐインラインコードを、次の行で閉じて読む" "$? $out" "$want"
 
+printf '%s\n' '`-f`を付ける。`PORT`を設定する。`tool start`で始める。' > before-part.md
+printf '%s\n' '`--force`を付ける。`EXPORTS`を見る。`sudo tool start --now`で始める。' > after-part.md
+want="$(printf '1 span\tbefore-part.md:1\t-f\nspan\tbefore-part.md:1\tPORT')"
+out="$(bash "$lost" before-part.md -- after-part.md)"
+equals "別の語の一部になっている一致は、残っているとみなさない" "$? $out" "$want"
+
 printf '%s\n' '`tool gone`を使う。' '' 'もう一度`tool gone`を使う。' > before-twice.md
 want="$(printf '1 span\tbefore-twice.md:1\ttool gone')"
 out="$(bash "$lost" before-twice.md -- after-fence.md)"

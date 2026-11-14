@@ -7,7 +7,8 @@
 # 1行に「種類<TAB>前のファイル:行<TAB>記述」を出す。種類はcode、line、span、link、url。
 # コードブロックの行が無いとき、その行の語(英数字と_が3文字以上続くもの)のどれかが後のどこにも
 # 無ければcode、語がすべて残っていればlineにする。lineは、書き方を変えたか、別の例に替えた行に多い。
-# 空白の違いは無視する。後のファイルのどこかに同じ文字列があれば、残っているとみなす。
+# 空白の違いは無視する。後のファイルのどこかの行に同じ文字列があれば、残っているとみなす。
+# ただし、英数字、_、-に挟まれた一致は数えない(-fは、--forceがあっても残っているとみなさない)。
 # 同じ記述は、最初に見つけた場所で1回だけ出す。
 # 終了コードは、挙げるものが無ければ0、あれば1。使い方の誤りと読めないファイルは2。
 set -uo pipefail
@@ -28,9 +29,22 @@ cat -- "$@" > "$hay" || die "後のファイルを読めない"
 
 awk -v hayfile="$hay" '
 function norm(s) { gsub(/\r/, "", s); gsub(/[ \t]+/, " ", s); sub(/^ /, "", s); sub(/ $/, "", s); return s }
+# 後のファイルのどこかの行に、tokが英数字、_、-に挟まれずに現れるか。-fを--forceの一部とはみなさない
+function present(tok,   i, h, off, j, p) {
+  if (index(hay, tok) == 0) return 0
+  for (i = 1; i <= nh; i++) {
+    h = hl[i]; off = 0
+    while ((j = index(substr(h, off + 1), tok)) > 0) {
+      p = off + j
+      if ((p == 1 || substr(h, p - 1, 1) !~ /[A-Za-z0-9_-]/) && substr(h, p + length(tok), 1) !~ /[A-Za-z0-9_-]/) return 1
+      off = p
+    }
+  }
+  return 0
+}
 function probe(kind, tok,   s, w) {
   tok = norm(tok)
-  if (tok ~ /^[[:punct:] ]*$/ || seen[tok]++ || index(hay, tok)) return
+  if (tok ~ /^[[:punct:] ]*$/ || seen[tok]++ || present(tok)) return
   if (kind == "code") {
     kind = "line"; s = tok
     while (match(s, /[A-Za-z0-9_]+/)) {
@@ -58,7 +72,7 @@ function fence_len(s,   c, n) {
   fmark = c; fbare = (n == length(s))
   return n >= 3 ? n : 0
 }
-BEGIN { while ((getline line < hayfile) > 0) hay = hay "\n" norm(line) }
+BEGIN { while ((getline line < hayfile) > 0) { hl[++nh] = norm(line); hay = hay "\n" hl[nh] } }
 FNR == 1 { fence = 0; carry = "" }
 { n = fence_len($0) }
 # 閉じるのは、開いたときと同じ記号が同じ数以上あり、後ろに何も無い行だけ(中に別のフェンスを書ける)
