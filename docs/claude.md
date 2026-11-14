@@ -46,7 +46,7 @@ compactが増えると、序盤の細かい指示が要約で落ちやすくな�
 - 台帳を初めて作るまで、このディレクトリは無い。無いディレクトリをClaude Codeがどう扱うかは確かめていない。
 - 配列は丸ごと置き換わるので、環境ごとに`permissions.additionalDirectories`へ足したディレクトリは、反映のたびに消える。
 - `agent`と`research`には`~/.claude`を置かないので、この許可も入らない。
-- `tests/ci/render.sh`は、共通の設定が`permissions`に台帳の置き場だけを足すことと、既存の`permissions.allow`が残ることを確かめる。
+- `tests/ci/render.sh`は、反映で`permissions`に足されるのが台帳の置き場だけであることと、既存の`permissions.allow`が残ることを確かめる。
 
 ## 署名回避を止めるフック
 
