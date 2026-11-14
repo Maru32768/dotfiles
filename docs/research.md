@@ -109,4 +109,4 @@ mkdir results-foo && tar -xf results.tar -C results-foo
 
 `research-claude` も Claude を起動する前に同じ検査を実行するので、インスタンスの起動時にルールを読み込めていなければ Claude は起動しない。
 
-`tests/ci/container.sh research` は、コンテナに `CAP_NET_ADMIN` を与えてルールを読み込む。コンテナは自分のネットワークの名前空間を持つので、ほかには影響しない。research ユーザーの通信が `No route to host` で拒否され、root と uid 65534 の通信は拒否されないことを確かめる。あわせて、`wsl.conf` の起動時のコマンド、`research-boot` を 2 回実行してもほかのテーブルが残ること、出力のフックが uid 2100 のときだけ jump する形であること、`/run` のハッシュ、資格情報が 2 つまたは 0 のときに `research-claude` が起動しないことを確かめる。
+`tests/ci/container.sh research` は、コンテナに `CAP_NET_ADMIN` を与えてルールを読み込む。コンテナは自分のネットワークの名前空間を持つので、ほかには影響しない。research ユーザーの通信が `No route to host` で拒否され、root と uid 65534 の通信は拒否されないことを確かめる。あわせて、`wsl.conf` の起動時のコマンド、`research-boot` を 2 回実行してもほかのテーブルが残ること、出力のフックが uid 2100 のときだけ jump する形であること、`/run` のハッシュ、資格情報が 2 つまたは 0 のときに `research-claude` が起動しないこと、`~/work`の外(`/`、ホーム、外を指すシンボリックリンクなど)では資格情報の検査の後で0以外で止まることを確かめる。
