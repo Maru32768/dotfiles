@@ -61,7 +61,6 @@ UNUSED = ("branch", "effort", "plugin")  # 集計に使わない属性。形が�
 # JSONとして読めない行(JSONDecodeErrorはValueError、深い入れ子はRecursionError)と、読めても形が違う行で出る例外
 SKIP = (AttributeError, KeyError, TypeError, ValueError, OverflowError, RecursionError)
 UNKNOWN_AGENT = "(種類不明)"
-PASS_THROUGH_SKILLS = ("usage-cap",)  # 大きい仕事が確かめるたびに呼ぶので、仕事の費用を奪わない
 # 同じ応答は、再開で写されたサブエージェントのログ(.meta.jsonが無いので種類不明)や、親の履歴を写したforkのログにもある。
 # 属性は、元のログらしい行(種類が分かる > 本体 > fork > 種類不明)のものを残す。トークン数は大きい方にする。書きかけの
 # 応答を後で読み直すと値が増え、古い版のログでは応答の最後の行も途中の値のことがあり、写しの方が最後の値を持つ
@@ -114,7 +113,6 @@ def claude_file(path: Path) -> tuple[list[dict], dict, int]:
     # SSHのリモートのセッションでは、サブエージェントのログがsubagents/の外にあり、.meta.jsonに種類が無い
     agent_type = meta.get("agentType") or (UNKNOWN_AGENT if meta or path.name.startswith("agent-") else None)
     calls, agents, skipped = {}, {}, 0
-    previous_skill = None
     for _, line in lines(path):
         try:
             item = json.loads(line)
@@ -125,11 +123,6 @@ def claude_file(path: Path) -> tuple[list[dict], dict, int]:
                 continue
             # 行の途中で例外になったら、その行からは何も残さない(呼び出しとスキルを最後にまとめて残す)
             skill = item.get("attributionSkill")
-            # スキルを呼ぶと、そのターンの残りはそのスキルに付く。仕事の途中で何度も呼ぶスキルは、直前のスキルを引き継ぐ
-            # (新しいターンの最初の行は、利用者の発言で付かなくなっているので、前のターンを引き継がない)
-            if skill in PASS_THROUGH_SKILLS:
-                skill = previous_skill
-            previous_skill = skill
             spawned = {block["id"]: skill for block in message.get("content") or []
                        if isinstance(block, dict) and block.get("type") == "tool_use" and block.get("name") == "Agent"}
             usage = message["usage"]
