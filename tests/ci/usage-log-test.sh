@@ -315,8 +315,11 @@ equals "--helpもUTF-8で出す" "$(usage --help | grep -c '使用量だけを�
 db="$work/cap/usage.sqlite3"
 equals "上限が無ければ、そう出す" "$(usage cap)" "上限なし"
 equals "上限を決める" "$(usage cap 70)" "週の枠(全モデル)の上限を70%にした"
-equals "上限はファイルに整数で書く" "$(cat "$work/cap/weekly-cap")" "70"
+equals "上限は、LFで終わる1行の整数でファイルに書く" "$(printf '70\n' | cmp -s - "$work/cap/weekly-cap" && echo same || echo different)" "same"
 equals "今の上限を出す" "$(usage cap)" "70%"
+for ok in 1:1 100:100 070:70; do
+  equals "上限を書き直す。範囲の端と先頭の0(${ok%%:*})も受け付け、整数にして書く" "$(usage cap "${ok%%:*}" >/dev/null; cat "$work/cap/weekly-cap")" "${ok##*:}"
+done
 for bad in 0 101 abc 7.5; do
   equals "範囲の外の上限($bad)は、終了コード2で断り、ファイルを変えない" "$(usage cap "$bad" 2>/dev/null; echo "rc=$?"; cat "$work/cap/weekly-cap")" "rc=2
 70"
