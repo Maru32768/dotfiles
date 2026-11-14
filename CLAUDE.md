@@ -22,7 +22,7 @@ bash tests/doctor.sh                    # 今の環境の確認
 chezmoi diff && chezmoi apply           # ホームへの反映
 ```
 
-`container.sh` は作業ツリーの内容を使うので、コミット前に試せる。Windows 側の検査 (`tests/ci/windows.ps1`、`tests/ci/bws-run-test.ps1`) は CI の windows ジョブで動く。CI は `docs/**` と `**.md` だけの変更では動かない。
+`container.sh` は作業ツリーの内容を使うので、コミット前に試せる。Windows 側の検査 (`tests/ci/windows.ps1`、`tests/ci/bws-run-test.ps1`、`tests/ci/lab-run-test.ps1`) は CI の windows ジョブで動く。CI は `docs/**` と `**.md` だけの変更では動かない。
 
 ## 構造の要点
 
