@@ -97,8 +97,7 @@ equals "サブエージェントは説明ごとに分けられる" "$(field --by
 equals "Codexは合計が変わったときだけ数え、キャッシュを入力から分ける" "$(field --source codex --by model -- "rows['gpt-6-astra']['input'], rows['gpt-6-astra']['cache_read'], rows['gpt-6-astra']['output']")" "(160, 140, 8)"
 equals "単価の無いモデルは費用に入れず、件数を数える" "$(field --source codex --by model -- "rows['gpt-6-astra']['cost_usd'], rows['gpt-6-astra']['unpriced']")" "(0.0, 2)"
 # 単価のある費用の合計は、m1 4340 + m2 24 + m3 96000 + m5 28000 + s1 152 + m4 24 = 128540
-equals "割合は単価のある呼び出しの費用の合計で割る" "$(field --by skill -- "round(rows['review-loop']['share'], 6)")" "$(python3 -I -c 'print(round(4516 / 128540, 6))' | tr -d '
-')"
+equals "割合は単価のある呼び出しの費用の合計で割る" "$(field --by skill -- "round(rows['review-loop']['share'], 6)")" "$(python3 -I -c 'print(round(4516 / 128540, 6))' | tr -d '\r')"
 equals "単価の無い呼び出しは割合に入れない" "$(field --by source -- "round(rows['claude']['share'], 6), rows['codex']['share']")" "(1.0, 0.0)"
 
 # 既定の期間(直近7日): 1日前と10日前の呼び出しのうち、1日前だけを数える
