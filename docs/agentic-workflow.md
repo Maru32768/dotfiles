@@ -12,7 +12,7 @@
 
 数字は2026-11-13に、それまでのClaude Codeのログと、review-loopの台帳13件(latticeが8件、dotfiles系が5件)、latticeにコミットされた指摘の記録(`findings.tsv`)から数えた。R2〜R4の23件と3件、R1の時点のFableとCodexの1〜3件は、2026-11-14のV1で1件ずつコードで確かめ直した数。
 
-費用はAPIの単価に換算した値で、実際の請求とは別物。サブエージェントのログ(Claude Codeのセッションの`subagents/agent-*.jsonl`)の使用量を`message.id`で重複を除いて足し、工程は同じ場所の`.meta.json`の`description`で分けた。親の費用は、その実行の時間帯の親の応答を足した。Codexの費用は入っていない。集計に使ったスクリプトはリポジトリに無い。
+費用はAPIの単価に換算した値で、実際の請求とは別物。サブエージェントのログ(Claude Codeのセッションの`subagents/agent-*.jsonl`)の使用量を`message.id`で重複を除いて足し、工程は同じ場所の`.meta.json`の`description`で分けた。親の費用は、その実行の時間帯の親の応答を足した。Codexの費用は入っていない。集計に使ったスクリプトはリポジトリに無い。2026-11-14からは、`usage-log`(`docs/tools.md`)が使用量を記録している。サブエージェントの数え方は同じで(`subagents/`の外にある、SSHのリモートのセッションのサブエージェントも数える)、親の呼び出しは実行の時間帯で分けず、`--by agent`では`(本体)`にまとめる。工程ごとの費用は`usage-log report --by agent`で、スキルごとの費用は`--by skill`で出す。
 
 | 分かったこと | 決めたこと |
 |---|---|
@@ -95,5 +95,5 @@ awk -v sec=対応済み '/^```/{f=!f} !f && /^# /{s=(index($0, "# " sec) == 1)} 
 - 評価セットのうち、どのブランチからも届かないコミット(B、D、K)を、手元のタグで残すか
 
 - GitHubのStacked PRへの登録(`gh stack link`)は試していない。`gh stack`の`push`と`submit`は、リモートにしか無い変更を上書きしうるので使わない
-- Codexのモデル(`gpt-6-astra`)とeffort(`high`)は、ほかの組み合わせと比べていない。Codexの費用はClaude Codeのログに残らない
+- Codexのモデル(`gpt-6-astra`)とeffort(`high`)は、ほかの組み合わせと比べていない。Codexのトークン数は`usage-log`がCodexの記録から数えるが、Codexのモデルが単価の表に無いので費用には入らない
 - split-pr-stackは一度も使わないまま、複数のスライスに分けた仕事が10件進んだら、消す候補にする

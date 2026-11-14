@@ -72,3 +72,4 @@ chezmoiが`~/.local/bin`に置く。agentの環境には置かない。
 |---|---|
 | `bws-run` | Secrets Managerに置いたAPIキーを、指定したコマンドにだけ環境変数として渡す(`docs/secrets.md`) |
 | `split-pdf` | PDFを、しおりごとか、指定したページの前(`--at`)で切ったファイルに分ける。しおりの深さは`--level`で選ぶ。`--at`のページは、本に印刷された番号がPDFに記録されていれば、その番号で指定する。PDFのページ番号で指定するときは`#N`と書く。uvのスクリプトなので、初回にpypdfを取得する。Windowsでは`split-pdf.cmd`を通して動く |
+| `usage-log` | `collect`はClaude CodeとCodexのログから、API呼び出しごとのトークン数と、時刻、セッション、プロジェクト、モデル、スキル、サブエージェントなどの属性を`~/.local/state/usage/usage.sqlite3`に写す。会話の中身は写さない。読めない行と形の違う行は飛ばし、その数を`collect`の出力と`report`の表に出す。`collect`はClaude CodeのSessionStartのフックが動かす(`docs/claude.md`)。`report --by`はスキル、サブエージェント、モデル、プロジェクト、日などの単位で、APIの定価に換算した費用とその割合を出す。サブエージェントの呼び出しにスキルが付いていなければ、その費用は、親がそれを起こしたときに動いていたスキルの費用に含める。単価の表はスクリプトの中にあり、既定のモデルが変わったら直す。単価の表に無いモデル(Codexのモデルなど)は、費用に入れず、トークン数と件数だけを出す。Windowsでは`usage-log.cmd`を通して動く |
