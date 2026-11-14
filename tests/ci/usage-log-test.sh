@@ -235,11 +235,12 @@ equals "同じ応答が2つのログにあっても1回だけ数える" "$(colle
 
 # 再開では、サブエージェントのログが.meta.jsonを持たずに新しいセッションへ写され、forkのログは親の履歴を写して持つ。
 # 写しを後の回に読んでも、元のログの種類、説明、スキルを残す。トークン数は、読み直した応答の最後の値にする
+# 使い方: resume.py <ディレクトリ> <first|copy|first,copy> <元のセッションの名前>
 db="$work/resume.sqlite3"
 cat >"$work/resume.py" <<'EOF'
 import json, sys
 from pathlib import Path
-base, phase = Path(sys.argv[1]) / "claude/p", sys.argv[2]
+base, phases, orig = Path(sys.argv[1]) / "claude/p", sys.argv[2].split(","), sys.argv[3]
 def line(mid, output=1, skill=None, agent=False):
     return json.dumps({"type": "assistant", "timestamp": "2026-11-01T00:00:00Z", "sessionId": "A", "attributionSkill": skill,
                        "message": {"id": mid, "model": "claude-opus-5-5", "usage": {"input_tokens": 1, "output_tokens": output},
@@ -250,21 +251,28 @@ def write(path, text, meta=None, mode="w"):
         f.write(text)
     if meta:
         path.with_suffix(".meta.json").write_text(json.dumps(meta), encoding="utf-8")
-if phase == "first":
+if "first" in phases:
     # Mは書きかけで、出力が途中の値
-    write(base / "A.jsonl", line("M", 1, "ship-task", agent=True))
-    write(base / "A/subagents/agent-x.jsonl", line("X"), {"agentType": "general-purpose", "toolUseId": "toolu_5"})
-else:
-    write(base / "A.jsonl", line("M", 9, "ship-task", agent=True), mode="a")
+    write(base / f"{orig}.jsonl", line("M", 1, "ship-task", agent=True))
+    write(base / f"{orig}/subagents/agent-x.jsonl", line("X"), {"agentType": "general-purpose", "toolUseId": "toolu_5"})
+if "copy" in phases:
+    write(base / f"{orig}.jsonl", line("M", 9, "ship-task", agent=True), mode="a")
     write(base / "B/subagents/agent-x.jsonl", line("X"))
-    write(base / "A/subagents/agent-f.jsonl", line("M", 9, "ship-task", agent=True) + line("F"), {"agentType": "fork"})
+    write(base / f"{orig}/subagents/agent-f.jsonl", line("M", 9, "ship-task", agent=True) + line("F"), {"agentType": "fork"})
 EOF
-python3 -I "$work/resume.py" "$work/resume" first
+python3 -I "$work/resume.py" "$work/resume" first A
 collect "$work/resume" >/dev/null
-python3 -I "$work/resume.py" "$work/resume" copy
+python3 -I "$work/resume.py" "$work/resume" copy A
 equals "写しのログからは、新しい応答だけを足す" "$(collect "$work/resume")" "3個のログを読み、1件の呼び出しを足した"
 equals "写しを後から読んでも、元のログの種類を残す" "$(field --by agent-type -- "rows['general-purpose']['calls'], rows['fork']['calls'], len(rows)")" "(1, 1, 3)"
 equals "写しを後から読んでも、親のスキルに数え、トークン数は最後の値にする" "$(field --by skill -- "rows['ship-task']['calls'], rows['ship-task']['output']")" "(2, 10)"
+
+# 1回のcollectで、写しを元のログより先に読む(B/はZ/より先、Z/subagents/のforkはZ.jsonlより先に並ぶ)
+db="$work/once.sqlite3"
+python3 -I "$work/resume.py" "$work/once" first,copy Z
+equals "写しと元のログを同じ回に読んでも、応答を1回だけ数える" "$(collect "$work/once")" "4個のログを読み、3件の呼び出しを足した"
+equals "写しを先に読んでも、元のログの種類にする" "$(field --by agent-type -- "rows['general-purpose']['calls'], rows['fork']['calls'], len(rows)")" "(1, 1, 3)"
+equals "写しを先に読んでも、親のスキルに数える" "$(field --by skill -- "rows['ship-task']['calls'], rows['ship-task']['output']")" "(2, 10)"
 
 # サブエージェントは自分のスキルを先に使い、無ければ親のスキルを使う。スキルの無い呼び出しはモデルによらず1つにまとめる
 db="$work/skills.sqlite3"
