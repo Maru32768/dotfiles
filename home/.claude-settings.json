@@ -63,8 +63,7 @@
           {
             "type": "command",
             "command": "uv run --quiet --script \"$HOME/.local/bin/usage-log\" collect --quiet",
-            "async": true,
-            "timeout": 600
+            "async": true
           }
         ]
       }
