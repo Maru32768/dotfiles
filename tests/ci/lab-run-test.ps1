@@ -59,8 +59,6 @@ try {
         Check "${shell}: the key goes to wsl.exe through WSLENV" ($r.Out -match 'WSLENV=\[ANTHROPIC_API_KEY/u\]') $r
         $r = Invoke-Run $shell @('-Path', 'work/run')
         Check "${shell}: a relative path is taken from the home" (($r.Args -join '|') -eq ($call -f '~/work/run')) $r
-        # A literal ~/... cannot be tested here: this script's own PowerShell 7 expands it when
-        # calling the shell, as bws-run does. The default ~/work above covers a leading ~.
         $r = Invoke-Run $shell @('-Path', '/home/research/x')
         Check "${shell}: an absolute path is passed as it is" (($r.Args -join '|') -eq ($call -f '/home/research/x')) $r
         foreach ($path in 'C:\x', 'C:/x', 'C:\Users\u/work', 'work\run', 'wo"rk') {
@@ -80,6 +78,13 @@ try {
         $r = Invoke-Run $shell @() '4'
         Check "${shell}: the interactive run returns the exit code of wsl.exe" ($r.Code -eq 4) $r
     }
+    # A leading ~ passed to an exe would be expanded by this script's own PowerShell 7, so these
+    # run lab.ps1 inside pwsh, where only lab.ps1's own calls to wsl.exe can expand it
+    $ErrorActionPreference = 'Continue'
+    $out = 'piped' | & pwsh -NoProfile -Command "& '$lab' run research-x -Path '~/work/x' -Prompt '~/work/y'" 2>&1 | Out-String
+    $ErrorActionPreference = 'Stop'
+    $r = @{ Code = $LASTEXITCODE; Args = @(($out -split "`r?`n") | Where-Object { $_ -like 'ARG=*' } | ForEach-Object { $_ -replace '^ARG=\[(.*)\]$', '$1' }) }
+    Check 'pwsh: a leading ~ in -Path and -Prompt reaches wsl.exe as it is' (($r.Args -join '|') -eq (($call -f '~/work/x') + '|-p|~/work/y')) $r
 } finally {
     Remove-Item -Recurse -Force -LiteralPath $work -ErrorAction SilentlyContinue
 }

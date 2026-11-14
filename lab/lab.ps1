@@ -274,10 +274,10 @@ if ($Command -eq 'run') {
         throw '-Prompt cannot contain a double quote or end with a backslash'
     }
     & $labProfile.RunWith {
-        # "$Path": PowerShell 7 also expands a leading ~ in a bare variable passed to an exe
+        # "$Path" and "$Prompt": PowerShell 7 also expands a leading ~ in a bare variable passed to an exe
         if ($Prompt) {
             # An empty stdin, so claude -p does not wait for piped input
-            $null | & wsl.exe -d $Name -u $User --cd "$Path" -e $labProfile.Launcher -p $Prompt
+            $null | & wsl.exe -d $Name -u $User --cd "$Path" -e $labProfile.Launcher -p "$Prompt"
         } else {
             & wsl.exe -d $Name -u $User --cd "$Path" -e $labProfile.Launcher
         }
