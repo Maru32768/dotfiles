@@ -53,7 +53,7 @@ awk -v sec=対応済み '/^```/{f=!f} !f && /^# /{s=(index($0, "# " sec) == 1)} 
 
 重大度が`-`の行は、片づけが出して採った提案で、欠陥ではない。
 
-台帳は`~/.local/state/review-loop/<リポジトリ>/<名前>/ledger.md`に残る(review-loopの0)。WindowsとWSLはホームが別なので、台帳はreview-loopを回した側にしかない。
+台帳は`~/.local/state/review-loop/<リポジトリ>/`の下に、`<名前>/ledger.md`の形で残る(review-loopの0)。同じ名前で回し直した台帳は、`<名前>-2/`のように番号の付いたディレクトリにある。WindowsとWSLはホームが別なので、台帳はreview-loopを回した側にしかない。
 
 工程と規則を消すか残すかは次で決める。
 
