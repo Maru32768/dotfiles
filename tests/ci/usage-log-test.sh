@@ -333,9 +333,14 @@ for bad in 0 101 abc 7.5; do
   equals "範囲の外の上限($bad)は、終了コード2で断り、ファイルを変えない" "$(usage cap "$bad" 2>/dev/null; echo "rc=$?"; cat "$work/cap/weekly-cap")" "rc=2
 70"
 done
-printf 'abc\n' >"$work/cap/weekly-cap"
-equals "手で壊した上限は、そのまま出さずに終了コード1で知らせる" "$({ usage cap 2>&1; echo "rc=$?"; } | tr -d '\r')" "上限のファイルが1〜100の整数でない: 'abc'(usage-log cap <%>で書き直すか、usage-log cap offで外す)
+for broken in abc 150 0; do
+  printf '%s\n' "$broken" >"$work/cap/weekly-cap"
+  equals "手で壊した上限($broken)は、そのまま出さずに終了コード1で知らせる" "$({ usage cap 2>&1; echo "rc=$?"; } | tr -d '\r')" "上限のファイルが1〜100の整数でない: '$broken'(usage-log cap <%>で書き直すか、usage-log cap offで外す)
 rc=1"
+done
+# Pythonのintは4300桁を超える文字列を例外にする
+head -c 5000 /dev/zero | tr '\0' 9 >"$work/cap/weekly-cap"
+equals "とても長い数字の上限も、例外にせずに知らせる" "$(usage cap 2>&1 | grep -c Traceback)" "0"
 equals "上限を外す" "$(usage cap off)" "上限を外した"
 equals "外すとファイルを消す" "$([ -e "$work/cap/weekly-cap" ] && echo exists || echo gone)" "gone"
 equals "外した後に外しても、失敗しない" "$(usage cap off)" "上限を外した"

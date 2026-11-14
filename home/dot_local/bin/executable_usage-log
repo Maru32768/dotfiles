@@ -319,7 +319,8 @@ def report(db: Path, by: str, since: str, until: str | None, project: str | None
 
 
 def is_cap(value: str) -> bool:
-    return value.isascii() and value.isdigit() and 1 <= int(value) <= 100
+    # 長さを先に見る。intは4300桁を超える文字列を例外にする
+    return len(value) <= 3 and value.isascii() and value.isdigit() and 1 <= int(value) <= 100
 
 
 def cap_arg(value: str) -> int | str:
