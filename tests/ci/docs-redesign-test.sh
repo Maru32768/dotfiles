@@ -185,12 +185,14 @@ printf '%s\n' '`--force -f`と`tool run --all`' > after-same.md
 out="$(bash "$lost" before-same.md -- after-same.md)"
 equals "同じ行の後ろにある一致と、空白の数だけ違う記述は、残っているとみなす" "$? $out" "0 "
 
-# URLの後ろの記号と日本語は、URLに含めない。<>、""、``、[]で囲んだURLも、中だけを読む
-printf '%s\n' 'See https://a.example/docs. Or https://b.example/x, **https://c.example/y**.' '詳しくはhttps://d.example/jaを読む。' '<https://e.example/z>と<a href="https://f.example/w">と`https://g.example/v`と[https://h.example/u]' '消すのはhttps://lost.example/p。' > before-url.md
-printf '%s\n' 'https://a.example/docs https://b.example/x https://c.example/y https://d.example/ja https://e.example/z https://f.example/w https://g.example/v https://h.example/u' > after-url.md
-want="$(printf '1 url\tbefore-url.md:4\thttps://lost.example/p')"
+# URLの末尾の記号は、URLに含めない。<>、""、``、[]で囲んだURLも、中だけを読む。ASCIIでない文字はURLに
+# 含める。2行目は、パスに日本語を含むURLで、後の版には同じ前半の別のURLがある。5行目は、URLの直後に空白を
+# 置かずに日本語を続けたので、2つ目のURLまでを1つのURLとして読む
+printf '%s\n' 'See https://a.example/docs. Or https://b.example/x, **https://c.example/y**.' '用語は https://d.example/wiki/日本 を見る。' '<https://e.example/z>と<a href="https://f.example/w">と`https://g.example/v`と[https://h.example/u]' '消すのは https://lost.example/p です。' '公式はhttps://i.example/docsと、ミラーはhttps://j.example/mirrorにある。' > before-url.md
+printf '%s\n' 'https://a.example/docs https://b.example/x https://c.example/y https://d.example/wiki/東京 https://e.example/z https://f.example/w https://g.example/v https://h.example/u' '公式はhttps://i.example/docs にある。' > after-url.md
+want="$(printf '1 url\tbefore-url.md:2\thttps://d.example/wiki/日本\nurl\tbefore-url.md:4\thttps://lost.example/p\nurl\tbefore-url.md:5\thttps://i.example/docsと、ミラーはhttps://j.example/mirrorにある。')"
 out="$(bash "$lost" before-url.md -- after-url.md)"
-equals "URLの後ろの記号と日本語を除いて、URLを比べる" "$? $out" "$want"
+equals "URLの末尾の記号を除いて比べ、ASCIIでない文字はURLに含める" "$? $out" "$want"
 
 # 記号だけのインラインコードとリンク先も調べる。空のインラインコード、記号だけのコードの行(3〜4行目)、
 # 記号だけの切れ端(7行目の-)は挙げない
