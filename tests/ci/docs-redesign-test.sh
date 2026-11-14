@@ -177,6 +177,13 @@ want="$(printf '1 span\tbefore-part.md:1\t-f\nspan\tbefore-part.md:1\tPORT\nspan
 out="$(bash "$lost" before-part.md -- after-part.md)"
 equals "別の語の一部になっている一致は、残っているとみなさない" "$? $out" "$want"
 
+# URLの後ろの記号と日本語は、URLに含めない。<>、""、``、[]で囲んだURLも、中だけを読む
+printf '%s\n' 'See https://a.example/docs. Or https://b.example/x, **https://c.example/y**.' '詳しくはhttps://d.example/jaを読む。' '<https://e.example/z>と<a href="https://f.example/w">と`https://g.example/v`と[https://h.example/u]' '消すのはhttps://lost.example/p。' > before-url.md
+printf '%s\n' 'https://a.example/docs https://b.example/x https://c.example/y https://d.example/ja https://e.example/z https://f.example/w https://g.example/v https://h.example/u' > after-url.md
+want="$(printf '1 url\tbefore-url.md:4\thttps://lost.example/p')"
+out="$(bash "$lost" before-url.md -- after-url.md)"
+equals "URLの後ろの記号と日本語を除いて、URLを比べる" "$? $out" "$want"
+
 # 記号だけのインラインコードとリンク先も調べる。空のインラインコード、記号だけのコードの行(3〜4行目)、
 # 記号だけの切れ端(7行目の-)は挙げない
 printf '%s\n' '区切りは`:`、ルートは`/`、親は`..`、空は` `。ファイル名の前に`--`を書く。[先頭へ](#)と[上へ](../)。' "$fence" '}' '---' "$fence" '' '- `tool keep' > before-punct.md
