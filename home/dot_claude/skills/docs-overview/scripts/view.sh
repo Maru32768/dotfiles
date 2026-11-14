@@ -82,17 +82,12 @@ rest=${page#*@TITLE@}
 mid=${rest%%@BODY@*}
 post=${rest#*@BODY@}
 
-# 1行目に題、2行目から本文を書く。題は最初の「# 」の行で決まるので、本文は最後まで溜めてから書く
-LC_ALL=C awk '
+# 題は最初の「# 」の行で決まるので、本文は最後まで溜めてから書く。-vは\を解釈するので、ENVIRONで渡す
+pre=$pre mid=$mid post=$post LC_ALL=C awk '
 function esc(s) { gsub(/&/, "\\&amp;", s); gsub(/</, "\\&lt;", s); gsub(/>/, "\\&gt;", s); return s }
 BEGIN { title = ARGV[1]; sub(/.*\//, "", title) }
 { sub(/\r$/, "") }
 !found && /^# / { title = substr($0, 3); found = 1 }
 { body = body esc($0) "\n" }
-END { print esc(title); printf "%s", body }
-' "$f" | {
-  IFS= read -r title
-  printf '%s%s%s' "$pre" "$title" "$mid"
-  cat
-  printf '%s\n' "$post"
-}
+END { printf "%s%s%s%s%s\n", ENVIRON["pre"], esc(title), ENVIRON["mid"], body, ENVIRON["post"] }
+' "$f"
