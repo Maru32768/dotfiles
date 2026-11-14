@@ -87,7 +87,7 @@ equals "=を含む絶対パスに、./を足さない" "$(title_of "$(bash "$vie
 
 hash="$(between "$round" '<script>' '</script>' | openssl dgst -sha256 -binary | openssl base64 -A)"
 marked='https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js'
-mermaid='https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js'
+mermaid='https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.8/mermaid.min.js'
 csp="$(printf '%s' "$round" | grep -o 'http-equiv="Content-Security-Policy" content="[^"]*"')"
 want="http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; script-src 'sha256-$hash' $marked $mermaid; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'\""
 equals "CSPのsha256-の値は、インラインのスクリプトのハッシュと同じ" "$csp" "$want"
@@ -101,7 +101,7 @@ loads() { printf '%s' "$round" | grep -c -F "<script src=\"$1\" integrity=\"$2\"
 equals "markedを、決めたURLとintegrityで読む" \
   "$(loads "$marked" 'sha512-xeUh+KxNyTufZOje++oQHstlMQ8/rpyzPuM+gjMFYK3z5ILJGE7l2NvYL+XfliKURMpBIKKp1XoPN/qswlSMFA==')" "1"
 equals "mermaidを、決めたURLとintegrityで読む" \
-  "$(loads "$mermaid" 'sha512-6a80OTZVmEJhqYJUmYd5z8yHUCDlYnj6q9XwB/gKOEyNQV/Q8u+XeSG59a2ZKFEHGTYzgfOQKYEBtrZV7vBr+Q==')" "1"
+  "$(loads "$mermaid" 'sha512-W44v4BgrfdCXnfKNCPLIa8yzpMbB5761jGLoi9UKSkAP5rveS4LqWnnBQV4n7hArLoGHijukXIpCxxbzqAX/Vg==')" "1"
 
 if [ "$failures" -gt 0 ]; then
   printf '\n%s 件のテストが失敗しました\n' "$failures"

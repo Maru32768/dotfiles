@@ -21,7 +21,7 @@ case "$f" in /* | ?:* | ./*) ;; *=* | -*) f="./$f" ;; esac
 page=$(cat <<'EOF'
 <!doctype html>
 <html lang="ja"><head><meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-QKTm0n8qJUJD48mskKbaaCTyeJ15YKm9BdBaGVXJSL4=' https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-QKTm0n8qJUJD48mskKbaaCTyeJ15YKm9BdBaGVXJSL4=' https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.8/mermaid.min.js; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>@TITLE@</title>
 <style>
@@ -47,7 +47,7 @@ pre.mermaid{background:transparent;text-align:center;overflow-x:auto}
 <main id="out"></main>
 <pre id="md">@BODY@</pre>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js" integrity="sha512-xeUh+KxNyTufZOje++oQHstlMQ8/rpyzPuM+gjMFYK3z5ILJGE7l2NvYL+XfliKURMpBIKKp1XoPN/qswlSMFA==" crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js" integrity="sha512-6a80OTZVmEJhqYJUmYd5z8yHUCDlYnj6q9XwB/gKOEyNQV/Q8u+XeSG59a2ZKFEHGTYzgfOQKYEBtrZV7vBr+Q==" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.8/mermaid.min.js" integrity="sha512-W44v4BgrfdCXnfKNCPLIa8yzpMbB5761jGLoi9UKSkAP5rveS4LqWnnBQV4n7hArLoGHijukXIpCxxbzqAX/Vg==" crossorigin="anonymous"></script>
 <script>
 (async () => {
   const raw = document.getElementById('md');
