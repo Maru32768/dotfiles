@@ -92,11 +92,23 @@ want="$(printf '1 code\tbefore-nested.md:3\ttool deploy --prod\nspan\tbefore-nes
 out="$(bash "$lost" before-nested.md -- after-fence.md)"
 equals "フェンスの中のフェンスで、状態がずれない" "$? $out" "$want"
 
-# 1〜2行目は、インラインコードが行の折り返しをまたぐ。4行目のバッククォートは1つだけで、5行目とは対にならない
-printf '%s\n' '次のように`tool run' '--jobs 4`と`tool gc`を使う。' '' '記号の`を書く。' '`tool xx`と`tool yy`を使う。' > before-wrap.md
-want="$(printf '1 span\tbefore-wrap.md:2\ttool run --jobs 4\nspan\tbefore-wrap.md:2\ttool gc\nspan\tbefore-wrap.md:5\ttool xx\nspan\tbefore-wrap.md:5\ttool yy')"
+# 1〜2行目は、インラインコードが行の折り返しをまたぐ
+printf '%s\n' '次のように`tool run' '--jobs 4`と`tool gc`を使う。' > before-wrap.md
+want="$(printf '1 span\tbefore-wrap.md:2\ttool run --jobs 4\nspan\tbefore-wrap.md:2\ttool gc')"
 out="$(bash "$lost" before-wrap.md -- after-fence.md)"
 equals "折り返しをまたぐインラインコードを、次の行で閉じて読む" "$? $out" "$want"
+
+# 2行目は、閉じた後にまた開いて折り返す。3行にまたがるインラインコードは、間の行に`が無い
+printf '%s\n' 'Use `tool run' '--jobs 4` or `tool gc' '--all` to clean.' '' '`tool a' 'b c' 'd`を使う。' > before-chain.md
+printf '%s\n' 'Use or to clean.' > after-chain.md
+want="$(printf '1 span\tbefore-chain.md:2\ttool run --jobs 4\nspan\tbefore-chain.md:3\ttool gc --all\nspan\tbefore-chain.md:7\ttool a b c d')"
+out="$(bash "$lost" before-chain.md -- after-chain.md)"
+equals "続けて折り返すインラインコードと、3行にまたがるインラインコードを読む" "$? $out" "$want"
+
+# 1行目のバッククォートは対にならない。2行目は、つないだ読み方の切れ端(を書く。、と)も挙がるが、インラインコードを見逃さない
+printf '%s\n' '記号の`を書く。' '`tool xx`と`tool yy`を使う。' > before-stray.md
+out="$(bash "$lost" before-stray.md -- after-fence.md | cut -f3 | LC_ALL=C sort | tr '\n' ' ')"
+equals "対にならないバッククォートの次の行でも、インラインコードを挙げる" "$out" "tool xx tool yy と を書く。 "
 
 printf '%s\n' '`-f`を付ける。`PORT`を設定する。`tool start`で始める。' > before-part.md
 printf '%s\n' '`--force`を付ける。`EXPORTS`を見る。`sudo tool start --now`で始める。' > after-part.md
