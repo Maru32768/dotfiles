@@ -119,9 +119,9 @@ check "Codex の設定がない環境でも共通設定から作れる" '[ "$(cm
 for file in .ssh/config .gnupg/gpg-agent.conf .claude/settings.json .claude/CLAUDE.md .tmux.conf .vimrc .local/bin/bws-run .local/bin/split-pdf .local/bin/usage-log; do
   check "linux-main: $file がある" '[ -f "$work/linux-main/home/$file" ]'
 done
-check "linux-main: bws-run が実行できる" '[ -x "$work/linux-main/home/.local/bin/bws-run" ]'
-check "linux-main: split-pdf が実行できる" '[ -x "$work/linux-main/home/.local/bin/split-pdf" ]'
-check "linux-main: usage-log が実行できる" '[ -x "$work/linux-main/home/.local/bin/usage-log" ]'
+for tool in bws-run split-pdf usage-log; do
+  check "linux-main: $tool が実行できる" '[ -x "$work/linux-main/home/.local/bin/$tool" ]'
+done
 for file in .local/bin/bws-run.ps1 .local/bin/bws-run.cmd .local/bin/split-pdf.cmd .local/bin/usage-log.cmd; do
   blocked "linux-main: $file がない" '[ -e "$work/linux-main/home/$file" ]'
 done
