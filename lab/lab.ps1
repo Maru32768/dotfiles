@@ -268,6 +268,10 @@ if ($Command -eq 'run') {
     if ($Path -notmatch '^[~/]') {
         $Path = "~/$Path"
     }
+    # Windows PowerShell 5.1 passes these to an exe unescaped, so the prompt would split or lose them
+    if ($Prompt -match '"|\\$') {
+        throw '-Prompt cannot contain a double quote or end with a backslash'
+    }
     & $labProfile.RunWith {
         # "$Path": PowerShell 7 also expands a leading ~ in a bare variable passed to an exe
         if ($Prompt) {
