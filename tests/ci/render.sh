@@ -174,7 +174,12 @@ check "windows-main: Claude の設定の既存のキーと permissions.allow が
 # --- usage-cap (docs/claude.md) ---
 # 許可を広げるときは、何を許すことになるかを確かめてから、期待する値を直す
 for name in linux-main windows-main; do
-  check "$name: usage-cap が、usage-log cap の書く上限のファイルだけを読む" 'grep -qx "allowed-tools: Read(~/.local/state/usage/weekly-cap) mcp__ccd_session_mgmt__get_usage" "$work/$name/home/.claude/skills/usage-cap/SKILL.md" && grep -qF "\".local/state/usage/usage.sqlite3\"" "$work/$name/home/.local/bin/usage-log" && grep -qF "\"weekly-cap\"" "$work/$name/home/.local/bin/usage-log"'
+  skill="$work/$name/home/.claude/skills/usage-cap/SKILL.md"
+  # description を除く frontmatter の完全一致。hooks などのキーを足して許可を広げる変更も落ちる
+  equals "$name: usage-cap の frontmatter" "$(sed -n '1{/^---$/!q;d};/^---$/q;/^description: /d;p' "$skill" 2>/dev/null)" "name: usage-cap
+allowed-tools: Read(~/.local/state/usage/weekly-cap) mcp__ccd_session_mgmt__get_usage"
+  check "$name: usage-cap の本文が、許可したファイルを読む" 'grep -qF "ホームの\`.local/state/usage/weekly-cap\`を" "$skill"'
+  check "$name: usage-log cap が、usage-cap の読むファイルに書く" 'grep -qF "\".local/state/usage/usage.sqlite3\"" "$work/$name/home/.local/bin/usage-log" && grep -qF "\"weekly-cap\"" "$work/$name/home/.local/bin/usage-log"'
 done
 
 # --- Windows ---
