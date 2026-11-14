@@ -4,10 +4,12 @@
 #
 #   view.sh <概観のMarkdown>
 #
-# 概観は第三者の文書から作ることがあり、markedは生のHTMLを消毒しない。そこで、Markdownの中の生のHTMLは文字として
-# 出す(<meta http-equiv="refresh">はCSPで止まらず、開いた人を別のサイトへ移動させる)。そのうえでCSPで、読み込む
-# 2つのスクリプトと、ハッシュの合うインラインのスクリプトだけを動かす。インラインのスクリプトを変えたら、sha256-の
-# 値を計算し直す(tests/ci/docs-overview-test.shが比べる)。
+# 概観は第三者の文書から作ることがあり、markedは生のHTMLを消毒しない。そこで、markedの出力を文書に直接は入れない。
+# 動かない文書(DOMParser)で解析し、Markdownが作る要素と、決めた属性だけを移す。ほかの要素は文字として出す
+# (<meta http-equiv="refresh">はCSPで止まらず、開いた人を別のサイトへ移動させる。markedの側で生のHTMLを文字に
+# 変える方法は、<code>の後ろのタグで抜けられた)。そのうえでCSPで、読み込む2つのスクリプトと、ハッシュの合う
+# インラインのスクリプトだけを動かす。インラインのスクリプトを変えたら、sha256-の値を計算し直す
+# (tests/ci/docs-overview-test.shが比べる)。
 set -uo pipefail
 
 [ $# -eq 1 ] || { printf 'usage: view.sh <概観のMarkdown>\n' >&2; exit 2; }
@@ -19,7 +21,7 @@ case "$f" in /* | ?:* | ./*) ;; *=* | -*) f="./$f" ;; esac
 page=$(cat <<'EOF'
 <!doctype html>
 <html lang="ja"><head><meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-AHOAJsAdA55HElvUDMPx4hABm6FG0PcbGc4dzfeBIRk=' https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-QKTm0n8qJUJD48mskKbaaCTyeJ15YKm9BdBaGVXJSL4=' https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>@TITLE@</title>
 <style>
@@ -54,9 +56,20 @@ pre.mermaid{background:transparent;text-align:center;overflow-x:auto}
     status.textContent = 'Mermaidの検査: スクリプトを読み込めなかったので、Markdownのまま表示します';
     return;
   }
-  const esc = (s) => s.replace(/[&<>]/g, (c) => '&#' + c.charCodeAt(0) + ';');
-  marked.use({ renderer: { html: esc } });
-  document.getElementById('out').innerHTML = marked.parse(raw.textContent);
+  const TAGS = 'H1 H2 H3 H4 H5 H6 P UL OL LI TABLE THEAD TBODY TR TH TD PRE CODE EM STRONG DEL A BLOCKQUOTE HR BR'.split(' ');
+  const keep = (tag, name, value) =>
+    (tag === 'A' && name === 'href' && /^https?:[/][/]/i.test(value)) ||
+    (tag === 'CODE' && name === 'class' && /^language-[a-z0-9-]+$/i.test(value)) ||
+    ((tag === 'TH' || tag === 'TD') && name === 'align' && /^(left|right|center)$/.test(value)) ||
+    (tag === 'OL' && name === 'start' && /^[0-9]+$/.test(value));
+  const doc = new DOMParser().parseFromString(marked.parse(raw.textContent), 'text/html');
+  for (const el of [...doc.body.querySelectorAll('*')]) {
+    if (!TAGS.includes(el.tagName)) { el.replaceWith(el.outerHTML); continue; }
+    for (const a of [...el.attributes]) {
+      if (!keep(el.tagName, a.name, a.value)) el.removeAttribute(a.name);
+    }
+  }
+  document.getElementById('out').replaceChildren(...doc.body.childNodes);
   raw.style.display = 'none';
   const dark = matchMedia('(prefers-color-scheme: dark)').matches;
   mermaid.initialize({ startOnLoad: false, theme: dark ? 'dark' : 'default', securityLevel: 'strict' });
