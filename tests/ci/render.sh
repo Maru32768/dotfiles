@@ -64,6 +64,10 @@ EOF
 mkdir -p "$work/windows-main/home/.claude"
 printf '{"model":"kept-model","permissions":{"allow":["Bash(ls)"],"additionalDirectories":["D:/x"]}}' >"$work/windows-main/home/.claude/settings.json"
 
+# review-loop の台帳は、反映の後も残る
+mkdir -p "$work/linux-main/home/.local/state/review-loop/repo/branch"
+printf 'kept\n' >"$work/linux-main/home/.local/state/review-loop/repo/branch/ledger.md"
+
 # gpg-agent.conf も、管理しない行は残る。Windows の Git の gpg は CRLF で書くこともある
 mkdir -p "$work/windows-main/home/.gnupg"
 printf 'default-cache-ttl 34560000\r\nmax-cache-ttl 34560000\r\npinentry-program C:\\pinentry.exe\r\n' >"$work/windows-main/home/.gnupg/gpg-agent.conf"
@@ -157,6 +161,7 @@ for name in linux-main windows-main; do
   check "$name: 台帳の置き場のディレクトリができる" '[ -d "$work/$name/home/.local/state/review-loop" ]'
   check "$name: review-loop が台帳を許可したディレクトリに置く" 'grep -qF "~/.local/state/review-loop/<リポジトリ>/<名前>/" "$work/$name/home/.claude/skills/review-loop/SKILL.md"'
 done
+check "linux-main: 既存の review-loop の台帳が反映の後も残る" '[ "$(cat "$work/linux-main/home/.local/state/review-loop/repo/branch/ledger.md")" = kept ]'
 check "linux-main: 共通の設定は permissions に台帳の置き場のほかを足さない" 'jq -e ".permissions | keys == [\"additionalDirectories\"]" "$work/linux-main/home/.claude/settings.json"'
 check "windows-main: 共通の設定は permissions に台帳の置き場のほかを足さない" 'jq -e ".permissions | keys == [\"additionalDirectories\", \"allow\"]" "$work/windows-main/home/.claude/settings.json"'
 check "windows-main: Claude の設定の既存のキーと permissions.allow が残る" 'jq -e ".model == \"kept-model\" and .permissions.allow == [\"Bash(ls)\"]" "$work/windows-main/home/.claude/settings.json"'
