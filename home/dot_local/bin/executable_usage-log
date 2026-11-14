@@ -85,6 +85,8 @@ def claude_file(path: Path) -> tuple[list[dict], dict]:
         pass
     if not isinstance(meta, dict):
         meta = {}
+    # SSHのリモートのセッションでは、サブエージェントのログがsubagents/の外にあり、.meta.jsonに種類が無い
+    agent_type = meta.get("agentType") or ("(種類不明)" if meta or path.name.startswith("agent-") else None)
     calls, agents = {}, {}
     for _, item in lines(path):
         try:
@@ -107,7 +109,7 @@ def claude_file(path: Path) -> tuple[list[dict], dict]:
                 "session": item.get("sessionId"), "project": item.get("cwd"), "branch": item.get("gitBranch"),
                 "model": model, "effort": item.get("effort"), "speed": usage.get("speed"),
                 "skill": item.get("attributionSkill"), "plugin": item.get("attributionPlugin"),
-                "agent_type": meta.get("agentType"), "agent_desc": meta.get("description"),
+                "agent_type": agent_type, "agent_desc": meta.get("description"),
                 "parent_tool_use": meta.get("toolUseId"),
                 "input": usage.get("input_tokens") or 0, "cache_write_5m": write_5m or 0,
                 "cache_write_1h": write_1h or 0, "cache_read": usage.get("cache_read_input_tokens") or 0,
@@ -120,7 +122,7 @@ def claude_file(path: Path) -> tuple[list[dict], dict]:
 
 def codex_file(path: Path) -> list[dict]:
     """Codexの記録は、ターンごとのtoken_countの直前の呼び出しの分(last_token_usage)を数える。"""
-    session = project = model = effort = previous = None
+    session = project = model = effort = previous = agent_type = None
     calls = []
     for n, item in lines(path):
         try:
@@ -128,6 +130,10 @@ def codex_file(path: Path) -> list[dict]:
             if item.get("type") == "session_meta":
                 if session is None:  # サブエージェントの記録は、自分のsession_metaの次に親のものを持つ
                     session, project = payload.get("id"), payload.get("cwd")
+                    # サブエージェントの種類は "review" か {"thread_spawn": {...}} の形
+                    source = payload.get("source")
+                    kind = source.get("subagent") if isinstance(source, dict) else None
+                    agent_type = next(iter(kind), None) if isinstance(kind, dict) else kind
             elif item.get("type") == "turn_context":
                 model, effort = payload.get("model"), payload.get("effort")
             elif payload.get("type") == "token_count":
@@ -140,7 +146,7 @@ def codex_file(path: Path) -> list[dict]:
                 cached = last.get("cached_input_tokens") or 0
                 calls.append({
                     "id": f"codex:{session or path.stem}:{n}", "source": "codex", "ts": item.get("timestamp"),
-                    "session": session, "project": project, "model": model, "effort": effort,
+                    "session": session, "project": project, "model": model, "effort": effort, "agent_type": agent_type,
                     "input": (last.get("input_tokens") or 0) - cached, "cache_read": cached,
                     "cache_write_5m": last.get("cache_write_input_tokens") or 0, "cache_write_1h": 0,
                     "output": last.get("output_tokens") or 0,

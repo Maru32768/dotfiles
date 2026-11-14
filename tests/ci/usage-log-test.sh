@@ -162,6 +162,26 @@ child = {"type": "session_meta", "payload": {"id": "C", "cwd": "C:/repo", "sourc
 (base / "rollout-C.jsonl").write_text("\n".join(json.dumps(e) for e in [child, parent, count]) + "\n", encoding="utf-8")
 EOF
 equals "Codexのサブエージェントの呼び出しを、親の呼び出しと別に数える" "$(collect "$work/fork")" "2個のログを読み、2件の呼び出しを足した"
+equals "Codexのサブエージェントは、その種類で分けられる" "$(field --by agent-type -- "rows.get('review', {}).get('calls'), len(rows)")" "(1, 2)"
+
+# SSHのリモートのセッションでは、サブエージェントのログが subagents/ の外にあり、.meta.json は toolUseId だけを持つ
+db="$work/ssh.sqlite3"
+python3 -I - "$work/ssh" <<'EOF'
+import json, sys
+from pathlib import Path
+base = Path(sys.argv[1]) / "claude/ssh-host"
+base.mkdir(parents=True)
+def call(mid, cwd, **extra):
+    return json.dumps({"type": "assistant", "timestamp": "2026-11-01T00:00:00Z", "sessionId": "s", "cwd": cwd, **extra,
+                       "message": {"id": mid, "model": "claude-opus-5-5", "usage": {"input_tokens": 1, "output_tokens": 1},
+                                   "content": [{"type": "tool_use", "id": "toolu_9", "name": "Agent"}] if mid == "M" else []}})
+(base / "s.jsonl").write_text(call("M", "C:/repo", attributionSkill="ship-task") + "\n", encoding="utf-8")
+(base / "agent-q.jsonl").write_text(call("Q", "A:/wt") + "\n", encoding="utf-8")
+(base / "agent-q.meta.json").write_text(json.dumps({"toolUseId": "toolu_9"}), encoding="utf-8")
+EOF
+collect "$work/ssh" >/dev/null
+equals "subagents/ の外のサブエージェントも、本体と分ける" "$(field --by agent -- "len(rows), sorted(r['calls'] for r in rows.values())")" "(2, [1, 1])"
+equals "subagents/ の外のサブエージェントも、親のセッションのプロジェクトに数える" "$(field --by project -- "sorted(rows)")" "['C:/repo']"
 db="$work/usage.sqlite3"
 
 if [ "$failures" -ne 0 ]; then
