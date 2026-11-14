@@ -27,7 +27,8 @@ work="$(cd "$HOME/work" && pwd -P)"
 # $(pwd -P) は末尾の改行を落とすので、cd -P で $PWD を実際のパスにしてから比べる
 cd -P .
 case "$PWD/" in
-  "$work"/*) ;;
+  # 空の work では /* になり、どこでも通るので、:? で必ず止める
+  "${work:?}"/*) ;;
   *)
     echo "作業ディレクトリ $PWD は ~/work の外です。~/work の下で起動してください" >&2
     exit 1
