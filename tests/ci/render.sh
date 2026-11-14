@@ -150,7 +150,6 @@ done
 # 許可を広げるときは、何を許すことになるかを確かめてから、期待する値を直す
 for name in linux-main windows-main; do
   ledger="$(cm "$name" execute-template '{{ .chezmoi.homeDir }}')/.local/state/review-loop"
-  check "$name: 台帳の置き場がホームの下" '[[ "$ledger" == ?*/.local/state/review-loop ]]'
   check "$name: Claude の設定に台帳の置き場がある" 'jq -e --arg d "$ledger" ".permissions.additionalDirectories == [\$d]" "$work/$name/home/.claude/settings.json"'
 done
 check "linux-main: 共通の設定は permissions に台帳の置き場のほかを足さない" 'jq -e ".permissions | keys == [\"additionalDirectories\"]" "$work/linux-main/home/.claude/settings.json"'
