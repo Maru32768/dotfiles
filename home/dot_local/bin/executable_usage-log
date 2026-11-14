@@ -9,7 +9,7 @@
     usage-log report                           # 直近7日をスキル別に
     usage-log report --by agent --since 30d    # サブエージェントの説明別に
     usage-log report --by model --since 2026-11-01 --json
-    usage-log cap 70                           # 大きい仕事は週の枠(全モデル)の70%まで(offで外す)
+    usage-log cap 70                           # 週の枠(全モデル)の消費率が70%で大きい仕事を止める(offで外す)
 
 Claude Codeはセッションのログを30日で消すので、collectはAPI呼び出しごとの使用量だけを
 ~/.local/state/usage/usage.sqlite3に写し、会話の中身は残さない。SessionStartのフックが
@@ -357,7 +357,7 @@ def main() -> None:
     r.add_argument("--project", help="プロジェクトのパスに、この文字列を含むものだけ")
     r.add_argument("--source", choices=("claude", "codex"))
     r.add_argument("--json", action="store_true")
-    k = sub.add_parser("cap", help="大きい仕事が使ってよい週の枠(全モデル)の割合を出すか、変える")
+    k = sub.add_parser("cap", help="大きい仕事を止める週の枠(全モデル)の消費率を出すか、変える")
     k.add_argument("percent", nargs="?", type=cap_arg, help="1〜100の整数(%%)か、上限を外すoff。省くと今の上限を出す")
     args = parser.parse_args()
     if args.command == "collect":
