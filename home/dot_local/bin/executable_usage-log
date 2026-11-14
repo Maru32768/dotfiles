@@ -247,7 +247,7 @@ def report(db: Path, by: str, since: str, until: str | None, project: str | None
         print("単価が無いので費用に入れていない呼び出し: " + "、".join(f"{m} {n}件" for m, n in sorted(unpriced.items())))
 
 
-def main() -> int:
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--db", type=Path, default=DB)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -268,8 +268,7 @@ def main() -> int:
         collect(args.db, args.claude_dir, args.codex_dir, args.quiet)
     else:
         report(args.db, args.by, args.since, args.until, args.project, args.source, args.json)
-    return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()
