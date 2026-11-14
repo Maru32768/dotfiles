@@ -18,8 +18,8 @@
 # 読まないもの: 折り返しの続きの行で、`の並びがすべて対になる行(閉じた後にまた開いて折り返す行)の
 # インラインコード(この行では、対になる並びの間の地の文をspanとして挙げる)。3行にまたがる
 # インラインコードの間の行。後のファイルで折り返したインラインコードは、残っていても挙がる。
-# 記号だけのコードブロックの行(}や---)と、記号だけの切れ端は挙げない。記号だけのインラインコード(`/`や`--`)と
-# リンク先は挙げる。
+# 記号だけのコードブロックの行(}や---)と、記号だけの切れ端(閉じない`の並びがある行の、最初の並びより前と
+# 最後の並びより後ろ)は挙げない。記号だけのインラインコード(`/`や`--`)とリンク先は挙げる。
 # 空白とタブの数の違いは無視する(a = bとa=bは、別の記述として比べる)。後のファイルのどこかの1行に
 # 同じ文字列があれば、残っているとみなす。ただし、別の語の一部になっている一致は数えない(-fは
 # --forceがあっても、.envは.env.exampleがあっても、残っているとみなさない)。
@@ -68,7 +68,7 @@ function present(tok,   i, h, off, j, p) {
 }
 function probe(kind, tok,   s, w) {
   tok = norm(tok)
-  if (tok == "" || (kind ~ /^(code|part)$/ && tok ~ /^[[:punct:] ]*$/) || seen[tok]++ || present(tok)) return
+  if (tok == "" || ((kind == "code" || frag) && tok ~ /^[[:punct:] ]*$/) || seen[tok]++ || present(tok)) return
   if (kind == "code") {
     s = tok
     while (match(s, /[A-Za-z0-9_]+/)) {
@@ -136,9 +136,9 @@ fence { probe("code", $0); next }
   kind = spans($0, "") ? "part" : "span"
   spans($0, kind)
   if (kind == "part") {
-    i = index($0, "`"); probe(kind, substr($0, 1, i - 1))
+    i = index($0, "`"); frag = 1; probe(kind, substr($0, 1, i - 1)); frag = 0
     s = substr($0, i); sub(/^`+/, "", s); spans(s, kind)
-    s = $0; sub(/^.*`/, "", s); probe(kind, s)
+    s = $0; sub(/^.*`/, "", s); frag = 1; probe(kind, s); frag = 0
   }
   each("link", $0, "\\]\\([^) \t]+", 2, 0)
   each("link", $0, "href=\"[^\"]+", 6, 0)

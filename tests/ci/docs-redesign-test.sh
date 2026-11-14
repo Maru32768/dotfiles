@@ -203,6 +203,13 @@ out="$(bash "$lost" before-punct.md -- after-punct.md)"
 equals "記号だけのインラインコードとリンク先も、無ければ挙げる" "$? $out" "$want"
 out="$(bash "$lost" before-punct.md -- before-punct.md)"
 equals "記号だけの記述も、同じファイルと比べれば挙げない" "$? $out" "0 "
+# 閉じない`の並びがある行でも、記号だけのインラインコードは調べる。記号だけの切れ端(1行目の行頭の- と、2行目の
+# 末尾の.)は挙げない。3行目の記号だけのリンク先は、前の行の切れ端と関係なく挙げる
+printf '%s\n' '- `/`と`--`。記号の`を書く。' '`/x`と`.' '[先頭へ](#)' > before-punct-part.md
+printf '%s\n' 'と。記号のを書く。' > after-punct-part.md
+want="$(printf '1 part\tbefore-punct-part.md:1\t/\npart\tbefore-punct-part.md:1\t--\npart\tbefore-punct-part.md:2\t/x\nlink\tbefore-punct-part.md:3\t#')"
+out="$(bash "$lost" before-punct-part.md -- after-punct-part.md)"
+equals "閉じない並びのある行でも、記号だけのインラインコードは挙げる" "$? $out" "$want"
 
 # 非ASCIIの記号だけの行。gawkは、UTF-8のロケールで動かすと、この行を記号だけの行として飛ばす
 printf '%s\n' "$fence" '→' "$fence" > before-arrow.md
