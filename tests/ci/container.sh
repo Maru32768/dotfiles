@@ -33,6 +33,8 @@ trap cleanup EXIT
 # 使い方: as_user <スクリプト> [引数...]
 as_user() { docker exec -u "$user" -w "/home/$user" -e "HOME=/home/$user" "$name" bash -lc "$1" bash "${@:2}"; }
 step() { printf '\n==> %s\n' "$1"; }
+# 使い方: launcher_want <検査の名前> <[[ ]] の式>
+launcher_want() { if eval "$2"; then echo "PASS $1"; else echo "FAIL $1"; failures=$((failures + 1)); fi; }
 
 docker run -d "${run_options[@]}" --name "$name" "$image" sleep 7200 >/dev/null || exit 1
 
@@ -118,7 +120,6 @@ if [ "$profile" = research ]; then
   # 断るときは隔離の検査より前に止まるので、検査の FAIL の行が出ていないことも確かめる
   # 使い方: launcher_output [docker exec のオプション...]
   launcher_output() { docker exec -u research -w /home/research/work -e HOME=/home/research "$@" "$name" /usr/local/bin/research-claude --version 2>&1; }
-  launcher_want() { if eval "$2"; then echo "PASS $1"; else echo "FAIL $1"; failures=$((failures + 1)); fi; }
   output="$(launcher_output -e ANTHROPIC_API_KEY=dummy -e CLAUDE_CODE_OAUTH_TOKEN=dummy)"
   launcher_want "両方あれば、隔離の検査の前に止まる" '[[ "$output" == *"両方があります"* && "$output" != *"FAIL "* ]]'
   output="$(launcher_output)"
@@ -133,32 +134,21 @@ fi
 if [ "$profile" != main ]; then
   step "$profile の起動スクリプトは ~/work の下でだけ進む"
   # wsl.exe は --cd に失敗しても / で続けるので、/ も含めて ~/work の外を断る。
-  # 進むかどうかは、上と同じく出力で判定する (コンテナでは隔離の検査が FAIL を出す)
-  case "$profile" in
-    agent) launcher=/usr/local/bin/agent-claude credential=CLAUDE_CODE_OAUTH_TOKEN=dummy ;;
-    research) launcher=/usr/local/bin/research-claude credential=ANTHROPIC_API_KEY=dummy ;;
-  esac
+  # 進むかどうかは、上と同じく出力で判定する (コンテナでは隔離の検査が FAIL を出す)。
+  # 資格情報は、両方の起動スクリプトが受け付けるトークンにする
   docker exec -u "$user" "$name" sh -c "mkdir -p /home/$user/workx /home/$user/work/run && ln -sfn / /home/$user/work/out" || failures=$((failures + 1))
   # 使い方: run_in <作業ディレクトリ>
   # シェルで cd してから起動し、シンボリックリンクの見かけのパスを PWD に入れて渡す
-  run_in() { docker exec -u "$user" -e "HOME=/home/$user" -e "$credential" "$name" bash -c 'cd "$1" && exec "$2" --version' bash "$1" "$launcher" 2>&1; }
+  run_in() { docker exec -u "$user" -e "HOME=/home/$user" -e CLAUDE_CODE_OAUTH_TOKEN=dummy "$name" bash -c 'cd "$1" && exec "$2" --version' bash "$1" "/usr/local/bin/$profile-claude" 2>&1; }
   for dir in / "/home/$user" "/home/$user/workx" "/home/$user/work/out"; do
+    # shellcheck disable=SC2034 # launcher_want の eval で読む
     output="$(run_in "$dir")"
-    if [[ "$output" == *"~/work の下で起動してください"* && "$output" != *"FAIL "* && "$output" != *"(Claude Code)"* ]]; then
-      echo "PASS $dir では、隔離の検査の前に止まる"
-    else
-      echo "FAIL $dir では、隔離の検査の前に止まる"
-      failures=$((failures + 1))
-    fi
+    launcher_want "$dir では、隔離の検査の前に止まる" '[[ "$output" == *"~/work の下で起動してください"* && "$output" != *"FAIL "* && "$output" != *"(Claude Code)"* ]]'
   done
   for dir in "/home/$user/work" "/home/$user/work/run"; do
+    # shellcheck disable=SC2034 # launcher_want の eval で読む
     output="$(run_in "$dir")"
-    if [[ "$output" != *"~/work の下で起動してください"* && ( "$output" == *"FAIL "* || "$output" == *"(Claude Code)"* ) ]]; then
-      echo "PASS $dir では、隔離の検査まで進む"
-    else
-      echo "FAIL $dir では、隔離の検査まで進む"
-      failures=$((failures + 1))
-    fi
+    launcher_want "$dir では、隔離の検査まで進む" '[[ "$output" != *"~/work の下で起動してください"* && ( "$output" == *"FAIL "* || "$output" == *"(Claude Code)"* ) ]]'
   done
 fi
 
