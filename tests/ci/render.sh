@@ -160,6 +160,7 @@ for name in linux-main windows-main; do
   # Claude Code はセッションの開始時に無いディレクトリを外すので、反映のときに作る
   check "$name: 台帳の置き場のディレクトリができる" '[ -d "$work/$name/home/.local/state/review-loop" ]'
   check "$name: review-loop が台帳を許可したディレクトリに置く" 'grep -qF "~/.local/state/review-loop/<リポジトリ>/<名前>/" "$work/$name/home/.claude/skills/review-loop/SKILL.md"'
+  check "$name: review-loop が書く終了の行を ship-task が読む" 'grep -qF "\`- 終了: <" "$work/$name/home/.claude/skills/review-loop/SKILL.md" && grep -qF "\`- 終了:\`の行" "$work/$name/home/.claude/skills/ship-task/SKILL.md"'
 done
 check "linux-main: 既存の review-loop の台帳が反映の後も残る" '[ "$(cat "$work/linux-main/home/.local/state/review-loop/repo/branch/ledger.md")" = kept ]'
 check "linux-main: 共通の設定は permissions に台帳の置き場のほかを足さない" 'jq -e ".permissions | keys == [\"additionalDirectories\"]" "$work/linux-main/home/.claude/settings.json"'
