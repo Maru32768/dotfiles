@@ -81,7 +81,7 @@ EOF
 equals "collect は応答ごとに1行を足し、壊れた行と<synthetic>を飛ばす" "$(collect)" "3個のログを読み、8件の呼び出しを足した"
 equals "変わっていないログは読み直さない" "$(collect)" "0個のログを読み、0件の呼び出しを足した"
 
-printf '%s\n' "$(python3 -I -c 'import json; print(json.dumps({"type": "assistant", "timestamp": "2026-11-01T00:00:07Z", "sessionId": "sess1", "cwd": "C:/repo", "message": {"id": "m4", "model": "claude-opus-5-5", "usage": {"input_tokens": 1, "output_tokens": 1}}}))')" >>"$work/claude/C--repo/sess1.jsonl"
+printf '%s\n' '{"type": "assistant", "timestamp": "2026-11-01T00:00:07Z", "sessionId": "sess1", "cwd": "C:/repo", "message": {"id": "m4", "model": "claude-opus-5-5", "usage": {"input_tokens": 1, "output_tokens": 1}}}' >>"$work/claude/C--repo/sess1.jsonl"
 equals "伸びたログは読み直し、新しい応答だけを足す" "$(collect)" "1個のログを読み、1件の呼び出しを足した"
 
 rm -rf "$work/claude" "$work/codex"
