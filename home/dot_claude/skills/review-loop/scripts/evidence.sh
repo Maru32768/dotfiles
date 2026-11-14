@@ -18,18 +18,21 @@
 # table   Prints the latest runs on the current fingerprint as a Markdown table. Exits 1 when there are none.
 # mutate  Needs a clean worktree. Runs the command unmutated (the baseline), applies the patch, runs $MUTATE_BUILD
 #         with bash -c when it is set, runs the command (under `timeout $MUTATE_TIMEOUT` when it is set), reverts with
-#         git apply -R, and checks that the worktree is back where it started. The baseline also runs $MUTATE_BUILD
-#         and the timeout, and $MUTATE_BUILD runs once more after the revert so no build output keeps the mutant.
+#         git apply -R, runs $MUTATE_BUILD once more so no build output keeps the mutant, and checks that the worktree
+#         is back where it started. The baseline also runs $MUTATE_BUILD and the timeout.
 #         A passing baseline is recorded as a run labelled baseline whose command column is the key: the command
-#         with $MUTATE_BUILD and $MUTATE_TIMEOUT in front. The baseline is skipped when the latest baseline row with
-#         the same fingerprint and key passed; other runs of the same command do not count.
+#         with the working directory, $MUTATE_BUILD and $MUTATE_TIMEOUT in front. The baseline is skipped when the
+#         latest baseline row with the same fingerprint and key passed; other runs of the same command do not count.
 #         Exits 0 Killed, 1 Survived, 3 Timeout, 4 Invalid (the baseline fails, the patch does not apply, the mutant
 #         does not build, or the mutant run exits 126 or 127 because the command cannot run; 128 and above count
 #         as Killed), 5 when the worktree did not come back (nothing is recorded or cleaned up), and 130 when HUP,
-#         INT or TERM arrived after the patch was applied: it waits for the running command, reverts, checks the
-#         worktree as above, and records nothing.
+#         INT or TERM arrives from just before the patch is applied until the worktree is rebuilt and checked after
+#         the revert: it waits for the running command (or lets git apply finish), reverts the patch if it is
+#         applied, runs $MUTATE_BUILD, checks the worktree as above, and records nothing.
 # Exits 2 without running anything on a usage error, a dirty worktree for mutate, $MUTATE_TIMEOUT without a timeout
 # command, or an <evidence.tsv> inside the worktree that is not ignored (every record would change the fingerprint).
+# Also exits 2 when the record cannot be written: before running when the file is not writable, after running when
+# the write fails.
 set -uo pipefail
 
 die() { printf 'evidence.sh: %s\n' "$1" >&2; exit 2; }
@@ -67,7 +70,8 @@ fingerprint() {
 clean() { [ -z "$(git -C "$top" status --porcelain --untracked-files=normal)" ]; }
 
 record() {
-  printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$1" "$2" "$3" "$4" "$cmd" >> "$file"
+  printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$1" "$2" "$3" "$4" "$cmd" >> "$file" ||
+    die "cannot write the record to $file"
 }
 
 # Prints "<result>\t<fingerprint>\t<command>" of the latest run of the label, or nothing.
@@ -88,12 +92,14 @@ parse_command() {
 run_cmd() {
   local label=$1 before rc
   valid_label "$label"
+  [ "$label" != baseline ] || die "the label baseline is kept for mutate"
   shift
   parse_command "$@"
   mkdir -p "$(dirname -- "$file")" || die "cannot create the directory of $file"
   guard_file
+  : >> "$file" 2> /dev/null || die "cannot write the record to $file"
   before=$(fingerprint) || die "cannot compute the fingerprint"
-  command -- "${command[@]}"
+  (command -- "${command[@]}")
   rc=$?
   record run "$label" "$rc" "$before"
   exit "$rc"
@@ -136,7 +142,7 @@ table_cmd() {
 build() { [ -z "${MUTATE_BUILD:-}" ] || bash -c "$MUTATE_BUILD"; }
 
 target() {
-  if [ -n "${MUTATE_TIMEOUT:-}" ]; then timeout "$MUTATE_TIMEOUT" "${command[@]}"; else command -- "${command[@]}"; fi
+  if [ -n "${MUTATE_TIMEOUT:-}" ]; then timeout "$MUTATE_TIMEOUT" "${command[@]}"; else (command -- "${command[@]}"); fi
 }
 
 intact() {
@@ -155,9 +161,42 @@ invalid() {
   exit 4
 }
 
-restore() {
-  git -C "$top" apply -R -- "$patch"
+# Whether the patch is applied is kept in $applied, not guessed with git apply --check: when the patch's lines and
+# context also appear elsewhere in the file, the patch applies both forward and in reverse in either state. git apply
+# runs with HUP, INT and TERM ignored so a signal cannot stop it halfway; a signal that arrives meanwhile is held in
+# $pending and handled once $applied is right.
+apply_patch() { (trap '' HUP INT TERM; exec git -C "$top" apply "$@" -- "$patch"); }
+
+revert() {
+  [ -n "$applied" ] || return 0
+  apply_patch -R
+  applied=
+}
+
+# Rebuilds before the check, since the build can leave files of its own.
+rebuild_and_check() {
+  build || printf 'evidence.sh: warning: MUTATE_BUILD fails after reverting; build outputs may still hold the mutant\n' >&2
   intact "reverting $name"
+}
+
+on_signal() {
+  trap '' HUP INT TERM
+  revert
+  rebuild_and_check
+  exit 130
+}
+
+apply_forward() { apply_patch && applied=1; }
+
+# Runs "$@" (apply_forward or revert) while holding signals, then handles one that arrived.
+guarded() {
+  pending=
+  trap 'pending=1' HUP INT TERM
+  "$@"
+  local rc=$?
+  trap on_signal HUP INT TERM
+  [ -z "$pending" ] || on_signal
+  return "$rc"
 }
 
 mutate_cmd() {
@@ -173,9 +212,10 @@ mutate_cmd() {
   patch="$(cd "$(dirname -- "$patch")" && pwd)/$name"
   mkdir -p "$(dirname -- "$file")" || die "cannot create the directory of $file"
   guard_file
+  : >> "$file" 2> /dev/null || die "cannot write the record to $file"
   clean || die "the worktree has uncommitted changes or untracked files; commit them first so the revert can be checked"
   before=$(fingerprint) || die "cannot compute the fingerprint"
-  printf -v key 'MUTATE_BUILD=%q MUTATE_TIMEOUT=%q %s' "${MUTATE_BUILD:-}" "${MUTATE_TIMEOUT:-}" "$cmd"
+  printf -v key 'PWD=%q MUTATE_BUILD=%q MUTATE_TIMEOUT=%q %s' "$PWD" "${MUTATE_BUILD:-}" "${MUTATE_TIMEOUT:-}" "$cmd"
   if ! FP=$before KEY=$key awk -F'\t' '$2 == "run" && $3 == "baseline" && ($5 "") == (ENVIRON["FP"] "") &&
       ($6 "") == (ENVIRON["KEY"] "") { r = $4 } END { exit r != "0" }' "$src"; then
     build || { intact "the baseline build"; invalid "MUTATE_BUILD fails before mutating"; }
@@ -185,8 +225,8 @@ mutate_cmd() {
     [ "$rc" -eq 0 ] || invalid "the command fails before mutating (exit $rc)"
     cmd=$key record run baseline 0 "$before"
   fi
-  git -C "$top" apply -- "$patch" || { intact "a failed git apply"; invalid "the patch does not apply"; }
-  trap 'trap "" HUP INT TERM; restore; exit 130' HUP INT TERM
+  applied=
+  guarded apply_forward || { trap - HUP INT TERM; intact "a failed git apply"; invalid "the patch does not apply"; }
   if ! build; then
     result=Invalid
   else
@@ -198,9 +238,9 @@ mutate_cmd() {
     else result=Killed
     fi
   fi
+  guarded revert
+  rebuild_and_check
   trap - HUP INT TERM
-  restore
-  build || printf 'evidence.sh: warning: MUTATE_BUILD fails after reverting; build outputs may still hold the mutant\n' >&2
   record mutate "$name" "$result" "$before"
   printf '%s %s\n' "$result" "$name"
   case $result in Killed) exit 0 ;; Survived) exit 1 ;; Timeout) exit 3 ;; *) exit 4 ;; esac

@@ -35,7 +35,7 @@ Windowsでは、翻訳専用のLLMであるPLaMo 3 Translate(日英を含む53�
 # タスクの進め方
 
 - 実装を伴うタスクは、ship-taskスキルの段階に沿って進める。質問への回答や、1ファイルで済む小さな修正には使わない
-- issueが無いときは、依頼の内容を起点にする。スライスが2つ以上になったら、スライス表を置くissueを作るかを尋ねる。作らないなら、issueへの書き戻し、子issueの起票、issueを閉じる手順は飛ばす
+- issueが無いときは、依頼の内容を起点にする。issueを作らずに進めるなら、issueへの書き戻し、子issueの起票、issueを閉じる手順は飛ばす
 
 # コミット
 
@@ -45,7 +45,7 @@ Windowsでは、翻訳専用のLLMであるPLaMo 3 Translate(日英を含む53�
 
 # レビュー
 
-- review-loopは、片づけの段でponytail-review、simplify、prose-polishを回す。review-loopを使うときは、prose-polishを別にかけない
+- review-loopは、片づけの段でponytail-review、simplify、prose-polishを回す。review-loopが推敲した文書には、prose-polishを別にかけない
 - poteto-modeとreview-loopを一緒に使うときは、コードの片づけ(deslop、no-comments)と文書の推敲をreview-loopの片づけの段に任せる。poteto-modeのtechnical-writingとunslopは、返信とコミットメッセージにだけかける
 
 # 技術的な知見の記録

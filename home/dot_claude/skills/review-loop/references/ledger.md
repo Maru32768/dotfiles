@@ -42,6 +42,6 @@
 
 「対応済み」「見送り」「申し送り」「却下」の行の先頭には、`[工程/重大度/由来]`を付ける。どの工程が何を見つけたかを、後で大まかに数えるための印で、厳密な件数は求めない。
 
-- 工程: 指摘を出した工程。`R1-correctness`、`R1-test`(R2以降も同じ形)、`fable`、`codex`、`followup-correctness`、`followup-test`(FableとCodexの指摘を直した後の確認)、`ponytail`、`simplify`、`prose`(prose-polishの報告から直した)、`parent`(親が自分で見つけた)、`user`(利用者が出した)。複数の工程が出したら`+`でつなぐ
+- 工程: 指摘を出した工程。`R1-correctness`、`R1-test`(R2以降も同じ形)、`fable`、`codex`、`followup-correctness`、`followup-test`(FableとCodexの指摘を直した後の確認)、`final-correctness`(最終ゲートで`FAILED`を直した後の確認)、`ponytail`、`simplify`、`prose`(prose-polishの報告から直した)、`parent`(親が自分で見つけた)、`user`(利用者が出した)。複数の工程が出したら`+`でつなぐ
 - 重大度: 親が扱いを決めたときの`Must`、`Should`、`Could`。重大度を付けない提案は`-`
 - 由来: `start`(レビュー対象の差分が持ち込んだ)、`fix`(ループの中の修正、単純化、推敲が持ち込んだ)、`pre-existing`(差分より前からある)
