@@ -158,7 +158,8 @@ for name in linux-main windows-main; do
   ledger="$(cm "$name" execute-template '{{ .chezmoi.homeDir }}')/.local/state/review-loop"
   check "$name: Claude の設定に台帳の置き場がある" 'jq -e --arg d "$ledger" ".permissions.additionalDirectories == [\$d]" "$work/$name/home/.claude/settings.json"'
   # Claude Code はセッションの開始時に無いディレクトリを外すので、反映のときに作る
-  check "$name: 台帳の置き場のディレクトリができる" '[ -d "$work/$name/home/.local/state/review-loop" ]'
+  # linux-main には既存の台帳を置くので、ディレクトリがあるかではなく、反映が作るかを見る
+  check "$name: 台帳の置き場のディレクトリができる" 'cm "$name" managed --include dirs | grep -qx ".local/state/review-loop"'
   check "$name: review-loop が台帳を許可したディレクトリに置く" 'grep -qF "~/.local/state/review-loop/<リポジトリ>/<名前>/" "$work/$name/home/.claude/skills/review-loop/SKILL.md"'
   check "$name: review-loop が書く終了の行を ship-task が読む" 'grep -qF "\`- 終了: <" "$work/$name/home/.claude/skills/review-loop/SKILL.md" && grep -qF "\`- 終了:\`の行" "$work/$name/home/.claude/skills/ship-task/SKILL.md"'
 done
