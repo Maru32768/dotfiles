@@ -136,6 +136,9 @@ check "linux-main: コミット署名が有効" 'grep -q "gpgsign = true" "$work
 check "linux-main: Claude の設定にフックがある" 'jq -e ".hooks.PreToolUse[0].hooks[0].command | test(\"block-signing-bypass\")" "$work/linux-main/home/.claude/settings.json"'
 # 初回は数分かかるので、セッションを待たせないようにバックグラウンドで動かす
 check "linux-main: 開始時に usage-log の collect をバックグラウンドで動かす" 'jq -e ".hooks.SessionStart[0].hooks[0] | .async == true and (.command | test(\"usage-log\\\" collect\"))" "$work/linux-main/home/.claude/settings.json"'
+for name in linux-main windows-main; do
+  check "$name: usage-cap が、usage-log cap の書く上限のファイルを読む" 'grep -qF "Read(~/.local/state/usage/weekly-cap)" "$work/$name/home/.claude/skills/usage-cap/SKILL.md" && grep -qF "\".local/state/usage/usage.sqlite3\"" "$work/$name/home/.local/bin/usage-log" && grep -qF "\"weekly-cap\"" "$work/$name/home/.local/bin/usage-log"'
+done
 equals "linux-main: 実行するスクリプト" "$(scripts_of linux-main)" "10-mise-install.sh 20-build-hooks.sh 30-vim-plugins.sh 40-claude-code.sh 50-gh-extensions.sh"
 
 # --- knowledge-capture (docs/skills.md) ---
