@@ -61,10 +61,11 @@ UNUSED = ("branch", "effort", "plugin")  # 集計に使わない属性。形が�
 SKIP = (AttributeError, KeyError, TypeError, ValueError, OverflowError, RecursionError)
 UNKNOWN_AGENT = "(種類不明)"
 # 同じ応答は、再開で写されたサブエージェントのログ(.meta.jsonが無いので種類不明)や、親の履歴を写したforkのログにもある。
-# 属性は、元のログらしい行(種類が分かる > 本体 > fork > 種類不明)のものを残し、トークン数は最後に読んだ値にする
+# 属性は、元のログらしい行(種類が分かる > 本体 > fork > 種類不明)のものを残す。トークン数は大きい方にする。書きかけの
+# 応答を後で読み直すと値が増え、古い版のログでは応答の最後の行も途中の値のことがあり、写しの方が最後の値を持つ
 RANK = "(CASE WHEN {0} IS NULL THEN 2 WHEN {0} = '" + UNKNOWN_AGENT + "' THEN 0 WHEN {0} = 'fork' THEN 1 ELSE 3 END)"
 UPSERT = (f"INSERT INTO calls ({', '.join(COLUMNS)}) VALUES ({', '.join('?' * len(COLUMNS))}) ON CONFLICT(id) DO UPDATE SET "
-          + ", ".join([f"{c} = excluded.{c}" for c in TOKENS]
+          + ", ".join([f"{c} = MAX({c}, excluded.{c})" for c in TOKENS]
                       + [f"{c} = CASE WHEN {RANK.format('excluded.agent_type')} > {RANK.format('agent_type')} THEN excluded.{c} ELSE {c} END"
                          for c in COLUMNS[1:] if c not in TOKENS]))
 
