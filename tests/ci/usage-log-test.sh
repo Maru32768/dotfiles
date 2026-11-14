@@ -26,7 +26,7 @@ field() {
   usage report --since 2026-01-01 --json "${args[@]}" | python3 -I -c "import json, sys; rows = {r['key']: r for r in json.load(sys.stdin)}; print(($2))" | tr -d '\r'
 }
 
-# 本体のログ: m1(review-loop、1行の応答が2行に分かれる)、m2(review-loopの中でサブエージェントを起こす)、
+# 本体のログ: m1(review-loop、1行の応答が2行に分かれ、最初の行の出力は途中の値)、m2(review-loopの中でサブエージェントを起こす)、
 # m3(スキルなし、Fable、fast)、壊れた行、<synthetic>、ユーザーの行。サブエージェントのログ: s1(worktreeの中、m2が起こした)。
 # old は期間の前。Codex: 同じ合計の token_count が2回続く(2回目は数えない)。
 python3 -I - "$work" <<'EOF'
@@ -47,7 +47,7 @@ opus = {"input_tokens": 10, "output_tokens": 100, "cache_read_input_tokens": 100
         "cache_creation_input_tokens": 300, "cache_creation": {"ephemeral_5m_input_tokens": 100, "ephemeral_1h_input_tokens": 200}}
 lines = [
     {"type": "user", "timestamp": "2026-11-01T00:00:00Z", "message": {"role": "user", "content": "hi"}},
-    call("m1", "claude-opus-5-5", "2026-11-01T00:00:01Z", opus, "review-loop", content=[{"type": "thinking"}]),
+    call("m1", "claude-opus-5-5", "2026-11-01T00:00:01Z", {**opus, "output_tokens": 1}, "review-loop", content=[{"type": "thinking"}]),
     call("m1", "claude-opus-5-5", "2026-11-01T00:00:01Z", opus, "review-loop", content=[{"type": "text"}]),
     call("m2", "claude-opus-5-5", "2026-11-01T00:00:02Z", {"input_tokens": 1, "output_tokens": 1}, "review-loop",
          content=[{"type": "tool_use", "id": "toolu_1", "name": "Agent", "input": {}}]),

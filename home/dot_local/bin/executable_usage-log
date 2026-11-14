@@ -103,7 +103,7 @@ def claude_file(path: Path) -> tuple[list[dict], dict]:
             write_5m, write_1h = writes.get("ephemeral_5m_input_tokens"), writes.get("ephemeral_1h_input_tokens")
             if write_5m is None and write_1h is None:
                 write_5m, write_1h = usage.get("cache_creation_input_tokens"), 0
-            # 1つの応答はブロックごとに何行にも分かれるが、使用量はどの行も同じ
+            # 1つの応答はブロックごとに何行にも分かれ、最初の行の出力は途中の値なので、最後の行を使う
             calls[message["id"]] = {
                 "id": "claude:" + message["id"], "source": "claude", "ts": item.get("timestamp"),
                 "session": item.get("sessionId"), "project": item.get("cwd"), "branch": item.get("gitBranch"),
