@@ -228,6 +228,39 @@ for session in ("a", "b"):
 EOF
 equals "同じ応答が2つのログにあっても1回だけ数える" "$(collect "$work/copy")" "2個のログを読み、1件の呼び出しを足した"
 
+# 再開では、サブエージェントのログが.meta.jsonを持たずに新しいセッションへ写され、forkのログは親の履歴を写して持つ。
+# 写しを後の回に読んでも、元のログの種類、説明、スキルを残す。トークン数は、読み直した応答の最後の値にする
+db="$work/resume.sqlite3"
+cat >"$work/resume.py" <<'EOF'
+import json, sys
+from pathlib import Path
+base, phase = Path(sys.argv[1]) / "claude/p", sys.argv[2]
+def line(mid, output=1, skill=None, agent=False):
+    return json.dumps({"type": "assistant", "timestamp": "2026-11-01T00:00:00Z", "sessionId": "A", "attributionSkill": skill,
+                       "message": {"id": mid, "model": "claude-opus-5-5", "usage": {"input_tokens": 1, "output_tokens": output},
+                                   "content": [{"type": "tool_use", "id": "toolu_5", "name": "Agent"}] if agent else []}}) + "\n"
+def write(path, text, meta=None, mode="w"):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, mode, encoding="utf-8") as f:
+        f.write(text)
+    if meta:
+        path.with_suffix(".meta.json").write_text(json.dumps(meta), encoding="utf-8")
+if phase == "first":
+    # Mは書きかけで、出力が途中の値
+    write(base / "A.jsonl", line("M", 1, "ship-task", agent=True))
+    write(base / "A/subagents/agent-x.jsonl", line("X"), {"agentType": "general-purpose", "toolUseId": "toolu_5"})
+else:
+    write(base / "A.jsonl", line("M", 9, "ship-task", agent=True), mode="a")
+    write(base / "B/subagents/agent-x.jsonl", line("X"))
+    write(base / "A/subagents/agent-f.jsonl", line("M", 9, "ship-task", agent=True) + line("F"), {"agentType": "fork"})
+EOF
+python3 -I "$work/resume.py" "$work/resume" first
+collect "$work/resume" >/dev/null
+python3 -I "$work/resume.py" "$work/resume" copy
+equals "写しのログからは、新しい応答だけを足す" "$(collect "$work/resume")" "3個のログを読み、1件の呼び出しを足した"
+equals "写しを後から読んでも、元のログの種類を残す" "$(field --by agent-type -- "rows['general-purpose']['calls'], rows['fork']['calls'], len(rows)")" "(1, 1, 3)"
+equals "写しを後から読んでも、親のスキルに数え、トークン数は最後の値にする" "$(field --by skill -- "rows['ship-task']['calls'], rows['ship-task']['output']")" "(2, 10)"
+
 # サブエージェントは自分のスキルを先に使い、無ければ親のスキルを使う。スキルの無い呼び出しはモデルによらず1つにまとめる
 db="$work/skills.sqlite3"
 python3 -I - "$work/skills" <<'EOF'

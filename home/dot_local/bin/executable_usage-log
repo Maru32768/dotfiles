@@ -59,6 +59,14 @@ TOKENS = ("input", "cache_write_5m", "cache_write_1h", "cache_read", "output")
 UNUSED = ("branch", "effort", "plugin")  # 集計に使わない属性。形が変わっても、呼び出しは残す
 # JSONとして読めない行(JSONDecodeErrorはValueError)と、読めても形が違う行で出る例外
 SKIP = (AttributeError, KeyError, TypeError, ValueError, OverflowError)
+UNKNOWN_AGENT = "(種類不明)"
+# 同じ応答は、再開で写されたサブエージェントのログ(.meta.jsonが無いので種類不明)や、親の履歴を写したforkのログにもある。
+# 属性は、元のログらしい行(種類が分かる > 本体 > fork > 種類不明)のものを残し、トークン数は最後に読んだ値にする
+RANK = "(CASE WHEN {0} IS NULL THEN 2 WHEN {0} = '" + UNKNOWN_AGENT + "' THEN 0 WHEN {0} = 'fork' THEN 1 ELSE 3 END)"
+UPSERT = (f"INSERT INTO calls ({', '.join(COLUMNS)}) VALUES ({', '.join('?' * len(COLUMNS))}) ON CONFLICT(id) DO UPDATE SET "
+          + ", ".join([f"{c} = excluded.{c}" for c in TOKENS]
+                      + [f"{c} = CASE WHEN {RANK.format('excluded.agent_type')} > {RANK.format('agent_type')} THEN excluded.{c} ELSE {c} END"
+                         for c in COLUMNS[1:] if c not in TOKENS]))
 
 
 def checked(call: dict) -> dict:
@@ -99,7 +107,7 @@ def claude_file(path: Path) -> tuple[list[dict], dict, int]:
         meta = {}
     meta = {key: value for key, value in meta.items() if isinstance(value, str)}
     # SSHのリモートのセッションでは、サブエージェントのログがsubagents/の外にあり、.meta.jsonに種類が無い
-    agent_type = meta.get("agentType") or ("(種類不明)" if meta or path.name.startswith("agent-") else None)
+    agent_type = meta.get("agentType") or (UNKNOWN_AGENT if meta or path.name.startswith("agent-") else None)
     calls, agents, skipped = {}, {}, 0
     for _, line in lines(path):
         try:
@@ -205,8 +213,7 @@ def collect(db: Path, claude_dir: Path, codex_dir: Path, quiet: bool) -> None:
                 print(f"usage-log: {error}", file=sys.stderr)
                 continue
             with con:
-                skipped += insert(con, f"INSERT OR REPLACE INTO calls ({', '.join(COLUMNS)}) VALUES ({', '.join('?' * len(COLUMNS))})",
-                                  (tuple(call.get(c) for c in COLUMNS) for call in calls))
+                skipped += insert(con, UPSERT, (tuple(call.get(c) for c in COLUMNS) for call in calls))
                 skipped += insert(con, "INSERT OR REPLACE INTO agent_calls VALUES (?, ?)", agents.items())
                 # 読み直したログは、飛ばした行も数え直して置き換える
                 con.execute("INSERT OR REPLACE INTO files VALUES (?, ?, ?, ?)", (str(path), *stamp, skipped))
