@@ -50,7 +50,7 @@ compactが増えると、序盤の細かい指示が要約で落ちやすくな�
 
 ## 使用量の記録
 
-新しいセッションを始めるたびに、`home/.claude-settings.json`のSessionStartのフックが、`usage-log collect`をバックグラウンド(`async`)で動かす。Claude Codeがセッションのログを30日で消すので、このコマンドはログが消える前に、API呼び出しごとの使用量だけを`~/.local/state/usage/usage.sqlite3`に写す。会話の中身は写さない。集計には`usage-log report`を使う(`docs/tools.md`)。
+新しいセッションを始めるたびに、`home/.claude-settings.json`のSessionStartのフックが、`usage-log collect`をバックグラウンド(`async`)で動かす。Claude Codeがセッションのログを30日で消すので、このコマンドはログが消える前に、API呼び出しごとのトークン数と、その時刻やスキルなどの属性を`~/.local/state/usage/usage.sqlite3`に写す。会話の中身は写さない。集計には`usage-log report`を使う(`docs/tools.md`)。
 
 - 初回は残っているログを全部読むので、数分かかる(2026-11-14に約1,900ファイルで約2分)。2回目からは、大きさか更新時刻が変わったログだけを読む。
 - 非同期のフックの失敗は画面に出ない。uvが見つからないときも、記録が増えないだけになる。記録が増えているかは、`usage-log report --by day`で確かめる。
