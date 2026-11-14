@@ -100,7 +100,7 @@ description: README、ユーザーガイド、ユーザー向けWebサイトを�
 
 ## 7. 推敲に渡す
 
-構成が決まってから、変えた範囲を`prose-polish`に渡す。ship-taskやreview-loopの中で使ったときは渡さない(review-loopの片づけが推敲する)。
+構成が決まってから、変えた範囲を`prose-polish`に渡す。作業ディレクトリには`<work>/prose/`を渡す。ship-taskやreview-loopの中で使ったときは渡さない(review-loopの片づけが推敲する)。
 
 ## 点検
 
