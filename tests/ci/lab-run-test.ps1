@@ -62,7 +62,7 @@ try {
         Check "${shell}: an absolute path is passed as it is" (($r.Args -join '|') -eq ($call -f '/home/research/x')) $r
         foreach ($path in 'C:\x', 'C:/x', 'C:\Users\u/work', 'work\run', 'wo"rk') {
             $r = Invoke-Run $shell @('-Path', $path)
-            Check "${shell}: $path fails, and wsl.exe is not called" ($r.Code -eq 1 -and $r.Args.Count -eq 0 -and $r.Out -like "*not $path*") $r
+            Check "${shell}: $path fails, and wsl.exe is not called" ($r.Code -eq 1 -and $r.Args.Count -eq 0 -and $r.Out -like '*-Path must be a path inside the instance*') $r
         }
         $r = Invoke-Run $shell @('-Path', 'work', '-Prompt', 'one two')
         Check "${shell}: -Prompt goes after -p as one argument, with an empty stdin" ((($r.Args -join '|') -eq (($call -f '~/work') + '|-p|one two')) -and $r.Out -match 'STDIN_LEN=0') $r
