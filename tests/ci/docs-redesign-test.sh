@@ -106,6 +106,12 @@ want="$(printf '1 code\tbefore-list.md:6\ttool install --global')"
 out="$(bash "$lost" before-list.md -- after-fence.md)"
 equals "字下げしたフェンスを読み、バッククォート2つの行をフェンスにしない" "$? $out" "$want"
 
+# バッククォート2つで囲んだインラインコードは、中に`を書ける。同じ行の後ろのインラインコードも読む
+printf '%s\n' '``a`b``と`tool x`を使う。' '``tool y``と`` tool z ``を使う。`tool w`も使う。' '記号の``と`tool v`を書く。' > before-double.md
+want="$(printf '1 span\tbefore-double.md:1\ta`b\nspan\tbefore-double.md:1\ttool x\nspan\tbefore-double.md:2\ttool y\nspan\tbefore-double.md:2\ttool z\nspan\tbefore-double.md:2\ttool w\nspan\tbefore-double.md:3\ttool v')"
+out="$(bash "$lost" before-double.md -- after-fence.md)"
+equals "バッククォートの並びは、同じ数の並びで閉じる" "$? $out" "$want"
+
 # 1〜2行目は、インラインコードが行の折り返しをまたぐ
 printf '%s\n' '次のように`tool run' '--jobs 4`と`tool gc`を使う。' > before-wrap.md
 want="$(printf '1 span\tbefore-wrap.md:2\ttool run --jobs 4\nspan\tbefore-wrap.md:2\ttool gc')"

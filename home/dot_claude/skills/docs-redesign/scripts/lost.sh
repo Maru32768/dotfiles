@@ -75,7 +75,24 @@ function each(kind, s, re, left, right) {
   }
   return s
 }
-function ticks(s) { return gsub(/`/, "`", s) }
+# sのインラインコードを順に調べる。`の並びは、同じ数の並びで閉じる(``a`b``は、a`bを囲む)。
+# 閉じない並びがあれば、最初のものから後ろを返す
+function spans(s,   first, i, n, t, u, m, k, j) {
+  while ((i = index(s, "`")) > 0) {
+    for (n = 1; substr(s, i + n, 1) == "`"; n++) ;
+    t = substr(s, i + n); u = t; j = 0
+    while (!j && (m = index(u, "`")) > 0) {
+      for (k = 1; substr(u, m + k, 1) == "`"; k++) ;
+      if (k == n) j = length(t) - length(u) + m
+      u = substr(u, m + k)
+    }
+    if (j) { probe("span", substr(t, 1, j - 1)); s = substr(t, j + n) }
+    else { if (first == "") first = substr(s, i); s = t }
+  }
+  return first
+}
+# `の並びの数
+function ticks(s) { return gsub(/`+/, "`", s) }
 # 行頭の`か~の数を返す。3つに満たなければ0。記号をfmarkに、後ろに何も無いかをfbareに、字下げの幅をfindに入れる
 function fence_len(s,   c, n) {
   find = match(s, /[^ \t]/) - 1
@@ -106,12 +123,12 @@ fence && n >= fence && fmark == fopen && fbare && find <= fin + 3 { fence = 0; n
 fence { probe("code", $0); next }
 /^[ \t\r]*$/ { carry = ""; next }
 {
-  # 行末で開いたままのインラインコードは、次の行へ続ける。次の行の`が偶数だと、前の行の`が対にならない
+  # 行末で開いたままのインラインコードは、次の行へ続ける。次の行の`の並びが偶数だと、前の行の`が対にならない
   # 記号だったのか、この行でまた折り返すのかが決まらない。つないだ読み方と、この行だけの読み方の両方を調べる
-  # 近道: 対にならない`の次の行で`が奇数だと、つないだ読み方しか調べない。見逃しが出たら、段落ごとに読む
-  s = each("span", carry $0, "`[^`]+`", 1, 1)
-  if (carry != "" && ticks($0) % 2 == 0) each("span", $0, "`[^`]+`", 1, 1)
-  carry = (ticks(s) == 1) ? substr(s, index(s, "`")) " " : ""
+  # 近道: 対にならない`の次の行で`の並びが奇数だと、つないだ読み方しか調べない。見逃しが出たら、段落ごとに読む
+  s = spans(carry $0)
+  if (carry != "" && ticks($0) % 2 == 0) spans($0)
+  carry = (s != "") ? s " " : ""
   each("link", $0, "\\]\\([^) \t]+", 2, 0)
   each("link", $0, "href=\"[^\"]+", 6, 0)
   # 参照形式のリンクの定義([名前]: 行き先)。脚注([^1]: ...)は除く
