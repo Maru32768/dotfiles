@@ -84,12 +84,13 @@ EOF
 equals "collect は応答ごとに1行を足し、<synthetic>を飛ばし、壊れた行を数える" "$(collect)" "3個のログを読み、8件の呼び出しを足した。形の違う1行を飛ばした"
 equals "変わっていないログは読み直さない" "$(collect)" "0個のログを読み、0件の呼び出しを足した"
 
-printf '%s\n' '{"type": "assistant", "timestamp": "2026-11-01T00:00:07Z", "sessionId": "sess1", "cwd": "C:/repo", "message": {"id": "m4", "model": "claude-opus-5-5", "usage": {"input_tokens": 1, "output_tokens": 1}}}' >>"$work/claude/C--repo/sess1.jsonl"
-equals "伸びたログは読み直し、新しい応答だけを足す" "$(collect)" "1個のログを読み、1件の呼び出しを足した。形の違う1行を飛ばした"
+printf '%s\n' '{"type": "assistant", "timestamp": "2026-11-01T00:00:07Z", "sessionId": "sess1", "cwd": "C:/repo", "message": {"id": "m4", "model": "claude-opus-5-5", "usage": {"input_tokens": 1, "output_tokens": 1}}}' '{also broken' >>"$work/claude/C--repo/sess1.jsonl"
+equals "伸びたログは読み直し、新しい応答だけを足し、飛ばした行を数え直す" "$(collect)" "1個のログを読み、1件の呼び出しを足した。形の違う2行を飛ばした"
+equals "読み直したログも、変わらなければ次の回は読まない" "$(collect)" "0個のログを読み、0件の呼び出しを足した"
 
 rm -rf "$work/claude" "$work/codex"
 equals "元のログを消しても、記録から集計できる" "$(field --by source -- "rows['claude']['calls'], rows['codex']['calls']")" "(6, 2)"
-equals "飛ばした行は、読み直したログの分を数え直して集計に出す" "$(usage report --since 2026-01-01 | grep '形が違う')" "これまでに読んだログで、形が違うので記録に入れなかった行: 1行"
+equals "飛ばした行は、読み直したログの分を数え直して集計に出す" "$(usage report --since 2026-01-01 | grep '形が違う')" "これまでに読んだログで、形が違うので記録に入れなかった行: 2行"
 equals "期間の前の呼び出しは数えない" "$(field --since 2025-12-01 --by source -- "rows['claude']['calls']")" "7"
 
 # 100万分の1ドルで、m1: 入力10×4 + 5分の書き込み100×5 + 1時間の書き込み200×8 + 読み取り1000×0.2 + 出力100×20 = 4340、
