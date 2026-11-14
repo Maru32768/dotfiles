@@ -30,7 +30,8 @@ done
 
 failures=0
 work=""
-trap '[ -z "$work" ] || rm -rf "$work"' EXIT
+control=""
+trap '[ -z "$work" ] || rm -rf "$work"; [ -z "$control" ] || rm -rf "$control"' EXIT
 pass() { "$quiet" || printf 'PASS %s\n' "$1"; }
 fail() { printf 'FAIL %s\n' "$1"; failures=$((failures + 1)); }
 note() { "$quiet" || printf 'NOTE %s\n' "$1"; }
@@ -357,9 +358,11 @@ run_e2e() {
   blocked "トークンが会話の記録に現れない" 'grep -rqF -- "$CLAUDE_CODE_OAUTH_TOKEN" "$HOME/.claude/projects"'
 
   # 対照: サンドボックスの外で同じことを試し、プローブが検出できることを確かめる。
-  # 先に実行すると ~/.npm などができて、初めて起動したときの状況を試せなくなるので、最後に行う
-  mkdir -p "$work/control"
-  (cd "$work/control" && bash "$here/sandbox-probe.sh" "$work/control.out" "$nonce" "$ports" "$gateway")
+  # 先に実行すると ~/.npm などができて、初めて起動したときの状況を試せなくなるので、最後に行う。
+  # ~/work はサンドボックスから書けるので、その下で動かすと、仕込まれた ~/work/.git の設定を
+  # サンドボックスの外で git が実行する。対照は ~/work の外で動かす
+  control="$(mktemp -d "$HOME/isolation-control-XXXXXX")"
+  (cd "$control" && bash "$here/sandbox-probe.sh" "$work/control.out" "$nonce" "$ports" "$gateway")
   for item in sees-host-init write-home token-env net-proxied net-direct; do
     if [ "$(awk -v name="$item" '$2 == name {print $1}' "$work/control.out" 2>/dev/null)" = REACHED ]; then
       pass "対照: サンドボックスの外では $item に届く"
