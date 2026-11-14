@@ -99,6 +99,6 @@ equals "単価の無いモデルは費用に入れず、件数を数える" "$(f
 equals "割合は単価のある呼び出しの費用で割る" "$(field --by source -- "round(rows['claude']['share'], 6), rows['codex']['share']")" "(1.0, 0.0)"
 
 if [ "$failures" -ne 0 ]; then
-  printf '%d 件失敗\n' "$failures"
+  printf '\n%d件の問題があります\n' "$failures"
   exit 1
 fi
