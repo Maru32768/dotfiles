@@ -106,46 +106,48 @@ want="$(printf '1 code\tbefore-list.md:6\ttool install --global')"
 out="$(bash "$lost" before-list.md -- after-fence.md)"
 equals "字下げしたフェンスを読み、バッククォート2つの行をフェンスにしない" "$? $out" "$want"
 
+# 地の文だけを残した後の版。閉じない`の並びがある行の、地の文の切れ端が挙がらないようにする
+printf '%s\n' '次のように と を使う。' 'Use or to clean.' '記号の と を書く。' '`x`と`y`を使う。' > after-prose.md
+
 # バッククォート2つで囲んだインラインコードは、中に`を書ける。同じ行の後ろのインラインコードも読む
-printf '%s\n' '``a`b``と`tool x`を使う。' '``tool y``と`` tool z ``を使う。`tool w`も使う。' '記号の``と`tool v`を書く。' > before-double.md
-want="$(printf '1 span\tbefore-double.md:1\ta`b\nspan\tbefore-double.md:1\ttool x\nspan\tbefore-double.md:2\ttool y\nspan\tbefore-double.md:2\ttool z\nspan\tbefore-double.md:2\ttool w\nspan\tbefore-double.md:3\ttool v')"
-out="$(bash "$lost" before-double.md -- after-fence.md)"
+# 3行目は、1つの`で囲んだ中に、2つの`の並びを書いている
+printf '%s\n' '``a`b``と`tool x`を使う。' '``tool y``と`` tool z ``を使う。`tool w`も使う。' '`x``y`を使う。' > before-double.md
+want="$(printf '1 span\tbefore-double.md:1\ta`b\nspan\tbefore-double.md:1\ttool x\nspan\tbefore-double.md:2\ttool y\nspan\tbefore-double.md:2\ttool z\nspan\tbefore-double.md:2\ttool w\nspan\tbefore-double.md:3\tx``y')"
+out="$(bash "$lost" before-double.md -- after-prose.md)"
 equals "バッククォートの並びは、同じ数の並びで閉じる" "$? $out" "$want"
 
-# 1〜2行目は、インラインコードが行の折り返しをまたぐ
+# 1〜2行目は、インラインコードが行の折り返しをまたぐ。つないでは読まず、行ごとの切れ端をpartとして挙げる。
+# 2行目は、最初の`が前の行の続きを閉じるので、2つ目の`から対にする読み方でtool gcを読む
 printf '%s\n' '次のように`tool run' '--jobs 4`と`tool gc`を使う。' > before-wrap.md
-want="$(printf '1 span\tbefore-wrap.md:2\ttool run --jobs 4\nspan\tbefore-wrap.md:2\ttool gc')"
-out="$(bash "$lost" before-wrap.md -- after-fence.md)"
-equals "折り返しをまたぐインラインコードを、次の行で閉じて読む" "$? $out" "$want"
+want="$(printf '1 part\tbefore-wrap.md:1\ttool run\npart\tbefore-wrap.md:2\t--jobs 4\npart\tbefore-wrap.md:2\ttool gc')"
+out="$(bash "$lost" before-wrap.md -- after-prose.md)"
+equals "折り返したインラインコードは、行ごとの切れ端を挙げる" "$? $out" "$want"
 
-# 2行目は、閉じた後にまた開いて折り返す。3行にまたがるインラインコードは、間の行に`が無い
+printf '%s\n' '次のように`tool run --jobs 4`と`tool gc`を使う。' > after-unwrap.md
+out="$(bash "$lost" before-wrap.md -- before-wrap.md; bash "$lost" before-wrap.md -- after-unwrap.md)"
+equals "折り返したまま残しても、折り返しをやめても、挙げない" "$? $out" "0 "
+
+# 2行目は、閉じた後にまた開いて折り返す。`の並びがすべて対になるので、切れ端を調べない(--jobs 4とtool gcは見ない)。
+# 5〜7行目は3行にまたがる。`の無い6行目は見ない
 printf '%s\n' 'Use `tool run' '--jobs 4` or `tool gc' '--all` to clean.' '' '`tool a' 'b c' 'd`を使う。' > before-chain.md
-printf '%s\n' 'Use or to clean.' > after-chain.md
-want="$(printf '1 span\tbefore-chain.md:2\ttool run --jobs 4\nspan\tbefore-chain.md:3\ttool gc --all\nspan\tbefore-chain.md:7\ttool a b c d')"
-out="$(bash "$lost" before-chain.md -- after-chain.md)"
-equals "続けて折り返すインラインコードと、3行にまたがるインラインコードを読む" "$? $out" "$want"
+want="$(printf '1 part\tbefore-chain.md:1\ttool run\npart\tbefore-chain.md:3\t--all\npart\tbefore-chain.md:5\ttool a\npart\tbefore-chain.md:7\td')"
+out="$(bash "$lost" before-chain.md -- after-prose.md)"
+equals "続けて折り返すインラインコードは、端の行の切れ端だけを挙げる" "$? $out" "$want"
 
 out="$(bash "$lost" before-chain.md -- before-chain.md)"
-equals "後の版で折り返したまま残したインラインコードは挙げない" "$? $out" "0 "
+equals "同じ文書を前と後に渡すと、切れ端も挙げない" "$? $out" "0 "
 
-printf '%s\n' '`tool a b`を使う。' > before-join.md
-printf '%s\n' "${fence}bash" 'tool a' 'b' "$fence" > after-block.md
-want="$(printf '1 span\tbefore-join.md:1\ttool a b')"
-out="$(bash "$lost" before-join.md -- after-block.md)"
-equals "後の版のコードブロックの行は、つないで探さない" "$? $out" "$want"
+# 記号として書いた`は、次の行にも、次のファイルにも響かない。2つ目のファイルの4行目は、閉じない``の後ろに
+# インラインコードがある
+printf '%s\n' '記号の`を書く。' > before-stray-1.md
+printf '%s\n' '`tool one`と`tool two`を使う。' '記号の`を書く。' '`tool xx`と`tool yy`を使う。' '記号の``と`tool v`を書く。' > before-stray-2.md
+want="$(printf '1 span\tbefore-stray-2.md:1\ttool one\nspan\tbefore-stray-2.md:1\ttool two\nspan\tbefore-stray-2.md:3\ttool xx\nspan\tbefore-stray-2.md:3\ttool yy\npart\tbefore-stray-2.md:4\ttool v')"
+out="$(bash "$lost" before-stray-1.md before-stray-2.md -- after-prose.md)"
+equals "記号として書いたバッククォートは、ほかの行のインラインコードに響かない" "$? $out" "$want"
 
-# 開いたままのインラインコードは、次のファイル、空行の先、フェンスの先へ続けない。続けると、`が奇数の行で
-# つないだ読み方だけを調べて、その行のインラインコードを見逃す
-printf '%s\n' '記号の`を書く。' > before-reset-1.md
-printf '%s\n' '`tool one`と`を書く。' '' '`tool two`と`を書く。' "$fence" 'tool start' "$fence" '`tool three`と`を書く。' > before-reset-2.md
-want="$(printf '1 span\tbefore-reset-2.md:1\ttool one\nspan\tbefore-reset-2.md:3\ttool two\nspan\tbefore-reset-2.md:7\ttool three')"
-out="$(bash "$lost" before-reset-1.md before-reset-2.md -- after-fence.md)"
-equals "開いたままのインラインコードを、ファイル、空行、フェンスをまたいで続けない" "$? $out" "$want"
-
-# 1行目のバッククォートは対にならない。2行目は、つないだ読み方の切れ端(を書く。、と)も挙がるが、インラインコードを見逃さない
-printf '%s\n' '記号の`を書く。' '`tool xx`と`tool yy`を使う。' > before-stray.md
-out="$(bash "$lost" before-stray.md -- after-fence.md | cut -f3 | LC_ALL=C sort | tr '\n' ' ')"
-equals "対にならないバッククォートの次の行でも、インラインコードを挙げる" "$out" "tool xx tool yy と を書く。 "
+want="$(printf '1 part\tbefore-stray-1.md:1\t記号の\npart\tbefore-stray-1.md:1\tを書く。')"
+out="$(bash "$lost" before-stray-1.md -- after-fence.md)"
+equals "記号として書いたバッククォートの前後の地の文も、無ければpartとして挙げる" "$? $out" "$want"
 
 # 1行目の記述は、後の版では、前か後ろに英数字、_、-が続く別の語の一部になっている
 # 2行目の記述は、後ろに.、:、/と英数字が続く。3行目は、文の終わりの.、行の番号でない:、末尾の/の前にある

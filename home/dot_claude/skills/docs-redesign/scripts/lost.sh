@@ -2,16 +2,18 @@
 # 構成を変える前の文書にあった技術的な記述が、変えた後の文書のどこにも無ければ挙げる。
 # 見るのは、コードブロックの行、インラインコード、リンク先、URL。地の文に書いた事実は見ない。
 # リンク先は、](行き先)、[名前]: 行き先、href="行き先"の形で書いたもの。
-# 字下げだけで書いたコードブロックと、引用(>)の中のフェンスは、コードブロックとして読まない。
+# 字下げだけで書いたコードブロック、引用(>)の中のフェンス、箇条書きの記号と同じ行で開くフェンスは、
+# コードブロックとして読まない。
 #
 #   lost.sh <前のファイル>... -- <後のファイル>...
 #
-# 1行に「種類<TAB>前のファイル:行<TAB>記述」を出す。種類はcode、line、span、link、url。
+# 1行に「種類<TAB>前のファイル:行<TAB>記述」を出す。種類はcode、line、span、part、link、url。
 # コードブロックの行が無いとき、その行の語(英数字と_が3文字以上続くもの)がすべて後のどこかに
 # 残っていればline、語のどれかが無いか、語が1つも無い行はcodeにする。lineは、書き方を変えたか、
 # 別の例に替えた行に多い。
-# 空白の違いは無視する。後のファイルのどこかの行(インラインコードが折り返していれば、つないだ行)に
-# 同じ文字列があれば、残っているとみなす。
+# 行をまたいで折り返したインラインコードは、つないで読まない。閉じない`の並びがある行から読んだものを、
+# partとして挙げる。折り返したインラインコードの切れ端か、記号として書いた`の前後の地の文になる。
+# 空白の違いは無視する。後のファイルのどこかの1行に同じ文字列があれば、残っているとみなす。
 # ただし、別の語の一部になっている一致は数えない(-fは--forceがあっても、.envは.env.exampleが
 # あっても、残っているとみなさない)。
 # 同じ記述は、最初に見つけた場所で1回だけ出す。
@@ -76,9 +78,9 @@ function each(kind, s, re, left, right) {
   }
   return s
 }
-# sのインラインコードを順に調べる。`の並びは、同じ数の並びで閉じる(``a`b``は、a`bを囲む)。
-# 閉じない並びがあれば、最初のものから後ろを返す
-function spans(s,   first, i, n, t, u, m, k, j) {
+# sのインラインコードを順に、kindの種類で調べる(kindが空なら調べない)。`の並びは、同じ数の並びで閉じる
+# (``a`b``は、a`bを囲む)。閉じない並びの数を返す
+function spans(s, kind,   open, i, n, t, u, m, k, j) {
   while ((i = index(s, "`")) > 0) {
     for (n = 1; substr(s, i + n, 1) == "`"; n++) ;
     t = substr(s, i + n); u = t; j = 0
@@ -87,13 +89,12 @@ function spans(s,   first, i, n, t, u, m, k, j) {
       if (k == n) j = length(t) - length(u) + m
       u = substr(u, m + k)
     }
-    if (j) { probe("span", substr(t, 1, j - 1)); s = substr(t, j + n) }
-    else { if (first == "") first = substr(s, i); s = t }
+    if (!j) { open++; s = t; continue }
+    if (kind != "") probe(kind, substr(t, 1, j - 1))
+    s = substr(t, j + n)
   }
-  return first
+  return open
 }
-# `の並びの数
-function ticks(s) { return gsub(/`+/, "`", s) }
 # 行頭の`か~の数を返す。3つに満たなければ0。記号をfmarkに、後ろに何も無いかをfbareに、字下げの幅をfindに入れる
 function fence_len(s,   c, n) {
   find = match(s, /[^ \t]/) - 1
@@ -104,32 +105,26 @@ function fence_len(s,   c, n) {
   fmark = c; fbare = (n == length(s))
   return n >= 3 ? n : 0
 }
-function keep(l) { hl[++nh] = l; hay = hay "\n" l }
-# 後のファイルでインラインコードが行末で開いたままなら、次の行とつないだ形も探す先に足す。
-# 折り返したまま残した記述を、落ちたとみなさない。フェンスの行と空行で、数え直す
-BEGIN {
-  while ((getline line < ENVIRON["HAY"]) > 0) {
-    line = norm(line)
-    if (wrap) keep(run = run " " line); else run = line
-    keep(line)
-    wrap = (line == "" || line ~ /^(```|~~~)/) ? 0 : (wrap + ticks(line)) % 2
-  }
-}
-FNR == 1 { fence = 0; carry = "" }
+BEGIN { while ((getline line < ENVIRON["HAY"]) > 0) { hl[++nh] = norm(line); hay = hay "\n" hl[nh] } }
+FNR == 1 { fence = 0 }
 { n = fence_len($0) }
 # 閉じるのは、開いたときと同じ記号が同じ数以上あり、後ろに何も無く、開いた行より4つ以上深く字下げして
 # いない行だけ(中に別のフェンスを書ける)
-!fence && n { fence = n; fopen = fmark; fin = find; carry = ""; next }
+!fence && n { fence = n; fopen = fmark; fin = find; next }
 fence && n >= fence && fmark == fopen && fbare && find <= fin + 3 { fence = 0; next }
 fence { probe("code", $0); next }
-/^[ \t\r]*$/ { carry = ""; next }
 {
-  # 行末で開いたままのインラインコードは、次の行へ続ける。次の行の`の並びが偶数だと、前の行の`が対にならない
-  # 記号だったのか、この行でまた折り返すのかが決まらない。つないだ読み方と、この行だけの読み方の両方を調べる
-  # 近道: 対にならない`の次の行で`の並びが奇数だと、つないだ読み方しか調べない。見逃しが出たら、段落ごとに読む
-  s = spans(carry $0)
-  if (carry != "" && ticks($0) % 2 == 0) spans($0)
-  carry = (s != "") ? s " " : ""
+  # 閉じない`の並びがある行は、インラインコードが行をまたいで折り返しているか、`を記号として書いている。
+  # 行をまたいでは読まず、この行だけで調べる。どの並びが対になるかが決まらないので、最初の並びから
+  # 対にする読み方と、2つ目の並びから対にする読み方の両方を調べ、最初の並びより前と、最後の並びより
+  # 後ろの切れ端も調べる。この行から読んだものは、partとして挙げる
+  kind = spans($0, "") ? "part" : "span"
+  spans($0, kind)
+  if (kind == "part") {
+    i = index($0, "`"); probe(kind, substr($0, 1, i - 1))
+    s = substr($0, i); sub(/^`+/, "", s); spans(s, kind)
+    s = $0; sub(/^.*`/, "", s); probe(kind, s)
+  }
   each("link", $0, "\\]\\([^) \t]+", 2, 0)
   each("link", $0, "href=\"[^\"]+", 6, 0)
   # 参照形式のリンクの定義([名前]: 行き先)。脚注([^1]: ...)は除く
