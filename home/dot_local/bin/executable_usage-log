@@ -319,8 +319,10 @@ def report(db: Path, by: str, since: str, until: str | None, project: str | None
 
 
 def cap_arg(value: str) -> int | str:
-    if value == "off" or value.isascii() and value.isdigit() and 1 <= int(value) <= 100:
-        return value if value == "off" else int(value)
+    if value == "off":
+        return value
+    if value.isascii() and value.isdigit() and 1 <= int(value) <= 100:
+        return int(value)
     raise argparse.ArgumentTypeError("1〜100の整数か、offを渡す")
 
 
