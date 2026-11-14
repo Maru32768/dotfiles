@@ -1,12 +1,12 @@
 #!/bin/bash
-# docs-redesignのlost.sh(home/dot_claude/skills/docs-redesign/scripts)と、reader-test.mdに書いた
-# 見出しの一覧を作るawkを、使い捨ての文書で試す
+# docs-redesignのlost.shとoutline.sh(home/dot_claude/skills/docs-redesign/scripts)を、使い捨ての文書で試す
 # テストの入力にMarkdownのバッククォートを書く
 # shellcheck disable=SC2016
 set -uo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 lost="$root/home/dot_claude/skills/docs-redesign/scripts/lost.sh"
+outline="$root/home/dot_claude/skills/docs-redesign/scripts/outline.sh"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 
@@ -249,12 +249,18 @@ equals "前のファイルの-は、標準入力ではなくファイルとし�
 out="$(bash "$lost" before-twice.md -- - </dev/null)"
 equals "後のファイルの-も、標準入力ではなくファイルとして読む" "$? $out" "0 "
 
-# reader-test.mdに書いた、見出しの一覧を作るawkを取り出して試す。2〜6行目は、バッククォート4つのフェンスの
-# 中に3つのフェンスを書いている。8〜12行目は、~~~のフェンスの中に、バッククォートのフェンスの行と、後ろに文字が続く~~~の行がある
-outline="$(sed -n "s/^ *\(awk 'FNR == 1 .*}'\) .*\$/\1/p" "$root/home/dot_claude/skills/docs-redesign/references/reader-test.md")"
-printf '%s\n' '# title' "$fence\`markdown" "${fence}sh" '# comment' "$fence" "$fence\`" '## section' '~~~' "$fence" '~~~sh' '# comment 2' '~~~' '### sub' > outline.md
-out="$(eval "$outline outline.md")"
-equals "読者テストの見出しの一覧は、フェンスの中の#を拾わない" "$out" "$(printf 'outline.md:1: # title\noutline.md:7: ## section\noutline.md:13: ### sub')"
+# outline.sh。2〜6行目は、バッククォート4つのフェンスの中に3つのフェンスを書いている。8〜13行目は、~~~の
+# フェンスの中に、バッククォートのフェンスの行、後ろに文字が続く~~~の行、箇条書きの記号の後ろの~~~の行がある。
+# 15行目のフェンスは、箇条書きの記号と同じ行で開く。19行目は、バッククォート3つで囲んだインラインコードで始まる段落
+printf '%s\n' '# title' "$fence\`markdown" "${fence}sh" '# comment' "$fence" "$fence\`" '## section' '~~~' "$fence" '~~~sh' '- ~~~' '# comment 2' '~~~' '### sub' "- ${fence}sh" '# comment 3' "  $fence" '#### after list' "${fence}js${fence} is inline." '##### after inline' > outline.md
+printf '%s\n' "$fence" '# open at the end' > outline-open.md
+printf '%s\n' '# named' > 'x=1.md'
+want="$(printf '0 outline.md:1: # title\noutline.md:7: ## section\noutline.md:14: ### sub\noutline.md:18: #### after list\noutline.md:20: ##### after inline\n./x=1.md:1: # named')"
+out="$(bash "$outline" outline.md outline-open.md x=1.md)"
+equals "見出しの一覧は、フェンスの中の#を拾わない。フェンスの状態は、ファイルごとに数え直す" "$? $out" "$want"
+bash "$outline" >/dev/null 2>&1 </dev/null
+equals "見出しの一覧は、ファイルが無ければ終了コード2で止まる" "$?" "2"
+
 
 if [ "$failures" -gt 0 ]; then
   printf '\n%s 件のテストが失敗しました\n' "$failures"
