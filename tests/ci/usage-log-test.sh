@@ -324,7 +324,6 @@ done
 equals "上限を外す" "$(usage cap off)" "上限を外した"
 equals "外すとファイルを消す" "$([ -e "$work/cap/weekly-cap" ] && echo exists || echo gone)" "gone"
 equals "外した後に外しても、失敗しない" "$(usage cap off)" "上限を外した"
-db="$work/usage.sqlite3"
 
 if [ "$failures" -ne 0 ]; then
   printf '\n%d件の問題があります\n' "$failures"
