@@ -37,6 +37,8 @@ OneDrive/**
 .agents/**
 .local/bin/bws-run
 .local/bin/split-pdf
+.local/state
+.local/state/**
 .config/environment.d
 .config/environment.d/**
 .vim
