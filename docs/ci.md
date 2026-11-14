@@ -43,7 +43,7 @@ bash tests/ci/container.sh research
 | 対象 | 理由 | どう確かめるか |
 |---|---|---|
 | systemd と `wsl.conf` の効果 | コンテナにはない。`doctor.sh --container` は飛ばす | `lab.ps1 restore-test` |
-| agent と research の隔離 | WSL の設定に依存する。`verify-isolation.sh` はコンテナでは実行しない。research の通信の制限だけは、コンテナに `CAP_NET_ADMIN` を与えて試す (`docs/research.md`) | `lab.ps1 restore-test` |
+| agentとresearchの隔離 | WSLの設定に依存する。researchの通信の制限は、コンテナに`CAP_NET_ADMIN`を与えて試す(`docs/research.md`)。`verify-isolation.sh --e2e`は`claude`を偽物に替えて動かし、`~/work`がリポジトリなら止まることと、サンドボックスの外から書くものがサンドボックスから書ける場所を使わないことだけを見る | `lab.ps1 restore-test` |
 | Windows での適用 | `render.sh` はテンプレートの `.chezmoi.os` を差し替えるだけ。`.ps1.tmpl` の構文も見ない | `bootstrap.ps1` |
 
 ## 復元テスト

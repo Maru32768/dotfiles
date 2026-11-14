@@ -1,0 +1,3 @@
+# gitleaks の誤検出。1 行に 1 つ、gitleaks の出力の Fingerprint を書く
+# credential=CLAUDE_CODE_OAUTH_TOKEN=dummy (container.sh の検査に渡すダミーの値。cc434d2 で消した)
+bf83e0f6f9bd99a8f35e75b92d87faec4608893b:tests/ci/container.sh:generic-api-key:139
