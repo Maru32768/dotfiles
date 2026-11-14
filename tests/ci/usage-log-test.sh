@@ -308,6 +308,26 @@ collect "$work/skills" >/dev/null
 equals "サブエージェントのスキルは自分のものを先に使い、無ければ親のものを使う" "$(field --by skill -- "rows['simplify']['calls'], rows['ship-task']['calls']")" "(1, 2)"
 equals "スキルの無い呼び出しは、モデルによらず1つにまとめる" "$(field --by skill -- "len(rows), sum(r['calls'] for k, r in rows.items() if k not in ('simplify', 'ship-task'))")" "(3, 2)"
 
+# スキルを呼ぶと、そのターンの残りの呼び出しはそのスキルに付く。上限を確かめるたびに呼び直すusage-capは、
+# 直前のスキルを引き継ぐ。ターンが替わると付かなくなる(M3)ので、その後のusage-capも(なし)に入る
+db="$work/capskill.sqlite3"
+python3 -I - "$work/capskill" <<'EOF'
+import json, sys
+from pathlib import Path
+base = Path(sys.argv[1]) / "claude/p"
+(base / "s/subagents").mkdir(parents=True)
+def call(mid, skill=None, agent=False):
+    return json.dumps({"type": "assistant", "timestamp": "2026-11-01T00:00:00Z", "sessionId": "s", "attributionSkill": skill,
+                       "message": {"id": mid, "model": "claude-opus-5-5", "usage": {"input_tokens": 1, "output_tokens": 1},
+                                   "content": [{"type": "tool_use", "id": "toolu_8", "name": "Agent"}] if agent else []}})
+(base / "s.jsonl").write_text("\n".join([call("M1", "ship-task"), call("M2", "usage-cap", agent=True), call("M3"),
+                                         call("M4", "usage-cap")]) + "\n", encoding="utf-8")
+(base / "s/subagents/agent-c.jsonl").write_text(call("C") + "\n", encoding="utf-8")
+(base / "s/subagents/agent-c.meta.json").write_text(json.dumps({"agentType": "general-purpose", "toolUseId": "toolu_8"}), encoding="utf-8")
+EOF
+collect "$work/capskill" >/dev/null
+equals "usage-capの後の呼び出しと、そこから起こしたサブエージェントは、直前のスキルに数える" "$(field --by skill -- "rows['ship-task']['calls'], len(rows), 'usage-cap' in rows")" "(3, 2, False)"
+
 db="$work/usage.sqlite3"
 equals "--helpもUTF-8で出す" "$(usage --help | grep -c '使用量だけを抜き出して貯め')" "1"
 
