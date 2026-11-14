@@ -144,8 +144,10 @@ out="$(bash "$lost" before-wrap.md -- after-prose.md)"
 equals "折り返したインラインコードは、行ごとの切れ端を挙げる" "$? $out" "$want"
 
 printf '%s\n' '次のように`tool run --jobs 4`と`tool gc`を使う。' > after-unwrap.md
-out="$(bash "$lost" before-wrap.md -- before-wrap.md; bash "$lost" before-wrap.md -- after-unwrap.md)"
-equals "折り返したまま残しても、折り返しをやめても、挙げない" "$? $out" "0 "
+out="$(bash "$lost" before-wrap.md -- before-wrap.md)"
+equals "折り返したまま残せば、挙げない" "$? $out" "0 "
+out="$(bash "$lost" before-wrap.md -- after-unwrap.md)"
+equals "折り返しをやめても、挙げない" "$? $out" "0 "
 
 # 2行目は、閉じた後にまた開いて折り返す。`の並びがすべて対になるので、切れ端を調べない(--jobs 4とtool gcは見ない)。
 # 5〜7行目は3行にまたがる。`の無い6行目は見ない
@@ -176,6 +178,12 @@ printf '%s\n' '`--force`を付ける。`PORTS`と`XHOME`と`--yes-all`と`PATH_I
 want="$(printf '1 span\tbefore-part.md:1\t-f\nspan\tbefore-part.md:1\tPORT\nspan\tbefore-part.md:1\tHOME\nspan\tbefore-part.md:1\t--yes\nspan\tbefore-part.md:1\tPATH\nspan\tbefore-part.md:1\t-version\nspan\tbefore-part.md:1\tDIR\nspan\tbefore-part.md:1\t8080\nspan\tbefore-part.md:1\t--jobs 4\nspan\tbefore-part.md:2\t.env\nspan\tbefore-part.md:2\tnpm run build\nlink\tbefore-part.md:2\thttps://example.com/api')"
 out="$(bash "$lost" before-part.md -- after-part.md)"
 equals "別の語の一部になっている一致は、残っているとみなさない" "$? $out" "$want"
+
+# 後の版の同じ行に、別の語の一部の一致(--forceの-f)と、そうでない一致がある。空白とタブの数の違いは無視する
+printf '%s\n' '`-f`を付ける。`tool	run  --all`を使う。' > before-same.md
+printf '%s\n' '`--force -f`と`tool run --all`' > after-same.md
+out="$(bash "$lost" before-same.md -- after-same.md)"
+equals "同じ行の後ろにある一致と、空白の数だけ違う記述は、残っているとみなす" "$? $out" "0 "
 
 # URLの後ろの記号と日本語は、URLに含めない。<>、""、``、[]で囲んだURLも、中だけを読む
 printf '%s\n' 'See https://a.example/docs. Or https://b.example/x, **https://c.example/y**.' '詳しくはhttps://d.example/jaを読む。' '<https://e.example/z>と<a href="https://f.example/w">と`https://g.example/v`と[https://h.example/u]' '消すのはhttps://lost.example/p。' > before-url.md
