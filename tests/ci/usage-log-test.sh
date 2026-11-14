@@ -145,6 +145,23 @@ rollout.write_text("\n".join(json.dumps(e) for e in [
 EOF
 equals "型の違う行は飛ばし、ほかの行とログは読む" "$(collect "$work/odd")" "3個のログを読み、3件の呼び出しを足した"
 equals "読めたログは読み直さない" "$(collect "$work/odd")" "0個のログを読み、0件の呼び出しを足した"
+
+# Codexのサブエージェントの記録は、自分のsession_metaの次に親のものを持つ。親と同じ行番号の呼び出しも別に数える
+db="$work/fork.sqlite3"
+python3 -I - "$work/fork" <<'EOF'
+import json, sys
+from pathlib import Path
+base = Path(sys.argv[1]) / "codex/sessions"
+base.mkdir(parents=True)
+usage = {"input_tokens": 10, "cached_input_tokens": 0, "output_tokens": 1}
+count = {"type": "event_msg", "timestamp": "2026-11-01T00:00:00Z",
+         "payload": {"type": "token_count", "info": {"total_token_usage": usage, "last_token_usage": usage}}}
+parent = {"type": "session_meta", "payload": {"id": "P", "cwd": "C:/repo", "source": "exec"}}
+child = {"type": "session_meta", "payload": {"id": "C", "cwd": "C:/repo", "source": {"subagent": "review"}}}
+(base / "rollout-P.jsonl").write_text("\n".join(json.dumps(e) for e in [parent, {"type": "turn_context", "payload": {}}, count]) + "\n", encoding="utf-8")
+(base / "rollout-C.jsonl").write_text("\n".join(json.dumps(e) for e in [child, parent, count]) + "\n", encoding="utf-8")
+EOF
+equals "Codexのサブエージェントの呼び出しを、親の呼び出しと別に数える" "$(collect "$work/fork")" "2個のログを読み、2件の呼び出しを足した"
 db="$work/usage.sqlite3"
 
 if [ "$failures" -ne 0 ]; then

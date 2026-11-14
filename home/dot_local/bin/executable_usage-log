@@ -126,7 +126,8 @@ def codex_file(path: Path) -> list[dict]:
         try:
             payload = item.get("payload") or {}
             if item.get("type") == "session_meta":
-                session, project = payload.get("id"), payload.get("cwd")
+                if session is None:  # サブエージェントの記録は、自分のsession_metaの次に親のものを持つ
+                    session, project = payload.get("id"), payload.get("cwd")
             elif item.get("type") == "turn_context":
                 model, effort = payload.get("model"), payload.get("effort")
             elif payload.get("type") == "token_count":
