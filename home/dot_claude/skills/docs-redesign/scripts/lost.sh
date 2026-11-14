@@ -118,7 +118,7 @@ fence { probe("code", $0); next }
   if (match($0, /^[ \t]*\[[^]^][^]]*\]:[ \t]*[^ \t]+/)) {
     s = substr($0, RSTART, RLENGTH); sub(/^[ \t]*\[[^]]*\]:[ \t]*/, "", s); probe("link", s)
   }
-  each("url", $0, "https?://[^ \t)>\"`\\]]+", 0, 0)
+  each("url", $0, "https?://[^] \t)>\"`]+", 0, 0)
 }
 END { exit lost }
 ' "${before[@]}"
