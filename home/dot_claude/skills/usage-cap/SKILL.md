@@ -20,7 +20,7 @@ allowed-tools: Read(~/.local/state/usage/weekly-cap) mcp__ccd_session_mgmt__get_
 
 ## 確かめる側(サブエージェント)がすること
 
-1. 上限を読む。ホームの`.local/state/usage/weekly-cap`を、絶対パスにしてReadで読む。1〜100の整数(週の枠の%)が1行ある。
+1. 上限を読む。`~/.local/state/usage/weekly-cap`を、このままのパスでReadで読む(Readは`~`をホームにする。自分で絶対パスを組み立てると、ホームを取り違えたときに「ファイルが無い」と区別できない)。1〜100の整数(週の枠の%)が1行ある。
    - ファイルが無ければ、上限は無い。`CONTINUE`を返す
    - 整数として読めないか、ファイルが無いこと以外でReadが失敗したら(確認を断られたなど)、`STOP`を返す
 2. `mcp__ccd_session_mgmt__get_usage`を呼ぶ。遅延ロードのツールなら、先にToolSearch(`select:mcp__ccd_session_mgmt__get_usage`)で読み込む。
