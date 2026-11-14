@@ -92,6 +92,10 @@ rm -rf "$work/claude" "$work/codex"
 equals "元のログを消しても、記録から集計できる" "$(field --by source -- "rows['claude']['calls'], rows['codex']['calls']")" "(6, 2)"
 equals "飛ばした行は、読み直したログの分を数え直して集計に出す" "$(usage report --since 2026-01-01 | grep '形が違う')" "これまでに読んだログで、形が違うので記録に入れなかった行: 2行"
 equals "期間の前の呼び出しは数えない" "$(field --since 2025-12-01 --by source -- "rows['claude']['calls']")" "7"
+# 99999999999dはtimedeltaの上限を、1000000dは1年1月1日を越える
+for days in 99999999999d 1000000d; do
+  equals "1年1月1日より前に出る日数($days)は、すべての呼び出しを数える" "$(field --since "$days" --by source -- "rows['claude']['calls']")" "7"
+done
 
 # 100万分の1ドルで、m1: 入力10×4 + 5分の書き込み100×5 + 1時間の書き込み200×8 + 読み取り1000×0.2 + 出力100×20 = 4340、
 # m2: 1×4 + 1×20 = 24、s1: 3×4 + 7×20 = 152
