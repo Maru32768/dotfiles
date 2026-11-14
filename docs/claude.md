@@ -43,7 +43,7 @@ compactが増えると、序盤の細かい指示が要約で落ちやすくな�
 - ほかの置き場は向かない。セッションのscratchpadは、セッションが終わると消えることがあり、別のセッションからは見つからない。リポジトリの`.git`と`.claude`はClaude Codeの保護パスで、書き込みのたびに確認が出る。作業ツリーに置くと、リポジトリごとに無視の規則を足さない限り、台帳が`evidence.sh`の指紋に入る。
 - 足すパスはchezmoiの`.chezmoi.homeDir`から作った絶対パスにする。`~`で書いたパスをClaude Codeが展開するかは、公式の文書に書かれていない。
 - `additionalDirectories`はファイルを読み書きできるようにするだけで、そこからCLAUDE.md、スキル、設定を読み込まない(公式の文書の「Additional directories grant file access, not configuration」)。
-- 台帳を初めて作るまで、このディレクトリは無い。無いディレクトリをClaude Codeがどう扱うかは確かめていない。
+- Claude Codeは、セッションの開始時に無い追加のディレクトリを、警告を出さずに外す(本体のコードで確かめた)。そこで、chezmoiが`home/dot_local/state/review-loop/.keep`から、このディレクトリを反映のときに作る。
 - 配列は丸ごと置き換わるので、環境ごとに`permissions.additionalDirectories`へ足したディレクトリは、反映のたびに消える。
 - `agent`と`research`には`~/.claude`を置かないので、この許可も入らない。
 - `tests/ci/render.sh`は、反映で`permissions`に足されるのが台帳の置き場だけであることと、既存の`permissions.allow`が残ることを確かめる。

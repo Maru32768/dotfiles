@@ -152,6 +152,8 @@ for name in linux-main windows-main; do
   # shellcheck disable=SC2034
   ledger="$(cm "$name" execute-template '{{ .chezmoi.homeDir }}')/.local/state/review-loop"
   check "$name: Claude の設定に台帳の置き場がある" 'jq -e --arg d "$ledger" ".permissions.additionalDirectories == [\$d]" "$work/$name/home/.claude/settings.json"'
+  # Claude Code はセッションの開始時に無いディレクトリを外すので、反映のときに作る
+  check "$name: 台帳の置き場のディレクトリができる" '[ -d "$work/$name/home/.local/state/review-loop" ]'
 done
 check "linux-main: 共通の設定は permissions に台帳の置き場のほかを足さない" 'jq -e ".permissions | keys == [\"additionalDirectories\"]" "$work/linux-main/home/.claude/settings.json"'
 check "windows-main: Claude の設定の既存のキーと permissions.allow が残る" 'jq -e ".model == \"kept-model\" and .permissions.allow == [\"Bash(ls)\"]" "$work/windows-main/home/.claude/settings.json"'
