@@ -7,8 +7,10 @@
 #   lab.ps1 new agent-foo          (a name starting with agent- gets the agent profile)
 #   lab.ps1 new research-foo       (research- gets the research profile: web reading, no LAN)
 #   lab.ps1 token                  (stores the token from claude setup-token)
-#   lab.ps1 run agent-foo [-Path ~/work/repo]   (the default path is ~/work)
-#   bws-run <project> -- powershell -ExecutionPolicy Bypass -File lab\lab.ps1 run research-foo -Path ~/work/run
+#   lab.ps1 run agent-foo [-Path work/repo] [-Prompt '...']
+#                                  (-Path is inside the instance, relative to the home, default work.
+#                                   -Prompt runs claude -p instead of an interactive Claude)
+#   bws-run <project> -- powershell -ExecutionPolicy Bypass -File lab\lab.ps1 run research-foo -Path work/run
 #                                  (research runs on ANTHROPIC_API_KEY from the caller)
 #   lab.ps1 verify agent-foo
 #   lab.ps1 rm agent-foo           (only agent-*, research-* and restore-test*)
@@ -24,6 +26,7 @@ param(
     [string]$Source = 'https://github.com/Maru32768/dotfiles.git',
     [string]$Branch = '',
     [string]$Path = '~/work',
+    [string]$Prompt = '',
     [switch]$NoClaude
 )
 
@@ -46,7 +49,7 @@ $Profiles = [ordered]@{
     agent    = @{ Prefix = 'agent-'; User = 'agent'; Home = 'agent'; Launcher = '/usr/local/bin/agent-claude'; RunWith = 'Invoke-WithToken'
                   Next = 'lab.ps1 token (once), then lab.ps1 run {0}' }
     research = @{ Prefix = 'research-'; User = 'research'; Home = 'agent'; Launcher = '/usr/local/bin/research-claude'; RunWith = 'Invoke-WithApiKey'
-                  Next = 'bws-run <project> -- powershell -ExecutionPolicy Bypass -File lab\lab.ps1 run {0} -Path ~/work/run' }
+                  Next = 'bws-run <project> -- powershell -ExecutionPolicy Bypass -File lab\lab.ps1 run {0} -Path work/run' }
 }
 
 function Get-ProfileName([string]$InstanceName) {
@@ -257,8 +260,27 @@ if ($Command -eq 'verify') {
 }
 
 if ($Command -eq 'run') {
+    # PowerShell 7 turns a leading ~ into the Windows home, even inside bws-run, so the
+    # portable form is a path relative to the home. Windows PowerShell 5.1 passes a " to an
+    # exe unescaped, which would swallow the arguments after --cd.
+    if ($Path -match '[:\\"]') {
+        throw "-Path must be a path inside the instance, such as work/run, not $Path"
+    }
+    if ($Path -notmatch '^[~/]') {
+        $Path = "~/$Path"
+    }
+    # Windows PowerShell 5.1 passes these to an exe unescaped, so the prompt would split or lose them
+    if ($Prompt -match '"|\\$') {
+        throw '-Prompt cannot contain a double quote or end with a backslash'
+    }
     & $labProfile.RunWith {
-        & wsl.exe -d $Name -u $User --cd $Path -e $labProfile.Launcher
+        # "$Path" and "$Prompt": PowerShell 7 also expands a leading ~ in a bare variable passed to an exe
+        if ($Prompt) {
+            # An empty stdin, so claude -p does not wait for piped input
+            $null | & wsl.exe -d $Name -u $User --cd "$Path" -e $labProfile.Launcher -p "$Prompt"
+        } else {
+            & wsl.exe -d $Name -u $User --cd "$Path" -e $labProfile.Launcher
+        }
     }
     exit $LASTEXITCODE
 }

@@ -4,9 +4,9 @@
 
 | ジョブ | スクリプト | 内容 |
 |---|---|---|
-| `static` | `tests/ci/static.sh` | shellcheck、フック・`bws-run`・`split-pdf`・`split-pr-stack`・review-loopの`evidence.sh`・`usage-log`のテスト、不変条件、chezmoi のレンダリング、gitleaks、actionlint |
+| `static` | `tests/ci/static.sh` | shellcheck、フック・`bws-run`・`split-pdf`・`split-pr-stack`・review-loopの`evidence.sh`・`usage-log`・docs-redesignのスクリプトのテスト、不変条件、chezmoi のレンダリング、gitleaks、actionlint |
 | `container` | `tests/ci/container.sh <main\|agent\|research>` | `ubuntu:26.04` で環境を作り、確認と再適用まで行う |
-| `windows` | `tests/ci/windows.ps1`、`tests/ci/bws-run-test.ps1` | Windows PowerShell 5.1 での構文、Windows 版の `bws-run` のテスト、PSScriptAnalyzer |
+| `windows` | `tests/ci/windows.ps1`、`tests/ci/bws-run-test.ps1`、`tests/ci/lab-run-test.ps1` | Windows PowerShell 5.1 での構文、Windows 版の `bws-run` のテスト、`lab.ps1 run`が偽の`wsl.exe`に渡す引数のテスト(Windows PowerShell 5.1とPowerShell 7の両方で動かす)、PSScriptAnalyzer |
 
 定期実行は、固定していないもの (apt、インストーラー、Vim プラグイン) の破損に気づくためにある。
 

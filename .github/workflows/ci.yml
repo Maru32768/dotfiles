@@ -61,6 +61,9 @@ jobs:
       - name: bws-run のテスト
         shell: pwsh
         run: .\tests\ci\bws-run-test.ps1
+      - name: lab.ps1 run のテスト
+        shell: pwsh
+        run: .\tests\ci\lab-run-test.ps1
       - name: PSScriptAnalyzer
         shell: pwsh
         run: |
