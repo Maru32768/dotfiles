@@ -92,6 +92,12 @@ want="$(printf '1 code\tbefore-nested.md:3\ttool deploy --prod\nspan\tbefore-nes
 out="$(bash "$lost" before-nested.md -- after-fence.md)"
 equals "フェンスの中のフェンスで、状態がずれない" "$? $out" "$want"
 
+# 1〜2行目は、インラインコードが行の折り返しをまたぐ。4行目のバッククォートは1つだけで、5行目とは対にならない
+printf '%s\n' '次のように`tool run' '--jobs 4`と`tool gc`を使う。' '' '記号の`を書く。' '`tool xx`と`tool yy`を使う。' > before-wrap.md
+want="$(printf '1 span\tbefore-wrap.md:2\ttool run --jobs 4\nspan\tbefore-wrap.md:2\ttool gc\nspan\tbefore-wrap.md:5\ttool xx\nspan\tbefore-wrap.md:5\ttool yy')"
+out="$(bash "$lost" before-wrap.md -- after-fence.md)"
+equals "折り返しをまたぐインラインコードを、次の行で閉じて読む" "$? $out" "$want"
+
 printf '%s\n' '`tool gone`を使う。' '' 'もう一度`tool gone`を使う。' > before-twice.md
 want="$(printf '1 span\tbefore-twice.md:1\ttool gone')"
 out="$(bash "$lost" before-twice.md -- after-fence.md)"

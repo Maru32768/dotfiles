@@ -40,13 +40,15 @@ function probe(kind, tok,   s, w) {
   }
   printf "%s\t%s:%d\t%s\n", kind, FILENAME, FNR, tok; lost = 1
 }
-function each(kind, re, left, right,   s) {
-  s = $0
+# sの中のreに合う記述を順に調べ、最後の一致より後ろの残りを返す
+function each(kind, s, re, left, right) {
   while (match(s, re)) {
     probe(kind, substr(s, RSTART + left, RLENGTH - left - right))
     s = substr(s, RSTART + RLENGTH)
   }
+  return s
 }
+function ticks(s) { return gsub(/`/, "`", s) }
 # 行頭の`か~の数を返す。3つに満たなければ0。記号をfmarkに、後ろに何も無いかをfbareに入れる
 function fence_len(s,   c, n) {
   sub(/^[ \t]+/, "", s); sub(/[ \t\r]+$/, "", s)
@@ -57,16 +59,20 @@ function fence_len(s,   c, n) {
   return n >= 3 ? n : 0
 }
 BEGIN { while ((getline line < hayfile) > 0) hay = hay "\n" norm(line) }
-FNR == 1 { fence = 0 }
+FNR == 1 { fence = 0; carry = "" }
 { n = fence_len($0) }
 # 閉じるのは、開いたときと同じ記号が同じ数以上あり、後ろに何も無い行だけ(中に別のフェンスを書ける)
-!fence && n { fence = n; fopen = fmark; next }
+!fence && n { fence = n; fopen = fmark; carry = ""; next }
 fence && n >= fence && fmark == fopen && fbare { fence = 0; next }
 fence { probe("code", $0); next }
+/^[ \t\r]*$/ { carry = ""; next }
 {
-  each("span", "`[^`]+`", 1, 1)
-  each("link", "\\]\\([^) \t]+", 2, 0)
-  each("url", "https?://[^ \t)>\"`\\]]+", 0, 0)
+  # 行末で開いたままのインラインコードは、次の行へ続ける。次の行だけで`が対になるなら、続けない
+  s = (carry != "" && ticks($0) % 2) ? carry $0 : $0
+  s = each("span", s, "`[^`]+`", 1, 1)
+  carry = (ticks(s) == 1) ? substr(s, index(s, "`")) " " : ""
+  each("link", $0, "\\]\\([^) \t]+", 2, 0)
+  each("url", $0, "https?://[^ \t)>\"`\\]]+", 0, 0)
 }
 END { exit lost }
 ' "${before[@]}"
