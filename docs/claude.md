@@ -5,7 +5,7 @@ Windows と WSL で同じ設定を使うため、共通部分を chezmoi で管�
 | ファイル | 内容 |
 |---|---|
 | `home/.claude-settings.json` | 共通の設定 (プラグイン、マーケットプレイス、フックなど) |
-| `home/dot_claude/modify_settings.json` | 共通の設定を `settings.json` へマージする (chezmoi のテンプレートなので両 OS で動く) |
+| `home/dot_claude/modify_settings.json` | 共通の設定を `settings.json` へマージする (chezmoi のテンプレートなので両 OS で動く)。review-loopが台帳を置くディレクトリへの許可も足す(「review-loopの台帳の置き場」) |
 | `home/dot_claude/CLAUDE.md` | ユーザー全体の指示。dotfiles で設定を管理していることのほか、日本語の表記、タスクの進め方、コミットとレビューの決まりと、技術的な知見の記録を提案する決まりを書く。指示として読まれるだけで、強制はしない。`agent` には置かない |
 | `home/dot_claude/pstack-models.md` | pstack のロールごとのモデル。`/setup-pstack` が書き、`CLAUDE.md` の `@` 行で読み込む |
 | `home/dot_claude/skills/` | 自分で書いたスキル (`docs/skills.md`) |
@@ -35,6 +35,30 @@ chezmoi apply   # 反映する
 - `idleCompaction: true`: 20万トークン以上の会話から離れると、1時間のキャッシュが切れる前にcompactする。戻ったときに、会話全体をキャッシュへ書き直さずに済む。1時間のキャッシュが使われるのは定額プランのmain会話だけなので、キャッシュが5分で切れるサブエージェントでは動かない。
 
 compactが増えると、序盤の細かい指示が要約で落ちやすくなる。決めたことは会話の外(issue、PR、コミット)に残す。
+
+## review-loopの台帳の置き場
+
+`modify_settings.json`が`permissions.additionalDirectories`に`<ホーム>/.local/state/review-loop`を足す。review-loopは台帳をここに置く(`home/dot_claude/skills/review-loop/SKILL.md`の0)。このディレクトリは作業ディレクトリと同じ扱いになり、読むときに確認が出ない。書き込みの確認は今の権限モードに従い、`acceptEdits`では出ない。
+
+- ほかの置き場は向かない。セッションのscratchpadは、セッションが終わると消えることがあり、別のセッションからは見つからない。リポジトリの`.git`と`.claude`はClaude Codeの保護パスで、書き込みのたびに確認が出る。作業ツリーに置くと、リポジトリごとに無視の規則を足さない限り、台帳が`evidence.sh`の指紋に入る。
+- 足すパスはchezmoiの`.chezmoi.homeDir`から作った絶対パスにする。`~`で書いたパスをClaude Codeが展開するかは、公式の文書に書かれていない。
+- `additionalDirectories`はファイルを読み書きできるようにするだけで、そこからCLAUDE.md、スキル、設定を読み込まない(公式の文書の「Additional directories grant file access, not configuration」)。
+- Claude Codeは、セッションの開始時に無い追加のディレクトリを、警告を出さずに外す(本体のコードで確かめた)。そこで、chezmoiが`home/dot_local/state/review-loop/.keep`から、このディレクトリを反映のときに作る。
+- 配列は丸ごと置き換わるので、環境ごとに`permissions.additionalDirectories`へ足したディレクトリは、反映のたびに消える。
+- `agent`と`research`には`~/.claude`を置かないので、この許可も入らない。台帳の置き場も作らない(`home/.chezmoiignore`)。
+- `tests/ci/render.sh`は、反映で`permissions`に足されるのが台帳の置き場だけであることと、既存の`permissions.allow`が残ることを確かめる。
+
+## 使用量の記録
+
+新しいセッションを始めるたびに、`home/.claude-settings.json`のSessionStartのフックが、`usage-log collect`をバックグラウンド(`async`)で動かす。Claude Codeがセッションのログを30日で消すので、このコマンドはログが消える前に、API呼び出しごとのトークン数と、その時刻やスキルなどの属性を`~/.local/state/usage/usage.sqlite3`に写す。会話の中身は写さない。Codexの記録(`~/.codex/sessions`と`archived_sessions`)も同じように写す。集計には`usage-log report`を使う(`docs/tools.md`)。
+
+- 初回は残っているログを全部読むので、数分かかる(2026-11-14に約1,900ファイルで約2分)。2回目からは、新しいログと、大きさか更新時刻が変わったログだけを読む。
+- 非同期のフックの失敗は画面に出ない。uvが見つからないときも、記録が増えないだけになる。記録が増えているかは、`usage-log report --by day`で確かめる。
+- ログの形式はClaude Codeの内部のもので、公式には版で変わりうるとされている。`usage-log`は、JSONとして読めない行と、読めても形の違う行(トークン数を数として読めない、スキルやモデルが文字列でないなど)を、その行だけ飛ばして数える。飛ばした行の数は、`collect`の出力と、`report`の表の最後に出る。フックの`collect`は何も出さないので、形式が変わって記録される呼び出しが減っていないかは、`report`で確かめる。数はログごとに最後に読んだときのもので、伸びたログを読み直すと数え直す。
+- サブエージェントの呼び出しは、自分にスキルが無く、それを起こした親の呼び出しにもスキルが無いと、「(なし)」に入る(2026-11-14に、サブエージェントの呼び出しの76%)。workflowで動いたサブエージェントは、`.meta.json`に親の呼び出しが無いので、自分にスキルが無ければ「(なし)」に入る。
+- SSHのリモートのセッションでは、サブエージェントのログが`subagents/`の外にあり、`.meta.json`に種類も説明も無い。こうしたサブエージェントの呼び出しは、`report --by agent`と`--by agent-type`で「(種類不明)」にまとまる。手元のサブエージェントでも、`.meta.json`が無いか、そこに種類が書かれていなければ、同じく「(種類不明)」に入る。
+- セッションを再開すると、サブエージェントのログが`.meta.json`を持たずに新しいセッションへ写される。forkのログは、親の履歴を写して持つ。同じ応答は`message.id`で1回だけ数え、種類、説明、スキルは、元のログらしい方(種類が分かる、本体、fork、種類不明の順)のものを使う。トークン数は大きい方を使う。
+- Claude Code 2.1.284〜2.1.304(2026-09-29〜10-21)が書いたサブエージェントのログでは、応答の最後の行も、出力トークン数が途中の値のことが多い(2026-11-14の手元のログで、この版のサブエージェントの応答の約4分の3)。ログに最後の値が無いので、この期間のサブエージェントの出力と費用は少なく出る。2.1.308からは、ほとんど起きていない。
 
 ## 署名回避を止めるフック
 

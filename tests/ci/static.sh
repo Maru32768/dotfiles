@@ -39,6 +39,7 @@ section "shellcheck" run_shellcheck
 section "フックのテスト" run_go
 section "bws-run のテスト" bash tests/ci/bws-run-test.sh
 section "split-pdf のテスト" bash tests/ci/split-pdf-test.sh
+section "usage-log のテスト" bash tests/ci/usage-log-test.sh
 section "split-pr-stackのテスト" bash tests/ci/split-pr-stack-test.sh
 section "review-loopの記録のテスト" bash tests/ci/review-evidence-test.sh
 section "docs-redesignのスクリプトのテスト" bash tests/ci/docs-redesign-test.sh

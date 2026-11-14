@@ -60,6 +60,14 @@ sandbox = "unelevated"
 trust_level = "trusted"
 EOF
 
+# Claude Code が書いた許可も、マージの後に残ることを確かめる
+mkdir -p "$work/windows-main/home/.claude"
+printf '{"model":"kept-model","permissions":{"allow":["Bash(ls)"],"additionalDirectories":["D:/x"]}}' >"$work/windows-main/home/.claude/settings.json"
+
+# review-loop の台帳は、反映の後も残る
+mkdir -p "$work/linux-main/home/.local/state/review-loop/repo/branch"
+printf 'kept\n' >"$work/linux-main/home/.local/state/review-loop/repo/branch/ledger.md"
+
 # gpg-agent.conf も、管理しない行は残る。Windows の Git の gpg は CRLF で書くこともある
 mkdir -p "$work/windows-main/home/.gnupg"
 printf 'default-cache-ttl 34560000\r\nmax-cache-ttl 34560000\r\npinentry-program C:\\pinentry.exe\r\n' >"$work/windows-main/home/.gnupg/gpg-agent.conf"
@@ -82,6 +90,7 @@ equals "linux-agent: 置かれるファイルが許可した一覧と一致" "$(
   ".bash_profile .bashrc .config/git/ignore .config/mise/config.toml .config/mise/mise.lock .gitconfig .ideavimrc .tmux.conf"
 blocked "linux-agent: 署名の設定がない" 'grep -qE "signingkey|gpgsign" "$work/linux-agent/home/.gitconfig"'
 equals "linux-agent: 実行するスクリプト" "$(scripts_of linux-agent)" "10-mise-install.sh 40-claude-code.sh"
+blocked "linux-agent: review-loop の台帳の置き場を作らない" '[ -e "$work/linux-agent/home/.local/state" ]'
 equals "linux-agent: external がない (スキルを置かない)" "$(externals_of linux-agent | paste -sd ' ' -)" ""
 
 # --- スキル (home/.chezmoidata/skills.toml) ---
@@ -107,12 +116,13 @@ check "windows-main: Codex の共通設定が優先される" 'jq -e ".windows.s
 check "Codex の設定がない環境でも共通設定から作れる" '[ "$(cm windows-main execute-template --with-stdin "$(cat "$root/home/dot_codex/modify_config.toml")" </dev/null | cm windows-main execute-template --with-stdin "{{ .chezmoi.stdin | fromToml | toJson }}")" = "$(toml_json windows-main "$root/home/.codex-config.toml")" ]'
 
 # --- 普段の環境 ---
-for file in .ssh/config .gnupg/gpg-agent.conf .claude/settings.json .claude/CLAUDE.md .tmux.conf .vimrc .local/bin/bws-run .local/bin/split-pdf; do
+for file in .ssh/config .gnupg/gpg-agent.conf .claude/settings.json .claude/CLAUDE.md .tmux.conf .vimrc .local/bin/bws-run .local/bin/split-pdf .local/bin/usage-log; do
   check "linux-main: $file がある" '[ -f "$work/linux-main/home/$file" ]'
 done
-check "linux-main: bws-run が実行できる" '[ -x "$work/linux-main/home/.local/bin/bws-run" ]'
-check "linux-main: split-pdf が実行できる" '[ -x "$work/linux-main/home/.local/bin/split-pdf" ]'
-for file in .local/bin/bws-run.ps1 .local/bin/bws-run.cmd .local/bin/split-pdf.cmd; do
+for tool in bws-run split-pdf usage-log; do
+  check "linux-main: $tool が実行できる" '[ -x "$work/linux-main/home/.local/bin/$tool" ]'
+done
+for file in .local/bin/bws-run.ps1 .local/bin/bws-run.cmd .local/bin/split-pdf.cmd .local/bin/usage-log.cmd; do
   blocked "linux-main: $file がない" '[ -e "$work/linux-main/home/$file" ]'
 done
 blocked "linux-main: plamo-server.cmd がない" '[ -e "$work/linux-main/home/.local/bin/plamo-server.cmd" ]'
@@ -124,6 +134,8 @@ enable-ssh-support
 disable-scdaemon'
 check "linux-main: コミット署名が有効" 'grep -q "gpgsign = true" "$work/linux-main/home/.gitconfig"'
 check "linux-main: Claude の設定にフックがある" 'jq -e ".hooks.PreToolUse[0].hooks[0].command | test(\"block-signing-bypass\")" "$work/linux-main/home/.claude/settings.json"'
+# 初回は数分かかるので、セッションを待たせないようにバックグラウンドで動かす
+check "linux-main: 開始時に usage-log の collect をバックグラウンドで動かす" 'jq -e ".hooks.SessionStart[0].hooks[0] | .async == true and (.command | test(\"usage-log\\\" collect\"))" "$work/linux-main/home/.claude/settings.json"'
 equals "linux-main: 実行するスクリプト" "$(scripts_of linux-main)" "10-mise-install.sh 20-build-hooks.sh 30-vim-plugins.sh 40-claude-code.sh 50-gh-extensions.sh"
 
 # --- knowledge-capture (docs/skills.md) ---
@@ -142,8 +154,25 @@ allowed-tools: $knowledge_tools"
   check "$name: CLAUDE.md に記録の提案の形がある" 'grep -qF "記録候補: <タイトル案>(/knowledge-capture)" "$work/$name/home/.claude/CLAUDE.md"'
 done
 
+# --- review-loop の台帳 (docs/claude.md) ---
+# 許可を広げるときは、何を許すことになるかを確かめてから、期待する値を直す
+for name in linux-main windows-main; do
+  # shellcheck disable=SC2034
+  ledger="$(cm "$name" execute-template '{{ .chezmoi.homeDir }}')/.local/state/review-loop"
+  check "$name: Claude の設定に台帳の置き場がある" 'jq -e --arg d "$ledger" ".permissions.additionalDirectories == [\$d]" "$work/$name/home/.claude/settings.json"'
+  # Claude Code はセッションの開始時に無いディレクトリを外すので、反映のときに作る
+  # linux-main には既存の台帳を置くので、ディレクトリがあるかではなく、反映が作るかを見る
+  check "$name: 台帳の置き場のディレクトリができる" 'cm "$name" managed --include dirs --exclude externals | grep -qx ".local/state/review-loop"'
+  check "$name: review-loop が台帳を許可したディレクトリに置く" 'grep -qF "~/.local/state/review-loop/<リポジトリ>/<名前>/" "$work/$name/home/.claude/skills/review-loop/SKILL.md"'
+  check "$name: review-loop が書く終了の行を ship-task が読む" 'grep -qF "\`- 終了: <" "$work/$name/home/.claude/skills/review-loop/SKILL.md" && grep -qF "\`- 終了:\`の行" "$work/$name/home/.claude/skills/ship-task/SKILL.md"'
+done
+check "linux-main: 既存の review-loop の台帳が反映の後も残る" '[ "$(cat "$work/linux-main/home/.local/state/review-loop/repo/branch/ledger.md")" = kept ]'
+check "linux-main: 共通の設定は permissions に台帳の置き場のほかを足さない" 'jq -e ".permissions | keys == [\"additionalDirectories\"]" "$work/linux-main/home/.claude/settings.json"'
+check "windows-main: 共通の設定は permissions に台帳の置き場のほかを足さない" 'jq -e ".permissions | keys == [\"additionalDirectories\", \"allow\"]" "$work/windows-main/home/.claude/settings.json"'
+check "windows-main: Claude の設定の既存のキーと permissions.allow が残る" 'jq -e ".model == \"kept-model\" and .permissions.allow == [\"Bash(ls)\"]" "$work/windows-main/home/.claude/settings.json"'
+
 # --- Windows ---
-for file in .wslconfig OneDrive/Documents/PowerShell/Microsoft.PowerShell_profile.ps1 .claude/settings.json .claude/CLAUDE.md .vimrc .local/bin/bws-run.ps1 .local/bin/bws-run.cmd .local/bin/split-pdf .local/bin/split-pdf.cmd; do
+for file in .wslconfig OneDrive/Documents/PowerShell/Microsoft.PowerShell_profile.ps1 .claude/settings.json .claude/CLAUDE.md .vimrc .local/bin/bws-run.ps1 .local/bin/bws-run.cmd .local/bin/split-pdf .local/bin/split-pdf.cmd .local/bin/usage-log .local/bin/usage-log.cmd; do
   check "windows-main: $file がある" '[ -f "$work/windows-main/home/$file" ]'
 done
 check "windows-main: plamo-server.cmd がある" '[ -f "$work/windows-main/home/.local/bin/plamo-server.cmd" ]'

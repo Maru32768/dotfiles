@@ -37,17 +37,17 @@ description: いもすさんの humanizer ルール（https://imoz.jp/humanizer.
      - 表記（日本語なら長音・送り仮名・カタカナと英字の選び方、英語なら綴りの米英・大文字の使い方）は文書とリポジトリの既存の表記に合わせ、ルールの表記の規定では変えるな。差分の段落だけ表記が変わると、文書の中で揺れる。
      - 文書の規約があれば、それも書く。
    - 採用した変更が0件なら、ファイルを書かずに「変更なし」と報告しろ。
-   - 変更があれば `<path>.h<N>`（PR/MR 本文は `pr-body.h<N>.md`）に書き、検査を通せ。`--source` は前のパスの出力ではなく**推敲前の退避**を渡す。パスごとの小さなずれの積み重ねを、原文との比較で捕まえるため。このパスで変えていない行の指摘は前の段で扱い済みなので無視してよい。日本語の検査:
+   - 変更があれば `<path>.h<N>`（PR/MR 本文は `pr-body.h<N>.md`）に書き、検査を通せ。`--source` は前のパスの出力ではなく**推敲前の退避**を渡す。パスごとの小さなずれの積み重ねを、原文との比較で捕まえるため。このパスで変えていない行の指摘は前の段で扱い済みなので無視してよい。日本語の検査は、`<work>`で実行し、ファイルは`<work>`からの相対パスで渡す。yomiyasuは、実行したディレクトリの外のファイルと、そこからの道筋に点で始まる部分があるパスを読まずに、終了コード2で止まる。語の一覧は`<work>`から上のgitのリポジトリの`.yomiyasu-words/`しか探さないので、対象のリポジトリの最上位に`.yomiyasu-words/`があれば、`--words <その絶対パス>`を足す。
 
      ```bash
-     python3 ~/.claude/skills/yomiyasu/scripts/yomiyasu_check.py run \
+     cd <work> && python3 ~/.claude/skills/yomiyasu/scripts/yomiyasu_check.py run \
        --source <退避した原文> --final <推敲稿> --doc-type <種類> --reader expert \
-       --fail-on meaning-risk --fact-gaps --state-dir <work>/.yomiyasu
-     python3 ~/.claude/skills/yomiyasu/scripts/yomiyasu_check.py verify \
-       --final <推敲稿> --state-dir <work>/.yomiyasu
+       --fail-on meaning-risk --fact-gaps --state-dir .yomiyasu
+     cd <work> && python3 ~/.claude/skills/yomiyasu/scripts/yomiyasu_check.py verify \
+       --final <推敲稿> --state-dir .yomiyasu
      ```
 
-     `--doc-type` は、PR/MR 本文が `pr`、手順書・README が `manual`、設計書・仕様書が `formal`。当てはまらなければ指定しない。`--state-dir` を省くと、リポジトリ直下に `.yomiyasu/` が作られる。終了コード1（meaning-risk）が出たら、その書き換えを戻すか、意味が同じだと言える根拠を報告しろ。
+     `--doc-type` は、PR/MR 本文が `pr`、手順書・README が `manual`、設計書・仕様書が `formal`。当てはまらなければ指定しない。終了コード1（meaning-risk）が出たら、その書き換えを戻すか、意味が同じだと言える根拠を報告しろ。
    - 推敲稿には注記や質問を入れるな。報告は本文で返せ。採用した変更（5点まで）、ルールに照らして気づいたが制約で採らなかったもの、書き手に確かめたい点、検査の指摘とその扱い。
 
 3. **親がファイルごとに収束を判定する。**
