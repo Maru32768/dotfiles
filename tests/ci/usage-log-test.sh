@@ -313,8 +313,13 @@ equals "--helpもUTF-8で出す" "$(usage --help | grep -c '使用量だけを�
 
 # 大きい仕事の上限は、記録と同じディレクトリのweekly-capに、週の枠の%を1行で書く
 # 実装が--dbに従わなくなっても利用者の上限を失わないように、本物の上限を控え、変わっていたら戻して落とす
+# 前に上限があったかは変数に控える。控えのファイルの有無で決めると、cpが失敗したときに利用者の上限を消す
 real_cap="$HOME/.local/state/usage/weekly-cap"
-if [ -e "$real_cap" ]; then cp -p "$real_cap" "$work/real-cap"; fi
+real_cap_before=absent
+if [ -e "$real_cap" ]; then
+  real_cap_before=present
+  cp -p "$real_cap" "$work/real-cap" || fail "本物の上限を控えられなかった(上限の場面の後に戻せない)"
+fi
 db="$work/cap/usage.sqlite3"
 equals "上限が無ければ、そう出す" "$(usage cap)" "上限なし"
 equals "上限を決める" "$(usage cap 70)" "週の枠(全モデル)の上限を70%にした"
@@ -331,11 +336,15 @@ done
 equals "上限を外す" "$(usage cap off)" "上限を外した"
 equals "外すとファイルを消す" "$([ -e "$work/cap/weekly-cap" ] && echo exists || echo gone)" "gone"
 equals "外した後に外しても、失敗しない" "$(usage cap off)" "上限を外した"
-if [ -e "$work/real-cap" ]; then
-  cmp -s "$work/real-cap" "$real_cap" || { cp -p "$work/real-cap" "$real_cap"; fail "上限の場面が本物の上限を変えた(元に戻した)"; }
-elif [ -e "$real_cap" ]; then
-  rm -f "$real_cap"; fail "上限の場面が本物の上限を作った(消した)"
-fi
+case "$real_cap_before" in
+  present)
+    # 空の控え(書き込みの途中で止まったなど)では戻さない
+    if [ -s "$work/real-cap" ] && ! cmp -s "$work/real-cap" "$real_cap"; then
+      cp -p "$work/real-cap" "$real_cap"; fail "上限の場面が本物の上限を変えた(元に戻した)"
+    fi ;;
+  absent)
+    if [ -e "$real_cap" ]; then rm -f "$real_cap"; fail "上限の場面が本物の上限を作った(消した)"; fi ;;
+esac
 
 if [ "$failures" -ne 0 ]; then
   printf '\n%d件の問題があります\n' "$failures"
