@@ -63,7 +63,11 @@ def checked(call: dict) -> dict:
     for key, value in call.items():
         if key in TOKENS:
             call[key] = int(value or 0)
-        elif value is not None and not isinstance(value, str):
+            if not -2**63 <= call[key] < 2**63:  # SQLiteの整数に入らない
+                raise ValueError(key)
+        elif isinstance(value, str):
+            value.encode("utf-8")  # 対になっていないサロゲートはSQLiteに入らない(UnicodeEncodeErrorはValueError)
+        elif value is not None:
             raise TypeError(key)
     return call
 
@@ -129,7 +133,7 @@ def claude_file(path: Path) -> tuple[list[dict], dict]:
                 "cache_write_1h": write_1h or 0, "cache_read": usage.get("cache_read_input_tokens") or 0,
                 "output": usage.get("output_tokens") or 0,
             })
-        except (AttributeError, TypeError, ValueError):  # JSONとしては読めても形が違う行は飛ばす
+        except (AttributeError, TypeError, ValueError, OverflowError):  # JSONとしては読めても形が違う行は飛ばす
             continue
     return list(calls.values()), agents
 
@@ -167,7 +171,7 @@ def codex_file(path: Path) -> list[dict]:
                     "cache_write_5m": last.get("cache_write_input_tokens") or 0, "cache_write_1h": 0,
                     "output": last.get("output_tokens") or 0,
                 }))
-        except (AttributeError, TypeError, ValueError):  # JSONとしては読めても形が違う行は飛ばす
+        except (AttributeError, TypeError, ValueError, OverflowError):  # JSONとしては読めても形が違う行は飛ばす
             continue
     return calls
 

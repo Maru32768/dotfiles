@@ -124,15 +124,18 @@ python3 -I - "$work/odd" <<'EOF'
 import json, sys
 from pathlib import Path
 odd = Path(sys.argv[1])
-def call(mid, skill=None, content=(), **usage):
-    return json.dumps({"type": "assistant", "timestamp": "2026-11-01T00:00:00Z", "sessionId": "o", "attributionSkill": skill,
+def call(mid, skill=None, content=(), top=(), **usage):
+    return json.dumps({"type": "assistant", "timestamp": "2026-11-01T00:00:00Z", "sessionId": "o", "attributionSkill": skill, **dict(top),
                        "message": {"id": mid, "model": "claude-opus-5-5", "usage": {"input_tokens": 1, **usage}, "content": content}})
 main = odd / "claude/p/o.jsonl"
 sub = odd / "claude/p/o/subagents/agent-z.jsonl"
 sub.parent.mkdir(parents=True)
-# 辞書のトークン、辞書のスキル、数のcontentは飛ばし、文字列で書かれたトークンは数として読む
+# 辞書のトークン、辞書のスキル、数のcontent、Infinity、SQLiteに入らない大きな数、対になっていないサロゲートは飛ばし、
+# 文字列で書かれたトークンは数として読む
 main.write_text("\n".join([call("bad", cache_creation="n/a"), call("a1"), call("d1", output_tokens={"x": 1}),
-                           call("d2", skill={"x": 1}), call("d3", output_tokens="5"), call("d4", content=5)]) + "\n", encoding="utf-8")
+                           call("d2", skill={"x": 1}), call("d3", output_tokens="5"), call("d4", content=5),
+                           call("d5", output_tokens=float("inf")), call("d6", input_tokens=2**70),
+                           call("d7", top={"cwd": "\ud800"})]) + "\n", encoding="utf-8")
 # 読めないログ(名前が.jsonlのディレクトリ)は飛ばして、ほかのログを読む
 (odd / "claude/p/dir.jsonl").mkdir()
 sub.write_text(call("z1") + "\n", encoding="utf-8")
