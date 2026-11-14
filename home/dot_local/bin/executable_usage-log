@@ -103,7 +103,7 @@ def claude_file(path: Path) -> tuple[list[dict], dict, int]:
     meta = {}
     try:
         meta = json.loads(path.with_suffix(".meta.json").read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
+    except (OSError, ValueError, RecursionError):  # 無いか、UTF-8やJSONとして読めない
         pass
     if not isinstance(meta, dict):
         meta = {}
@@ -114,31 +114,32 @@ def claude_file(path: Path) -> tuple[list[dict], dict, int]:
     for _, line in lines(path):
         try:
             item = json.loads(line)
-            message = item.get("message")
-            if item.get("type") != "assistant" or not isinstance(message, dict):
+            if item.get("type") != "assistant":
+                continue
+            message = item["message"]
+            if message.get("model") == "<synthetic>":  # Claude Codeが自分で書いた応答で、APIを呼んでいない
                 continue
             # 行の途中で例外になったら、その行からは何も残さない(呼び出しとスキルを最後にまとめて残す)
             skill = item.get("attributionSkill")
             spawned = {block["id"]: skill for block in message.get("content") or []
                        if isinstance(block, dict) and block.get("type") == "tool_use" and block.get("name") == "Agent"}
-            usage, model = message.get("usage"), message.get("model")
-            if isinstance(usage, dict) and message.get("id") and model not in (None, "<synthetic>"):
-                writes = usage.get("cache_creation") or {}
-                write_5m, write_1h = writes.get("ephemeral_5m_input_tokens"), writes.get("ephemeral_1h_input_tokens")
-                if write_5m is None and write_1h is None:
-                    write_5m, write_1h = usage.get("cache_creation_input_tokens"), 0
-                # 1つの応答はブロックごとに何行にも分かれ、最初の行の出力は途中の値なので、最後の行を使う
-                calls[message["id"]] = checked({
-                    "id": "claude:" + message["id"], "source": "claude", "ts": item.get("timestamp"),
-                    "session": item.get("sessionId"), "project": item.get("cwd"), "branch": item.get("gitBranch"),
-                    "model": model, "effort": item.get("effort"), "speed": usage.get("speed"),
-                    "skill": skill, "plugin": item.get("attributionPlugin"),
-                    "agent_type": agent_type, "agent_desc": meta.get("description"),
-                    "parent_tool_use": meta.get("toolUseId"),
-                    "input": usage.get("input_tokens") or 0, "cache_write_5m": write_5m or 0,
-                    "cache_write_1h": write_1h or 0, "cache_read": usage.get("cache_read_input_tokens") or 0,
-                    "output": usage.get("output_tokens") or 0,
-                })
+            usage = message["usage"]
+            writes = usage.get("cache_creation") or {}
+            write_5m, write_1h = writes.get("ephemeral_5m_input_tokens"), writes.get("ephemeral_1h_input_tokens")
+            if write_5m is None and write_1h is None:
+                write_5m, write_1h = usage.get("cache_creation_input_tokens"), 0
+            # 1つの応答はブロックごとに何行にも分かれ、最初の行の出力は途中の値なので、最後の行を使う
+            calls[message["id"]] = checked({
+                "id": "claude:" + message["id"], "source": "claude", "ts": item.get("timestamp"),
+                "session": item.get("sessionId"), "project": item.get("cwd"), "branch": item.get("gitBranch"),
+                "model": message.get("model"), "effort": item.get("effort"), "speed": usage.get("speed"),
+                "skill": skill, "plugin": item.get("attributionPlugin"),
+                "agent_type": agent_type, "agent_desc": meta.get("description"),
+                "parent_tool_use": meta.get("toolUseId"),
+                "input": usage.get("input_tokens") or 0, "cache_write_5m": write_5m or 0,
+                "cache_write_1h": write_1h or 0, "cache_read": usage.get("cache_read_input_tokens") or 0,
+                "output": usage.get("output_tokens") or 0,
+            })
             agents.update(spawned)
         except SKIP:
             skipped += 1
@@ -165,12 +166,13 @@ def codex_file(path: Path) -> tuple[list[dict], dict, int]:
             elif item.get("type") == "turn_context":
                 model, effort = payload.get("model"), payload.get("effort")
             elif payload.get("type") == "token_count":
-                info = payload.get("info") or {}
-                total, last = info.get("total_token_usage"), info.get("last_token_usage")
-                if not last:  # 使用量を持たないtoken_count(枠の消費率だけを伝えるもの)
+                info = payload.get("info")
+                if info is None:  # 使用量を持たないtoken_count(枠の消費率だけを伝えるもの)
                     continue
-                if not total:  # 合計が無いと、同じ呼び出しの記録を見分けられない
-                    raise KeyError("total_token_usage")
+                total, last = info.get("total_token_usage"), info.get("last_token_usage")
+                # 合計が無いと同じ呼び出しの記録を見分けられず、直前の呼び出しの分が無いと数えられない
+                if not total or not last:
+                    raise KeyError("token_usage")
                 # 枠の消費率だけが変わったときも同じ合計で記録されるので、合計が変わったときだけ数える
                 if total == previous:
                     continue

@@ -149,16 +149,24 @@ main.write_text("\n".join([call("bad", cache_creation="n/a"), call("a1"), call("
                            "null",
                            # 集計に使わない属性の形が変わっても、呼び出しは数える
                            call("d8", top={"effort": {"level": "high"}}),
-                           # 使用量の無い行で、サブエージェントを起こしたときのスキルが辞書
+                           # 使用量の無いassistantの行(サブエージェントを起こしたときのスキルも辞書)、messageが文字列の行、
+                           # idの無い応答も、形の違う行として数える
                            json.dumps({"type": "assistant", "attributionSkill": {"x": 1},
-                                       "message": {"content": [{"type": "tool_use", "id": "t", "name": "Agent"}]}})]) + "\n", encoding="utf-8")
+                                       "message": {"content": [{"type": "tool_use", "id": "t", "name": "Agent"}]}}),
+                           json.dumps({"type": "assistant", "message": "x"}),
+                           json.dumps({"type": "assistant", "timestamp": "2026-11-01T00:00:00Z",
+                                       "message": {"model": "claude-opus-5-5", "usage": {"input_tokens": 1}}}),
+                           # 呼び出しは記録できるが、起こしたサブエージェントのidがSQLiteに入らない
+                           call("d12", content=[{"type": "tool_use", "id": "\ud800", "name": "Agent"}])]) + "\n", encoding="utf-8")
 # 読めないログ(名前が.jsonlのディレクトリ)は飛ばして、ほかのログを読む
 (odd / "claude/p/dir.jsonl").mkdir()
 sub.write_text(call("z1") + "\n", encoding="utf-8")
 sub.with_suffix(".meta.json").write_text("null", encoding="utf-8")
-# .meta.jsonの文字列でない値は使わず、呼び出しは数える
+# .meta.jsonの文字列でない値は使わず、呼び出しは数える。UTF-8として読めない.meta.jsonも同じ
 (sub.parent / "agent-y.jsonl").write_text(call("y1") + "\n", encoding="utf-8")
 (sub.parent / "agent-y.meta.json").write_text(json.dumps({"agentType": 5, "toolUseId": "t"}), encoding="utf-8")
+(sub.parent / "agent-w.jsonl").write_text(call("w1") + "\n", encoding="utf-8")
+(sub.parent / "agent-w.meta.json").write_bytes(b"\xff")
 rollout = odd / "codex/sessions/r.jsonl"
 rollout.parent.mkdir(parents=True)
 usage = {"input_tokens": 1, "cached_input_tokens": 0, "output_tokens": 1}
@@ -172,15 +180,16 @@ rollout.write_text("\n".join(json.dumps(e) for e in [
      "payload": {"type": "token_count", "info": {"total_token_usage": usage, "last_token_usage": usage}}},
     {"type": "event_msg", "timestamp": "2026-11-01T00:00:02Z",
      "payload": {"type": "token_count", "info": {"total_token_usage": text, "last_token_usage": text}}},
-    # 合計が無いと同じ呼び出しを見分けられないので、記録せずに数える
+    # 合計が無いと同じ呼び出しを見分けられないので、記録せずに数える。直前の呼び出しの分が無いものも数える
     {"type": "event_msg", "timestamp": "2026-11-01T00:00:03Z", "payload": {"type": "token_count", "info": {"last_token_usage": usage}}},
+    {"type": "event_msg", "timestamp": "2026-11-01T00:00:04Z", "payload": {"type": "token_count", "info": {"total_token_usage": usage}}},
 ]) + "\n", encoding="utf-8")
 EOF
-equals "型の違う行は飛ばして数え、ほかの行とログは読む" "$(collect "$work/odd" 2>/dev/null)" "4個のログを読み、7件の呼び出しを足した。形の違う15行を飛ばした"
+equals "型の違う行は飛ばして数え、ほかの行とログは読む" "$(collect "$work/odd" 2>/dev/null)" "5個のログを読み、9件の呼び出しを足した。形の違う19行を飛ばした"
 equals "読めたログは読み直さない" "$(collect "$work/odd" 2>/dev/null)" "0個のログを読み、0件の呼び出しを足した"
-equals "飛ばした行は、ログをまたいで足して集計に出す" "$(usage report --since 2026-01-01 | grep '形が違う')" "これまでに読んだログで、形が違うので記録に入れなかった行: 15行"
+equals "飛ばした行は、ログをまたいで足して集計に出す" "$(usage report --since 2026-01-01 | grep '形が違う')" "これまでに読んだログで、形が違うので記録に入れなかった行: 19行"
 equals "文字列で書かれたトークンも数として集計する" "$(field --by source -- "rows['claude']['output'], rows['codex']['input'], rows['codex']['cache_read']")" "(5, 7, 4)"
-equals ".meta.jsonの中身が無いか文字列でなくても、名前がagent-のログはサブエージェントとして分ける" "$(field --source claude --by agent-type -- "sorted(r['calls'] for r in rows.values())")" "[2, 3]"
+equals ".meta.jsonの中身が無いか読めなくても、名前がagent-のログはサブエージェントとして分ける" "$(field --source claude --by agent-type -- "sorted(r['calls'] for r in rows.values())")" "[3, 4]"
 
 # Codexのサブエージェントの記録は、自分のsession_metaの次に親のものを持つ。親と同じ行番号の呼び出しも別に数える
 db="$work/fork.sqlite3"
