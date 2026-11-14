@@ -187,6 +187,12 @@ equals "記号だけのインラインコードとリンク先も、無ければ
 out="$(bash "$lost" before-punct.md -- before-punct.md)"
 equals "記号だけの記述も、同じファイルと比べれば挙げない" "$? $out" "0 "
 
+# 非ASCIIの記号だけの行。gawkは、UTF-8のロケールで動かすと、この行を記号だけの行として飛ばす
+printf '%s\n' "$fence" '→' "$fence" > before-arrow.md
+want="$(printf '1 code\tbefore-arrow.md:2\t→')"
+out="$(LC_ALL=C.UTF-8 bash "$lost" before-arrow.md -- after-fence.md 2>/dev/null)"
+equals "非ASCIIの記号だけの行は、ロケールに関係なく挙げる" "$? $out" "$want"
+
 printf '%s\n' '[入れ方][i]と<a href="docs/setup.html">設定</a>を読む[^1]。' '' '[i]: docs/install.md' '[^1]: 脚注の文' > before-ref.md
 want="$(printf '1 link\tbefore-ref.md:1\tdocs/setup.html\nlink\tbefore-ref.md:3\tdocs/install.md')"
 out="$(bash "$lost" before-ref.md -- after-fence.md)"

@@ -44,8 +44,10 @@ trap 'rm -f "$hay"' EXIT
 # catに-という名前を渡すと、--の後ろでも標準入力を読むので、リダイレクトで開く
 for f in "$@"; do cat < "$f" || die "後のファイルを読めない: $f"; echo; done > "$hay"
 
-# パスは環境変数で渡す。-vで渡すと、awkがパスの中の\を解釈する
-HAY="$hay" awk '
+# パスは環境変数で渡す。-vで渡すと、awkがパスの中の\を解釈する。
+# 文字はバイトで読む(LC_ALL=C)。gawkは、UTF-8のロケールだと[[:punct:]]に非ASCIIの記号(→、。)を含め、
+# 同じ入力でも、mawkやほかのロケールのgawkと挙げるものが変わる
+HAY="$hay" LC_ALL=C awk '
 function norm(s) { gsub(/\r/, "", s); gsub(/[ \t]+/, " ", s); sub(/^ /, "", s); sub(/ $/, "", s); return s }
 # 後のファイルのどこかの行に、tokが別の語の一部としてではなく現れるか。前後が英数字、_、-の一致と、
 # 後ろに.、:、/と英数字が続く一致は数えない(-fと--force、.envと.env.example、/apiと/api/v2)
