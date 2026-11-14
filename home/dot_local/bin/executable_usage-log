@@ -50,7 +50,7 @@ COLUMNS = ("id", "source", "ts", "session", "project", "branch", "model", "effor
            "skill", "plugin", "agent_type", "agent_desc", "parent_tool_use",
            "input", "cache_write_5m", "cache_write_1h", "cache_read", "output")
 SCHEMA = f"""
-CREATE TABLE IF NOT EXISTS calls ({", ".join(c + (" TEXT PRIMARY KEY" if c == "id" else "") for c in COLUMNS)});
+CREATE TABLE IF NOT EXISTS calls (id TEXT PRIMARY KEY, {", ".join(COLUMNS[1:])});
 CREATE TABLE IF NOT EXISTS agent_calls (tool_use TEXT PRIMARY KEY, skill TEXT);
 CREATE TABLE IF NOT EXISTS files (path TEXT PRIMARY KEY, size INTEGER, mtime_ns INTEGER);
 """
