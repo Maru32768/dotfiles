@@ -7,20 +7,21 @@
 `home/dot_claude/skills/docs-overview/scripts/view.sh`が作るHTMLの、ブラウザの中の動きは、CIでは確かめられない。インラインのスクリプトか、`marked`と`mermaid`の版を変えたら、このファイルをHTMLに包んでブラウザで開き、下の結果になることを確かめる。そのうえで、`tests/ci/docs-overview-test.sh`が固定しているハッシュを直す。
 
 ```bash
-bash home/dot_claude/skills/docs-overview/scripts/view.sh tests/ci/docs-overview-browser-check.md > check.html
+bash home/dot_claude/skills/docs-overview/scripts/view.sh tests/ci/docs-overview-browser-check.md > /tmp/docs-overview-check.html
 ```
 
 このファイルには、ページを別のサイト(example.org)へ移動させようとする入力と、スクリプトを動かそうとする入力を、わざと入れてある。先頭の3行もその1つ。穴を見つけたら、その入力をここに足す。
 
-`file://`のページを操作できないブラウザ(Claudeのデスクトップアプリの内蔵ブラウザなど)では、新しいタブでhttpsのページを開き、そこへ`document.write`でHTMLを書き込む。確かめるたびに、新しいタブを使う。同じ文書に書き直すと、前のページのCSPが残って重なり、新しいスクリプトの読み込みが止まる。止まっても、前のページが読み込んだ`marked`と`mermaid`が残っているので、動いて見える。
+`file://`のページを操作できないブラウザ(Claudeのデスクトップアプリの内蔵ブラウザなど)では、新しいタブで、CSPもスクリプトも無いhttpsのページ(`https://example.com/`など)を開き、そこへ`document.write`でHTMLを書き込む。確かめるたびに、新しいタブを使う。同じ文書に書き直すと、前のページのCSPが残って重なり、新しいスクリプトの読み込みが止まる。止まっても、前のページが読み込んだ`marked`と`mermaid`が残っているので、動いて見える。
 
 ## 期待する結果
 
 - 10秒待っても、ページが移動しない。
 - 「本文1」から「本文6」までが、順に読める。ページが白紙にならず、画面を覆うリンクも出ない。
-- 生のHTML(`<script>`、`<img>`、`<meta>`、`<style>`、`<details>`、`<form>`など)と、画像、チェックボックスは、描かれずに文字として見える。
+- 生のHTML(`<script>`、`<img>`、`<meta>`、`<style>`、`<details>`、`<form>`、`<template>`など)と、画像、チェックボックスは、描かれずに文字として見える。`name="outerHTML"`の部品を持つ`<form>`だけは、`[object HTMLInputElement]`という文字になる。
+- リンクの色で出るのは「ok」と「attr」だけ。「js」「rel」「js link」は、地の文と同じ色で出る。
 - 冒頭の「Mermaidの検査」の行は、図2だけが構文エラーで、図1と図3から図6までは構文OK。
-- 開発者ツールのコンソールで次を実行すると、`disallowed`と`flags`が空で、`meta`と`handlers`が0になる。`scripts`には、`view.sh`に書いた版の`marked`と`mermaid`が入る(HTMLを書き込んだ先のページが読み込んだものが、混じることがある)。`attrs`は、その下の一覧と同じになる。
+- 開発者ツールのコンソールで次を実行すると、`disallowed`と`flags`が空で、`meta`、`handlers`、`shadow`が0になる。`hrefs`は、`https://example.net/x`と`https://example.net/c`の2つだけ。`scripts`には、`view.sh`に書いた版の`marked`と`mermaid`が入る(HTMLを書き込んだ先のページが読み込んだものが、混じることがある)。`attrs`は、その下の一覧と同じになる。
 
 ```js
 (() => {
@@ -32,7 +33,9 @@ bash home/dot_claude/skills/docs-overview/scripts/view.sh tests/ci/docs-overview
     disallowed: [...new Set(own.filter((e) => !ok.includes(e.tagName)).map((e) => e.tagName))],
     attrs: [...new Set(own.flatMap((e) => [...e.attributes].map((a) => e.tagName + '.' + a.name)))].sort().join(', '),
     scripts: performance.getEntriesByType('resource').filter((e) => e.initiatorType === 'script').map((e) => e.name),
+    hrefs: own.filter((e) => e.hasAttribute('href')).map((e) => e.getAttribute('href')),
     meta: document.body.querySelectorAll('meta').length,
+    shadow: all.filter((e) => e.shadowRoot).length,
     handlers: all.filter((e) => [...e.attributes].some((a) => a.name.startsWith('on'))).length,
     flags: Object.keys(window).filter((k) => k.startsWith('__xss')),
   };
@@ -92,6 +95,12 @@ x <code><meta/http-equiv="refresh"/content="3;url=https://example.org/"></code> 
 <img name="body">
 
 <form><input name="replaceWith"><input name="outerHTML"><input name="tagName"><input name="attributes"></form>
+
+<p>dsd<template shadowrootmode="open"><a href="https://example.org/" style="position:fixed;inset:0;background:#dfd">dsd overlay</a><meta http-equiv="refresh" content="3;url=https://example.org/"></template></p>
+
+<template><img src=x onerror="window.__xss_tpl=1"><meta http-equiv="refresh" content="3;url=https://example.org/"></template>
+
+<tr><td>stray</td></tr>
 
 本文5
 
