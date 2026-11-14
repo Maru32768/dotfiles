@@ -24,7 +24,7 @@ powershell -ExecutionPolicy Bypass -File lab\lab.ps1 verify agent-foo
 powershell -ExecutionPolicy Bypass -File lab\lab.ps1 rm agent-foo
 ```
 
-`-Path` はインスタンスの中のパスで、`/` か `~` で始まらなければホームからの相対パスとみなす。省くと `~/work` で動く。`~/work/repo` とは書かない。PowerShell 7 は先頭の `~` を Windows のホームに展開し、`bws-run` を通すと引用符で囲んでも展開される (PowerShell 7.6 で確認)。`C:` や `\` を含むパスは `lab.ps1` がエラーにする。サンドボックスは作業ディレクトリへの書き込みを許すので、ホームでは起動しない。`rm` で消せるのは `agent-*`、`research-*`、`restore-test*` だけ。ほかは `wsl --unregister` を自分で実行する。
+`-Path` はインスタンスの中のパスで、`/` か `~` で始まらなければホームからの相対パスとみなす。省くと `~/work` で動く。`~/work/repo` とは書かない。PowerShell 7 は先頭の `~` を Windows のホームに展開し、`bws-run` を通すと引用符で囲んでも展開される (PowerShell 7.6 で確認)。`C:` や `\` を含むパスは `lab.ps1` がエラーにする。`-Prompt '<プロンプト>'` を付けると、対話の代わりに `claude -p` で 1 回だけ実行する。サンドボックスは作業ディレクトリへの書き込みを許すので、ホームでは起動しない。`rm` で消せるのは `agent-*`、`research-*`、`restore-test*` だけ。ほかは `wsl --unregister` を自分で実行する。
 
 ## コードの受け渡し
 

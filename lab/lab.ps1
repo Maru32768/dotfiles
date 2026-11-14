@@ -7,8 +7,9 @@
 #   lab.ps1 new agent-foo          (a name starting with agent- gets the agent profile)
 #   lab.ps1 new research-foo       (research- gets the research profile: web reading, no LAN)
 #   lab.ps1 token                  (stores the token from claude setup-token)
-#   lab.ps1 run agent-foo [-Path work/repo]
-#                                  (-Path is inside the instance, relative to the home, default work)
+#   lab.ps1 run agent-foo [-Path work/repo] [-Prompt '...']
+#                                  (-Path is inside the instance, relative to the home, default work.
+#                                   -Prompt runs claude -p instead of an interactive Claude)
 #   bws-run <project> -- powershell -ExecutionPolicy Bypass -File lab\lab.ps1 run research-foo -Path work/run
 #                                  (research runs on ANTHROPIC_API_KEY from the caller)
 #   lab.ps1 verify agent-foo
@@ -25,6 +26,7 @@ param(
     [string]$Source = 'https://github.com/Maru32768/dotfiles.git',
     [string]$Branch = '',
     [string]$Path = '~/work',
+    [string]$Prompt = '',
     [switch]$NoClaude
 )
 
@@ -267,7 +269,12 @@ if ($Command -eq 'run') {
         $Path = "~/$Path"
     }
     & $labProfile.RunWith {
-        & wsl.exe -d $Name -u $User --cd $Path -e $labProfile.Launcher
+        if ($Prompt) {
+            # An empty stdin, so claude -p does not wait for piped input
+            $null | & wsl.exe -d $Name -u $User --cd $Path -e $labProfile.Launcher -p $Prompt
+        } else {
+            & wsl.exe -d $Name -u $User --cd $Path -e $labProfile.Launcher
+        }
     }
     exit $LASTEXITCODE
 }
