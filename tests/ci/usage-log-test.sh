@@ -317,8 +317,12 @@ equals "--helpもUTF-8で出す" "$(usage --help | grep -c '使用量だけを�
 real_cap="$HOME/.local/state/usage/weekly-cap"
 real_cap_before=absent
 if [ -e "$real_cap" ]; then
-  real_cap_before=present
-  cp -p "$real_cap" "$work/real-cap" || fail "本物の上限を控えられなかった(上限の場面の後に戻せない)"
+  if cp -p "$real_cap" "$work/real-cap"; then
+    real_cap_before=present
+  else
+    real_cap_before=unsaved
+    fail "本物の上限を控えられなかった(上限の場面の後に戻せない)"
+  fi
 fi
 db="$work/cap/usage.sqlite3"
 equals "上限が無ければ、そう出す" "$(usage cap)" "上限なし"
@@ -346,8 +350,7 @@ equals "外すとファイルを消す" "$([ -e "$work/cap/weekly-cap" ] && echo
 equals "外した後に外しても、失敗しない" "$(usage cap off)" "上限を外した"
 case "$real_cap_before" in
   present)
-    # 空の控え(書き込みの途中で止まったなど)では戻さない
-    if [ -s "$work/real-cap" ] && ! cmp -s "$work/real-cap" "$real_cap"; then
+    if ! cmp -s "$work/real-cap" "$real_cap"; then
       cp -p "$work/real-cap" "$real_cap"; fail "上限の場面が本物の上限を変えた(元に戻した)"
     fi ;;
   absent)
