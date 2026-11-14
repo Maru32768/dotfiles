@@ -361,7 +361,7 @@ def main() -> None:
     if args.command == "collect":
         collect(args.db, args.claude_dir, args.codex_dir, args.quiet)
     elif args.command == "cap":
-        cap(args.db.parent / "weekly-cap", args.percent)  # 記録と同じディレクトリに置く
+        cap(args.db.parent / "weekly-cap", args.percent)  # --dbを変えたテストがホームに書かないように、記録と同じディレクトリに置く
     else:
         report(args.db, args.by, args.since, args.until, args.project, args.source, args.json)
 
