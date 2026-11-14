@@ -105,6 +105,15 @@ want="$(printf '1 span\tbefore-chain.md:2\ttool run --jobs 4\nspan\tbefore-chain
 out="$(bash "$lost" before-chain.md -- after-chain.md)"
 equals "続けて折り返すインラインコードと、3行にまたがるインラインコードを読む" "$? $out" "$want"
 
+out="$(bash "$lost" before-chain.md -- before-chain.md)"
+equals "後の版で折り返したまま残したインラインコードは挙げない" "$? $out" "0 "
+
+printf '%s\n' '`tool a b`を使う。' > before-join.md
+printf '%s\n' "${fence}bash" 'tool a' 'b' "$fence" > after-block.md
+want="$(printf '1 span\tbefore-join.md:1\ttool a b')"
+out="$(bash "$lost" before-join.md -- after-block.md)"
+equals "後の版のコードブロックの行は、つないで探さない" "$? $out" "$want"
+
 # 1行目のバッククォートは対にならない。2行目は、つないだ読み方の切れ端(を書く。、と)も挙がるが、インラインコードを見逃さない
 printf '%s\n' '記号の`を書く。' '`tool xx`と`tool yy`を使う。' > before-stray.md
 out="$(bash "$lost" before-stray.md -- after-fence.md | cut -f3 | LC_ALL=C sort | tr '\n' ' ')"

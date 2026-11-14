@@ -83,7 +83,17 @@ function fence_len(s,   c, n) {
   fmark = c; fbare = (n == length(s))
   return n >= 3 ? n : 0
 }
-BEGIN { while ((getline line < ENVIRON["HAY"]) > 0) { hl[++nh] = norm(line); hay = hay "\n" hl[nh] } }
+function keep(l) { hl[++nh] = l; hay = hay "\n" l }
+# 後のファイルでインラインコードが行末で開いたままなら、次の行とつないだ形も探す先に足す。
+# 折り返したまま残した記述を、落ちたとみなさない。フェンスの行と空行で、数え直す
+BEGIN {
+  while ((getline line < ENVIRON["HAY"]) > 0) {
+    line = norm(line)
+    if (wrap) keep(run = run " " line); else run = line
+    keep(line)
+    wrap = (line == "" || line ~ /^(```|~~~)/) ? 0 : (wrap + ticks(line)) % 2
+  }
+}
 FNR == 1 { fence = 0; carry = "" }
 { n = fence_len($0) }
 # 閉じるのは、開いたときと同じ記号が同じ数以上あり、後ろに何も無い行だけ(中に別のフェンスを書ける)
