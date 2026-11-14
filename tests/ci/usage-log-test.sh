@@ -124,27 +124,30 @@ python3 -I - "$work/odd" <<'EOF'
 import json, sys
 from pathlib import Path
 odd = Path(sys.argv[1])
-def call(mid, **usage):
-    return json.dumps({"type": "assistant", "timestamp": "2026-11-01T00:00:00Z", "sessionId": "o",
+def call(mid, skill=None, **usage):
+    return json.dumps({"type": "assistant", "timestamp": "2026-11-01T00:00:00Z", "sessionId": "o", "attributionSkill": skill,
                        "message": {"id": mid, "model": "claude-opus-5-5", "usage": {"input_tokens": 1, **usage}}})
 main = odd / "claude/p/o.jsonl"
 sub = odd / "claude/p/o/subagents/agent-z.jsonl"
 sub.parent.mkdir(parents=True)
-main.write_text(call("bad", cache_creation="n/a") + "\n" + call("a1") + "\n", encoding="utf-8")
+# 辞書のトークンと辞書のスキルは飛ばし、文字列で書かれたトークンは数として読む
+main.write_text("\n".join([call("bad", cache_creation="n/a"), call("a1"), call("d1", output_tokens={"x": 1}),
+                           call("d2", skill={"x": 1}), call("d3", output_tokens="5")]) + "\n", encoding="utf-8")
 sub.write_text(call("z1") + "\n", encoding="utf-8")
 sub.with_suffix(".meta.json").write_text("null", encoding="utf-8")
 rollout = odd / "codex/sessions/r.jsonl"
 rollout.parent.mkdir(parents=True)
 usage = {"input_tokens": 1, "cached_input_tokens": 0, "output_tokens": 1}
 rollout.write_text("\n".join(json.dumps(e) for e in [
-    {"type": "session_meta", "payload": {"id": "r", "cwd": "C:/repo"}},
+    {"type": "session_meta", "payload": {"id": "r", "cwd": "C:/repo", "source": {"subagent": ["x"]}}},
     {"type": "event_msg", "timestamp": "2026-11-01T00:00:00Z", "payload": {"type": "token_count", "info": "x"}},
     {"type": "event_msg", "timestamp": "2026-11-01T00:00:01Z",
      "payload": {"type": "token_count", "info": {"total_token_usage": usage, "last_token_usage": usage}}},
 ]) + "\n", encoding="utf-8")
 EOF
-equals "型の違う行は飛ばし、ほかの行とログは読む" "$(collect "$work/odd")" "3個のログを読み、3件の呼び出しを足した"
+equals "型の違う行は飛ばし、ほかの行とログは読む" "$(collect "$work/odd")" "3個のログを読み、4件の呼び出しを足した"
 equals "読めたログは読み直さない" "$(collect "$work/odd")" "0個のログを読み、0件の呼び出しを足した"
+equals "文字列で書かれたトークンも数として集計する" "$(field --by source -- "rows['claude']['output']")" "5"
 
 # Codexのサブエージェントの記録は、自分のsession_metaの次に親のものを持つ。親と同じ行番号の呼び出しも別に数える
 db="$work/fork.sqlite3"
