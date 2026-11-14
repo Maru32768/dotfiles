@@ -60,6 +60,22 @@ want="$(printf '1 span\tbefore.md:3\t~/.config/tool.toml\nlink\tbefore.md:3\tdoc
 out="$(bash "$lost" before.md -- after.md)"
 equals "落とした記述を、種類と元の場所を付けて1回ずつ挙げる" "$? $out" "$want"
 
+# 行は無いが語はすべて残っている例と、語ごと消えた例
+cat > before-words.md <<EOF
+${fence}bash
+tool build --target linux --release
+tool deploy --region tokyo
+${fence}
+EOF
+cat > after-words.md <<EOF
+${fence}bash
+tool build --release --target linux
+${fence}
+EOF
+want="$(printf '1 line\tbefore-words.md:2\ttool build --target linux --release\ncode\tbefore-words.md:3\ttool deploy --region tokyo')"
+out="$(bash "$lost" before-words.md -- after-words.md)"
+equals "語がすべて残っているコードの行はlineに、語が消えた行はcodeにする" "$? $out" "$want"
+
 : > empty.md
 out="$(bash "$lost" empty.md before.md -- after.md | wc -l)"
 equals "前のファイルに空のファイルがあっても、次のファイルを読む" "$out" "4"
