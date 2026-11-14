@@ -309,6 +309,7 @@ equals "サブエージェントのスキルは自分のものを先に使い、
 equals "スキルの無い呼び出しは、モデルによらず1つにまとめる" "$(field --by skill -- "len(rows), sum(r['calls'] for k, r in rows.items() if k not in ('simplify', 'ship-task'))")" "(3, 2)"
 
 db="$work/usage.sqlite3"
+equals "--helpもUTF-8で出す" "$(usage --help | grep -c '使用量だけを抜き出して貯め')" "1"
 
 if [ "$failures" -ne 0 ]; then
   printf '\n%d件の問題があります\n' "$failures"
