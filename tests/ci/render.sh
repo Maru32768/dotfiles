@@ -179,6 +179,9 @@ for name in linux-main windows-main; do
   equals "$name: usage-cap の frontmatter" "$(sed -n '1{/^---$/!q;d};/^---$/q;/^description: /d;p' "$skill" 2>/dev/null)" "name: usage-cap
 user-invocable: false
 allowed-tools: Read(~/.local/state/usage/weekly-cap) mcp__ccd_session_mgmt__get_usage"
+  # 本体が読むのは description だけなので、止まる側に倒す約束と、本体で呼ばない約束を確かめる
+  check "$name: usage-cap の description が、CONTINUE のほかは止まらせる" 'sed -n "/^description: /p" "$skill" | grep -qF "返った1行目が\`CONTINUE\`なら続け、それ以外なら新しい単位を始めずに止まり"'
+  check "$name: usage-cap の description が、本体には呼ばせない" 'sed -n "/^description: /p" "$skill" | grep -qF "このスキルを呼ぶのは、確かめるサブエージェントだけ。大きい仕事の本体は呼ばず"'
   check "$name: usage-cap の本文が、許可したファイルを読む" 'grep -qF "\`~/.local/state/usage/weekly-cap\`を、このままのパスでReadで読む" "$skill"'
   check "$name: usage-log cap が、usage-cap の読むファイルに書く" 'grep -qF "\".local/state/usage/usage.sqlite3\"" "$work/$name/home/.local/bin/usage-log" && grep -qF "\"weekly-cap\"" "$work/$name/home/.local/bin/usage-log"'
 done
