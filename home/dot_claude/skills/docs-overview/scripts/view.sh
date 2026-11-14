@@ -32,7 +32,7 @@ page=$(cat <<'EOF'
 body{background:var(--bg);color:var(--fg);font:16px/1.75 system-ui,"Yu Gothic UI","Hiragino Sans",sans-serif;
 margin:0;padding:24px 16px}
 main,#md,#status{max-width:940px;margin-left:auto;margin-right:auto}
-a{color:var(--link)}
+a[href]{color:var(--link)}
 code{background:var(--code);padding:.1em .35em;border-radius:4px;font-size:.9em}
 table{border-collapse:collapse;display:block;overflow-x:auto;margin:1em 0}
 th,td{border:1px solid var(--border);padding:6px 10px;vertical-align:top;font-size:.94em;text-align:left}
