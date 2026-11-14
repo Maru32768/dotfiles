@@ -5,8 +5,9 @@
 #   lost.sh <前のファイル>... -- <後のファイル>...
 #
 # 1行に「種類<TAB>前のファイル:行<TAB>記述」を出す。種類はcode、line、span、link、url。
-# コードブロックの行が無いとき、その行の語(英数字と_が3文字以上続くもの)のどれかが後のどこにも
-# 無ければcode、語がすべて残っていればlineにする。lineは、書き方を変えたか、別の例に替えた行に多い。
+# コードブロックの行が無いとき、その行の語(英数字と_が3文字以上続くもの)がすべて後のどこかに
+# 残っていればline、語のどれかが無いか、語が1つも無い行はcodeにする。lineは、書き方を変えたか、
+# 別の例に替えた行に多い。
 # 空白の違いは無視する。後のファイルのどこかの行に同じ文字列があれば、残っているとみなす。
 # ただし、英数字、_、-に挟まれた一致は数えない(-fは、--forceがあっても残っているとみなさない)。
 # 同じ記述は、最初に見つけた場所で1回だけ出す。
@@ -46,10 +47,12 @@ function probe(kind, tok,   s, w) {
   tok = norm(tok)
   if (tok ~ /^[[:punct:] ]*$/ || seen[tok]++ || present(tok)) return
   if (kind == "code") {
-    kind = "line"; s = tok
+    s = tok
     while (match(s, /[A-Za-z0-9_]+/)) {
       w = substr(s, RSTART, RLENGTH); s = substr(s, RSTART + RLENGTH)
-      if (length(w) >= 3 && index(hay, w) == 0) { kind = "code"; break }
+      if (length(w) < 3) continue
+      if (index(hay, w) == 0) { kind = "code"; break }
+      kind = "line"
     }
   }
   printf "%s\t%s:%d\t%s\n", kind, FILENAME, FNR, tok; lost = 1

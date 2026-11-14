@@ -116,6 +116,11 @@ want="$(printf '1 span\tbefore-match.md:1\ttoolinit\nline\tbefore-match.md:3\tls
 out="$(bash "$lost" before-match.md -- after-match.md)"
 equals "行をまたぐ一致は数えず、3文字に満たない語は見ない" "$? $out" "$want"
 
+printf '%s\n' "${fence}bash" 'cd ..' "$fence" > before-short.md
+want="$(printf '1 code\tbefore-short.md:2\tcd ..')"
+out="$(bash "$lost" before-short.md -- after-match.md)"
+equals "3文字以上の語が1つも無い行は、lineにしない" "$? $out" "$want"
+
 printf '%s\r\n' "${fence}bash" 'tool run --jobs 4' "$fence" > before-crlf.md
 out="$(bash "$lost" before-crlf.md -- after.md)"
 equals "改行がCRLFの行も、LFの行と同じとみなす" "$? $out" "0 "
