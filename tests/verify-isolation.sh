@@ -262,12 +262,16 @@ run_e2e() {
     return
   fi
 
-  # ~/work はサンドボックスから書けるので、前のセッションが ~/work/.git に設定を仕込むと、
-  # 検査のプローブの git がそれを実行する。そのインスタンスの結果は信用できない
-  if [ -e "$HOME/work/.git" ] || [ -L "$HOME/work/.git" ]; then
-    fail "~/work に .git がある (仕込まれた設定が検査の中で動く。インスタンスを作り直す)"
-    return
-  fi
+  # ~/work はサンドボックスから書けるので、前のセッションが ~/work をリポジトリにして設定を仕込むと、
+  # 検査のプローブの git がそれを実行する。そのインスタンスの結果は信用できない。
+  # git は上をたどるとき .git のほかに、HEAD を持つディレクトリを bare リポジトリとみなす
+  local marker
+  for marker in .git HEAD; do
+    if [ -e "$HOME/work/$marker" ] || [ -L "$HOME/work/$marker" ]; then
+      fail "~/work に $marker がある (仕込まれた設定が検査の中で動く。~/work の下のディレクトリに移すか、インスタンスを作り直す)"
+      return
+    fi
+  done
 
   local nonce ports gateway probe_args item bashrc_before
   # 起動スクリプトは ~/work の下でしか動かないので、Claude の作業ディレクトリは ~/work に作る。
