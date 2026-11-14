@@ -57,7 +57,8 @@ lines = [
     call("syn", "<synthetic>", "2026-11-01T00:00:04Z", {"input_tokens": 9, "output_tokens": 9}),
 ]
 main.parent.mkdir(parents=True, exist_ok=True)
-main.write_text("\n".join(json.dumps(l) for l in lines) + "\n{broken\n", encoding="utf-8")
+# 空行は飛ばした行に数えない
+main.write_text("\n".join(json.dumps(l) for l in lines) + "\n{broken\n\n", encoding="utf-8")
 sub.write_text(json.dumps(call("s1", "claude-opus-5-5", "2026-11-01T00:00:06Z", {"input_tokens": 3, "output_tokens": 7},
                                cwd="C:/repo/.claude/worktrees/agent-x")) + "\n", encoding="utf-8")
 sub.with_suffix(".meta.json").write_text(json.dumps({"agentType": "general-purpose", "description": "R1 correctness",
@@ -131,12 +132,14 @@ def call(mid, skill=None, content=(), top=(), **usage):
 main = odd / "claude/p/o.jsonl"
 sub = odd / "claude/p/o/subagents/agent-z.jsonl"
 sub.parent.mkdir(parents=True)
-# 辞書のトークン、辞書のスキル、数のcontent、Infinity、SQLiteに入らない大きな数、対になっていないサロゲートは飛ばし、
-# 文字列で書かれたトークンは数として読む
+# 辞書のトークン、辞書のスキル、数のcontent、Infinity、SQLiteに入らない大きな数、対になっていないサロゲート、
+# idの無いサブエージェントの起動は飛ばし、文字列で書かれたトークンは数として読む。
+# d2はサブエージェントも起こすが、1行として1回だけ数える
+agent = {"type": "tool_use", "id": "t2", "name": "Agent"}
 main.write_text("\n".join([call("bad", cache_creation="n/a"), call("a1"), call("d1", output_tokens={"x": 1}),
-                           call("d2", skill={"x": 1}), call("d3", output_tokens="5"), call("d4", content=5),
+                           call("d2", skill={"x": 1}, content=[agent]), call("d3", output_tokens="5"), call("d4", content=5),
                            call("d5", output_tokens=float("inf")), call("d6", input_tokens=2**70),
-                           call("d7", top={"cwd": "\ud800"}),
+                           call("d7", top={"cwd": "\ud800"}), call("d9", content=[{"type": "tool_use", "name": "Agent"}]),
                            # 集計に使わない属性の形が変わっても、呼び出しは数える
                            call("d8", top={"effort": {"level": "high"}}),
                            # 使用量の無い行で、サブエージェントを起こしたときのスキルが辞書
@@ -162,7 +165,7 @@ rollout.write_text("\n".join(json.dumps(e) for e in [
      "payload": {"type": "token_count", "info": {"total_token_usage": text, "last_token_usage": text}}},
 ]) + "\n", encoding="utf-8")
 EOF
-equals "型の違う行は飛ばして数え、ほかの行とログは読む" "$(collect "$work/odd" 2>/dev/null)" "4個のログを読み、7件の呼び出しを足した。形の違う9行を飛ばした"
+equals "型の違う行は飛ばして数え、ほかの行とログは読む" "$(collect "$work/odd" 2>/dev/null)" "4個のログを読み、7件の呼び出しを足した。形の違う10行を飛ばした"
 equals "読めたログは読み直さない" "$(collect "$work/odd" 2>/dev/null)" "0個のログを読み、0件の呼び出しを足した"
 equals "文字列で書かれたトークンも数として集計する" "$(field --by source -- "rows['claude']['output'], rows['codex']['input'], rows['codex']['cache_read']")" "(5, 7, 4)"
 equals ".meta.jsonの中身が無いか文字列でなくても、名前がagent-のログはサブエージェントとして分ける" "$(field --source claude --by agent-type -- "sorted(r['calls'] for r in rows.values())")" "[2, 3]"
