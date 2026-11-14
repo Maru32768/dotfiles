@@ -113,7 +113,7 @@ out="$(bash "$lost" before-list.md -- after-fence.md)"
 equals "字下げしたフェンスを読み、バッククォート2つの行をフェンスにしない" "$? $out" "$want"
 
 # 地の文だけを残した後の版。閉じない`の並びがある行の、地の文の切れ端が挙がらないようにする
-printf '%s\n' '次のように と を使う。' 'Use or to clean.' '記号の と を書く。' '`x`と`y`を使う。' > after-prose.md
+printf '%s\n' '次のように と を使う。' 'Use or to clean.' '記号の と と``と を書く。' '`x`と`y`を使う。' > after-prose.md
 
 # バッククォート2つで囲んだインラインコードは、中に`を書ける。同じ行の後ろのインラインコードも読む
 # 3行目は、1つの`で囲んだ中に、2つの`の並びを書いている
@@ -151,11 +151,11 @@ equals "続けて折り返すインラインコードは、端の行の切れ端
 out="$(bash "$lost" before-chain.md -- before-chain.md)"
 equals "同じ文書を前と後に渡すと、切れ端も挙げない" "$? $out" "0 "
 
-# 記号として書いた`は、次の行にも、次のファイルにも響かない。2つ目のファイルの4行目は、閉じない``の後ろに
-# インラインコードがある
+# 記号として書いた`は、次の行にも、次のファイルにも響かない。2つ目のファイルの4行目と5行目は、閉じない``の
+# 後ろにインラインコードがある
 printf '%s\n' '記号の`を書く。' > before-stray-1.md
-printf '%s\n' '`tool one`と`tool two`を使う。' '記号の`を書く。' '`tool xx`と`tool yy`を使う。' '記号の``と`tool v`を書く。' > before-stray-2.md
-want="$(printf '1 span\tbefore-stray-2.md:1\ttool one\nspan\tbefore-stray-2.md:1\ttool two\nspan\tbefore-stray-2.md:3\ttool xx\nspan\tbefore-stray-2.md:3\ttool yy\npart\tbefore-stray-2.md:4\ttool v')"
+printf '%s\n' '`tool one`と`tool two`を使う。' '記号の`を書く。' '`tool xx`と`tool yy`を使う。' '記号の``と`tool v`を書く。' '`tool u`と``と`tool w`を書く。' > before-stray-2.md
+want="$(printf '1 span\tbefore-stray-2.md:1\ttool one\nspan\tbefore-stray-2.md:1\ttool two\nspan\tbefore-stray-2.md:3\ttool xx\nspan\tbefore-stray-2.md:3\ttool yy\npart\tbefore-stray-2.md:4\ttool v\npart\tbefore-stray-2.md:5\ttool u\npart\tbefore-stray-2.md:5\ttool w')"
 out="$(bash "$lost" before-stray-1.md before-stray-2.md -- after-prose.md)"
 equals "記号として書いたバッククォートは、ほかの行のインラインコードに響かない" "$? $out" "$want"
 
