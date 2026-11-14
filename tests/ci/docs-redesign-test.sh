@@ -123,6 +123,14 @@ want="$(printf '1 part\tbefore-wrap.md:1\ttool run\npart\tbefore-wrap.md:2\t--jo
 out="$(bash "$lost" before-wrap.md -- after-prose.md)"
 equals "折り返したインラインコードは、行ごとの切れ端を挙げる" "$? $out" "$want"
 
+# 折り返したインラインコードを消し、地の文は残した後の版。切れ端の地の文は(と)で終わり、始まるので、
+# 隣が英数字に変わっても、残っているとみなす。記号で終わるインラインコードも同じ
+printf '%s\n' 'call it (`tool run' '--jobs 4`), then `foo()` and `--port=` work.' > before-edge.md
+printf '%s\n' 'call it (the tool), then foo().bar and --port=8080 work.' > after-edge.md
+want="$(printf '1 part\tbefore-edge.md:1\ttool run\npart\tbefore-edge.md:2\t--jobs 4')"
+out="$(bash "$lost" before-edge.md -- after-edge.md)"
+equals "記号で終わる記述と始まる記述は、隣の文字が英数字でも残っているとみなす" "$? $out" "$want"
+
 printf '%s\n' '次のように`tool run --jobs 4`と`tool gc`を使う。' > after-unwrap.md
 out="$(bash "$lost" before-wrap.md -- before-wrap.md; bash "$lost" before-wrap.md -- after-unwrap.md)"
 equals "折り返したまま残しても、折り返しをやめても、挙げない" "$? $out" "0 "
