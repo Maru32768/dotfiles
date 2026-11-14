@@ -224,6 +224,8 @@ printf '%s\n' '`tool gone`を使う。' > ./-
 want="$(printf '1 span\t./-:1\ttool gone')"
 out="$(bash "$lost" - -- after-fence.md </dev/null)"
 equals "前のファイルの-は、標準入力ではなくファイルとして読む" "$? $out" "$want"
+out="$(bash "$lost" before-twice.md -- - </dev/null)"
+equals "後のファイルの-も、標準入力ではなくファイルとして読む" "$? $out" "0 "
 
 if [ "$failures" -gt 0 ]; then
   printf '\n%s 件のテストが失敗しました\n' "$failures"
