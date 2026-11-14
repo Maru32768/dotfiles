@@ -33,6 +33,8 @@ trap cleanup EXIT
 # 使い方: as_user <スクリプト> [引数...]
 as_user() { docker exec -u "$user" -w "/home/$user" -e "HOME=/home/$user" "$name" bash -lc "$1" bash "${@:2}"; }
 step() { printf '\n==> %s\n' "$1"; }
+# 使い方: launcher_want <検査の名前> <[[ ]] の式>
+launcher_want() { if eval "$2"; then echo "PASS $1"; else echo "FAIL $1"; failures=$((failures + 1)); fi; }
 
 docker run -d "${run_options[@]}" --name "$name" "$image" sleep 7200 >/dev/null || exit 1
 
@@ -118,16 +120,63 @@ if [ "$profile" = research ]; then
   # 断るときは隔離の検査より前に止まるので、検査の FAIL の行が出ていないことも確かめる
   # 使い方: launcher_output [docker exec のオプション...]
   launcher_output() { docker exec -u research -w /home/research/work -e HOME=/home/research "$@" "$name" /usr/local/bin/research-claude --version 2>&1; }
-  launcher_want() { if eval "$2"; then echo "PASS $1"; else echo "FAIL $1"; failures=$((failures + 1)); fi; }
   output="$(launcher_output -e ANTHROPIC_API_KEY=dummy -e CLAUDE_CODE_OAUTH_TOKEN=dummy)"
   launcher_want "両方あれば、隔離の検査の前に止まる" '[[ "$output" == *"両方があります"* && "$output" != *"FAIL "* ]]'
   output="$(launcher_output)"
   launcher_want "どちらもなければ、隔離の検査の前に止まる" '[[ "$output" == *"ANTHROPIC_API_KEY がありません"* && "$output" != *"FAIL "* ]]'
-  # 対照: 1 つだけなら資格情報の検査を通り、隔離の検査まで進む。コンテナでは検査が FAIL を出し、
-  # 通った場合は Claude がバージョンを出す。どちらも出なければ、検査を飛ばしたか途中で止まった
+  # 対照: 1 つだけなら資格情報の検査を通り、隔離の検査まで進む。コンテナでは検査が必ず FAIL を出して
+  # 止まるので、FAIL が無いか、Claude がバージョンを出したら、検査を飛ばしたか失敗を無視した
   # shellcheck disable=SC2034 # launcher_want の eval で読む
   output="$(launcher_output -e ANTHROPIC_API_KEY=dummy)"
-  launcher_want "API キーだけなら、資格情報の検査を通って隔離の検査まで進む" '[[ "$output" != *"両方があります"* && "$output" != *"がありません"* && ( "$output" == *"FAIL "* || "$output" == *"(Claude Code)"* ) ]]'
+  launcher_want "API キーだけなら、資格情報の検査を通って隔離の検査まで進む" '[[ "$output" != *"両方があります"* && "$output" != *"がありません"* && "$output" == *"FAIL "* && "$output" != *"(Claude Code)"* ]]'
+fi
+
+if [ "$profile" != main ]; then
+  step "$profile の起動スクリプトは ~/work の下でだけ進む"
+  # wsl.exe は --cd に失敗しても / で続けるので、/ も含めて ~/work の外を断る。
+  # 進むかどうかは、上と同じく出力で判定する (コンテナでは隔離の検査が FAIL を出して止まる)。
+  # 資格情報は、両方の起動スクリプトが受け付けるトークンにする
+  # work<改行> は、末尾の改行を落とす $(pwd -P) では ~/work と同じに見える
+  docker exec -u "$user" "$name" bash -c "mkdir -p /home/$user/workx /home/$user/work/run \"/home/$user/work\"\$'\\n' && ln -sfn / /home/$user/work/out" || failures=$((failures + 1))
+  # 使い方: run_in <作業ディレクトリ>
+  # シェルで cd してから起動し、シンボリックリンクの見かけのパスを PWD に入れて渡す
+  run_in() { docker exec -u "$user" -e "HOME=/home/$user" -e CLAUDE_CODE_OAUTH_TOKEN=dummy "$name" bash -c 'cd "$1" && exec "$2" --version' bash "$1" "/usr/local/bin/$profile-claude" 2>&1; }
+  for dir in / "/home/$user" "/home/$user/workx" "/home/$user/work/out" "/home/$user/work"$'\n'; do
+    # shellcheck disable=SC2034 # launcher_want の eval で読む
+    output="$(run_in "$dir")" rc=$?
+    launcher_want "${dir//$'\n'/<改行>} では、隔離の検査の前に 0 以外で止まる" '[[ $rc -ne 0 && "$output" == *"~/work の下で起動してください"* && "$output" != *"FAIL "* && "$output" != *"(Claude Code)"* ]]'
+  done
+  for dir in "/home/$user/work" "/home/$user/work/run"; do
+    # shellcheck disable=SC2034 # launcher_want の eval で読む
+    output="$(run_in "$dir")"
+    launcher_want "$dir では、隔離の検査まで進む" '[[ "$output" != *"~/work の下で起動してください"* && "$output" == *"FAIL "* && "$output" != *"(Claude Code)"* ]]'
+  done
+  # 資格情報の検査が先。/ で資格情報もなければ、資格情報のほうで止まる
+  # shellcheck disable=SC2034 # launcher_want の eval で読む
+  output="$(docker exec -u "$user" -e "HOME=/home/$user" "$name" bash -c 'cd / && exec "$1" --version' bash "/usr/local/bin/$profile-claude" 2>&1)"
+  launcher_want "資格情報の検査は ~/work の検査より先" '[[ "$output" == *"がありません"* && "$output" != *"~/work の下で起動してください"* ]]'
+
+  step "verify-isolation.sh --e2e は、サンドボックスから書ける場所を外から使わない"
+  # e2e は本物の Claude とトークンが要るので CI では回らない。起動スクリプトの隔離の検査を外し、claude を
+  # 悪いセッションの代わりの偽物に替える。偽物は作業ディレクトリに、外を指すリンクと、git に外のコマンドを動かさせる .git を置く。
+  # shortcut: リンクの名前は verify-isolation.sh が外から書くファイルの名前に合わせてある。その名前を変えるときはここも変える
+  docker exec "$name" sed -i -e '/^[^#]*verify-isolation\.sh/c :' -e 's|^exec claude |exec /tmp/fake-claude |' "/usr/local/bin/$profile-claude" || failures=$((failures + 1))
+  docker exec -i "$name" sh -c 'cat >/tmp/fake-claude && chmod 755 /tmp/fake-claude' <<'EOF' || failures=$((failures + 1))
+#!/bin/bash
+for file in probe.jsonl tools-1.jsonl tools-2.jsonl tools-3.jsonl control.out; do ln -sfn "$HOME/victim" "$file"; done
+git init -q . && git config url."ext::sh -c touch% $HOME/pwned% #".insteadOf https://github.com/ && git config protocol.ext.allow always
+echo '{"type":"result","is_error":false}'
+EOF
+  e2e() { docker exec -u "$user" -e "HOME=/home/$user" -e CLAUDE_CODE_OAUTH_TOKEN=dummy "$name" bash -c "$1" 2>&1; }
+  # bare リポジトリの HEAD は、先のないリンクでも git が受け付ける
+  for plant in 'mkdir ~/work/.git' 'mkdir ~/work/objects ~/work/refs && ln -s refs/heads/main ~/work/HEAD'; do
+    # shellcheck disable=SC2034 # launcher_want の eval で読む
+    output="$(e2e "$plant && bash ~/dotfiles/tests/verify-isolation.sh --e2e; rm -rf ~/work/.git ~/work/objects ~/work/refs ~/work/HEAD")"
+    launcher_want "e2e: $plant の後は、Claude を起動せずに FAIL にする" '[[ "$output" == *"FAIL ~/work に "*" がある"* && "$output" != *"Claude が動く"* ]]'
+  done
+  # shellcheck disable=SC2034 # launcher_want の eval で読む
+  output="$(e2e 'echo keep >~/victim && bash ~/dotfiles/tests/verify-isolation.sh --e2e; echo "victim=$(cat ~/victim) pwned=$([ -e ~/pwned ] && echo yes || echo no)"')"
+  launcher_want "e2e: ~/work の下で起動スクリプトが受け付け、外から書くものはリンクをたどらず、対照の git は作業ディレクトリの .git を見ない" '[[ "$output" == *"PASS Claude が動く"* && "$output" == *"victim=keep pwned=no"* ]]'
 fi
 
 step "もう一度適用しても差分が出ない"
