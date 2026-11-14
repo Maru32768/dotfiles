@@ -57,8 +57,8 @@ CREATE TABLE IF NOT EXISTS files (path TEXT PRIMARY KEY, size INTEGER, mtime_ns 
 KEYS = ("skill", "agent", "agent-type", "model", "project", "session", "day", "source")
 TOKENS = ("input", "cache_write_5m", "cache_write_1h", "cache_read", "output")
 UNUSED = ("branch", "effort", "plugin")  # 集計に使わない属性。形が変わっても、呼び出しは残す
-# JSONとして読めない行(JSONDecodeErrorはValueError)と、読めても形が違う行で出る例外
-SKIP = (AttributeError, KeyError, TypeError, ValueError, OverflowError)
+# JSONとして読めない行(JSONDecodeErrorはValueError、深い入れ子はRecursionError)と、読めても形が違う行で出る例外
+SKIP = (AttributeError, KeyError, TypeError, ValueError, OverflowError, RecursionError)
 UNKNOWN_AGENT = "(種類不明)"
 # 同じ応答は、再開で写されたサブエージェントのログ(.meta.jsonが無いので種類不明)や、親の履歴を写したforkのログにもある。
 # 属性は、元のログらしい行(種類が分かる > 本体 > fork > 種類不明)のものを残し、トークン数は最後に読んだ値にする
@@ -71,6 +71,8 @@ UPSERT = (f"INSERT INTO calls ({', '.join(COLUMNS)}) VALUES ({', '.join('?' * le
 
 def checked(call: dict) -> dict:
     """集計できる行にする。トークンは整数に変え、変えられないときと、属性が文字列でないときは例外にする。"""
+    if not call.get("ts"):  # 時刻の無い呼び出しは、どの期間の集計にも入らない
+        raise ValueError("ts")
     for key, value in call.items():
         if key in TOKENS:
             call[key] = int(value or 0)
@@ -165,8 +167,12 @@ def codex_file(path: Path) -> tuple[list[dict], dict, int]:
             elif payload.get("type") == "token_count":
                 info = payload.get("info") or {}
                 total, last = info.get("total_token_usage"), info.get("last_token_usage")
+                if not last:  # 使用量を持たないtoken_count(枠の消費率だけを伝えるもの)
+                    continue
+                if not total:  # 合計が無いと、同じ呼び出しの記録を見分けられない
+                    raise KeyError("total_token_usage")
                 # 枠の消費率だけが変わったときも同じ合計で記録されるので、合計が変わったときだけ数える
-                if not last or total == previous:
+                if total == previous:
                     continue
                 previous = total
                 cached = int(last.get("cached_input_tokens") or 0)
