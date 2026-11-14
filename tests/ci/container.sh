@@ -150,6 +150,10 @@ if [ "$profile" != main ]; then
     output="$(run_in "$dir")"
     launcher_want "$dir では、隔離の検査まで進む" '[[ "$output" != *"~/work の下で起動してください"* && ( "$output" == *"FAIL "* || "$output" == *"(Claude Code)"* ) ]]'
   done
+  # 資格情報の検査が先。/ で資格情報もなければ、資格情報のほうで止まる
+  # shellcheck disable=SC2034 # launcher_want の eval で読む
+  output="$(docker exec -u "$user" -e "HOME=/home/$user" "$name" bash -c 'cd / && exec "$1" --version' bash "/usr/local/bin/$profile-claude" 2>&1)"
+  launcher_want "資格情報の検査は ~/work の検査より先" '[[ "$output" == *"がありません"* && "$output" != *"~/work の下で起動してください"* ]]'
 fi
 
 step "もう一度適用しても差分が出ない"
