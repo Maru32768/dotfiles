@@ -83,33 +83,38 @@ def claude_file(path: Path) -> tuple[list[dict], dict]:
         meta = json.loads(path.with_suffix(".meta.json").read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         pass
+    if not isinstance(meta, dict):
+        meta = {}
     calls, agents = {}, {}
     for _, item in lines(path):
-        message = item.get("message")
-        if item.get("type") != "assistant" or not isinstance(message, dict):
+        try:
+            message = item.get("message")
+            if item.get("type") != "assistant" or not isinstance(message, dict):
+                continue
+            for block in message.get("content") or []:
+                if isinstance(block, dict) and block.get("type") == "tool_use" and block.get("name") == "Agent":
+                    agents[block.get("id")] = item.get("attributionSkill")
+            usage, model = message.get("usage"), message.get("model")
+            if not isinstance(usage, dict) or not message.get("id") or model in (None, "<synthetic>"):
+                continue
+            writes = usage.get("cache_creation") or {}
+            write_5m, write_1h = writes.get("ephemeral_5m_input_tokens"), writes.get("ephemeral_1h_input_tokens")
+            if write_5m is None and write_1h is None:
+                write_5m, write_1h = usage.get("cache_creation_input_tokens"), 0
+            # 1つの応答はブロックごとに何行にも分かれるが、使用量はどの行も同じ
+            calls[message["id"]] = {
+                "id": "claude:" + message["id"], "source": "claude", "ts": item.get("timestamp"),
+                "session": item.get("sessionId"), "project": item.get("cwd"), "branch": item.get("gitBranch"),
+                "model": model, "effort": item.get("effort"), "speed": usage.get("speed"),
+                "skill": item.get("attributionSkill"), "plugin": item.get("attributionPlugin"),
+                "agent_type": meta.get("agentType"), "agent_desc": meta.get("description"),
+                "parent_tool_use": meta.get("toolUseId"),
+                "input": usage.get("input_tokens") or 0, "cache_write_5m": write_5m or 0,
+                "cache_write_1h": write_1h or 0, "cache_read": usage.get("cache_read_input_tokens") or 0,
+                "output": usage.get("output_tokens") or 0,
+            }
+        except (AttributeError, TypeError, ValueError):  # JSONとしては読めても形が違う行は飛ばす
             continue
-        for block in message.get("content") or []:
-            if isinstance(block, dict) and block.get("type") == "tool_use" and block.get("name") == "Agent":
-                agents[block.get("id")] = item.get("attributionSkill")
-        usage, model = message.get("usage"), message.get("model")
-        if not isinstance(usage, dict) or not message.get("id") or model in (None, "<synthetic>"):
-            continue
-        writes = usage.get("cache_creation") or {}
-        write_5m, write_1h = writes.get("ephemeral_5m_input_tokens"), writes.get("ephemeral_1h_input_tokens")
-        if write_5m is None and write_1h is None:
-            write_5m, write_1h = usage.get("cache_creation_input_tokens"), 0
-        # 1つの応答はブロックごとに何行にも分かれるが、使用量はどの行も同じ
-        calls[message["id"]] = {
-            "id": "claude:" + message["id"], "source": "claude", "ts": item.get("timestamp"),
-            "session": item.get("sessionId"), "project": item.get("cwd"), "branch": item.get("gitBranch"),
-            "model": model, "effort": item.get("effort"), "speed": usage.get("speed"),
-            "skill": item.get("attributionSkill"), "plugin": item.get("attributionPlugin"),
-            "agent_type": meta.get("agentType"), "agent_desc": meta.get("description"),
-            "parent_tool_use": meta.get("toolUseId"),
-            "input": usage.get("input_tokens") or 0, "cache_write_5m": write_5m or 0,
-            "cache_write_1h": write_1h or 0, "cache_read": usage.get("cache_read_input_tokens") or 0,
-            "output": usage.get("output_tokens") or 0,
-        }
     return list(calls.values()), agents
 
 
@@ -118,26 +123,29 @@ def codex_file(path: Path) -> list[dict]:
     session = project = model = effort = previous = None
     calls = []
     for n, item in lines(path):
-        payload = item.get("payload") or {}
-        if item.get("type") == "session_meta":
-            session, project = payload.get("id"), payload.get("cwd")
-        elif item.get("type") == "turn_context":
-            model, effort = payload.get("model"), payload.get("effort")
-        elif payload.get("type") == "token_count":
-            info = payload.get("info") or {}
-            total, last = info.get("total_token_usage"), info.get("last_token_usage")
-            # 枠の消費率だけが変わったときも同じ合計で記録されるので、合計が変わったときだけ数える
-            if not last or total == previous:
-                continue
-            previous = total
-            cached = last.get("cached_input_tokens") or 0
-            calls.append({
-                "id": f"codex:{session or path.stem}:{n}", "source": "codex", "ts": item.get("timestamp"),
-                "session": session, "project": project, "model": model, "effort": effort,
-                "input": (last.get("input_tokens") or 0) - cached, "cache_read": cached,
-                "cache_write_5m": last.get("cache_write_input_tokens") or 0, "cache_write_1h": 0,
-                "output": last.get("output_tokens") or 0,
-            })
+        try:
+            payload = item.get("payload") or {}
+            if item.get("type") == "session_meta":
+                session, project = payload.get("id"), payload.get("cwd")
+            elif item.get("type") == "turn_context":
+                model, effort = payload.get("model"), payload.get("effort")
+            elif payload.get("type") == "token_count":
+                info = payload.get("info") or {}
+                total, last = info.get("total_token_usage"), info.get("last_token_usage")
+                # 枠の消費率だけが変わったときも同じ合計で記録されるので、合計が変わったときだけ数える
+                if not last or total == previous:
+                    continue
+                previous = total
+                cached = last.get("cached_input_tokens") or 0
+                calls.append({
+                    "id": f"codex:{session or path.stem}:{n}", "source": "codex", "ts": item.get("timestamp"),
+                    "session": session, "project": project, "model": model, "effort": effort,
+                    "input": (last.get("input_tokens") or 0) - cached, "cache_read": cached,
+                    "cache_write_5m": last.get("cache_write_input_tokens") or 0, "cache_write_1h": 0,
+                    "output": last.get("output_tokens") or 0,
+                })
+        except (AttributeError, TypeError, ValueError):  # JSONとしては読めても形が違う行は飛ばす
+            continue
     return calls
 
 
@@ -151,11 +159,15 @@ def collect(db: Path, claude_dir: Path, codex_dir: Path, quiet: bool) -> None:
         if not base.is_dir():
             continue
         for path in sorted(base.rglob("*.jsonl")):
-            stat = path.stat()
-            stamp = (stat.st_size, stat.st_mtime_ns)
-            if seen.get(str(path)) == stamp:
+            try:
+                stat = path.stat()
+                stamp = (stat.st_size, stat.st_mtime_ns)
+                if seen.get(str(path)) == stamp:
+                    continue
+                calls, agents = claude_file(path) if source == "claude" else (codex_file(path), {})
+            except OSError as error:  # 一覧を取った後に消えたログ(アーカイブへの移動など)は、次の回に読む
+                print(f"usage-log: {error}", file=sys.stderr)
                 continue
-            calls, agents = claude_file(path) if source == "claude" else (codex_file(path), {})
             with con:
                 con.executemany(f"INSERT OR REPLACE INTO calls ({', '.join(COLUMNS)}) VALUES ({', '.join('?' * len(COLUMNS))})",
                                 [tuple(call.get(c) for c in COLUMNS) for call in calls])

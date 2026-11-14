@@ -14,8 +14,10 @@ pass() { printf 'PASS %s\n' "$1"; }
 fail() { printf 'FAIL %s\n' "$1"; failures=$((failures + 1)); }
 equals() { if [ "$2" = "$3" ]; then pass "$1"; else fail "$1"; printf '  want: %s\n  got:  %s\n' "$3" "$2"; fi; }
 # Windows の Python はパイプに CRLF で書く
-usage() { uv run --quiet --script "$script" --db "$work/usage.sqlite3" "$@" | tr -d '\r'; }
-collect() { usage collect --claude-dir "$work/claude" --codex-dir "$work/codex"; }
+db="$work/usage.sqlite3"
+usage() { uv run --quiet --script "$script" --db "$db" "$@" | tr -d '\r'; }
+# 使い方: collect [<ログを置いたディレクトリ>]  (その下の claude と codex を読む)
+collect() { usage collect --claude-dir "${1:-$work}/claude" --codex-dir "${1:-$work}/codex"; }
 # 使い方: field <report の引数...> -- <Python の式>  (JSON の行の一覧を rows として式を評価する)
 # Windows では python の引数の日本語が化けるので、式には日本語を書かない
 field() {
@@ -115,6 +117,35 @@ log.write_text("".join(json.dumps({"type": "assistant", "timestamp": (now - time
 EOF
 uv run --quiet --script "$script" --db "$work/recent.sqlite3" collect --claude-dir "$work/recent" --codex-dir "$work/none" >/dev/null
 equals "既定では直近7日を数える" "$(uv run --quiet --script "$script" --db "$work/recent.sqlite3" report --json | python3 -I -c 'import json, sys; print(sum(r["calls"] for r in json.load(sys.stdin)))' | tr -d '\r')" "1"
+
+# 型の違う行や、中身の違う .meta.json があっても、その行だけを飛ばして続ける
+db="$work/odd.sqlite3"
+python3 -I - "$work/odd" <<'EOF'
+import json, sys
+from pathlib import Path
+odd = Path(sys.argv[1])
+def call(mid, **usage):
+    return json.dumps({"type": "assistant", "timestamp": "2026-11-01T00:00:00Z", "sessionId": "o",
+                       "message": {"id": mid, "model": "claude-opus-5-5", "usage": {"input_tokens": 1, **usage}}})
+main = odd / "claude/p/o.jsonl"
+sub = odd / "claude/p/o/subagents/agent-z.jsonl"
+sub.parent.mkdir(parents=True)
+main.write_text(call("bad", cache_creation="n/a") + "\n" + call("a1") + "\n", encoding="utf-8")
+sub.write_text(call("z1") + "\n", encoding="utf-8")
+sub.with_suffix(".meta.json").write_text("null", encoding="utf-8")
+rollout = odd / "codex/sessions/r.jsonl"
+rollout.parent.mkdir(parents=True)
+usage = {"input_tokens": 1, "cached_input_tokens": 0, "output_tokens": 1}
+rollout.write_text("\n".join(json.dumps(e) for e in [
+    {"type": "session_meta", "payload": {"id": "r", "cwd": "C:/repo"}},
+    {"type": "event_msg", "timestamp": "2026-11-01T00:00:00Z", "payload": {"type": "token_count", "info": "x"}},
+    {"type": "event_msg", "timestamp": "2026-11-01T00:00:01Z",
+     "payload": {"type": "token_count", "info": {"total_token_usage": usage, "last_token_usage": usage}}},
+]) + "\n", encoding="utf-8")
+EOF
+equals "型の違う行は飛ばし、ほかの行とログは読む" "$(collect "$work/odd")" "3個のログを読み、3件の呼び出しを足した"
+equals "読めたログは読み直さない" "$(collect "$work/odd")" "0個のログを読み、0件の呼び出しを足した"
+db="$work/usage.sqlite3"
 
 if [ "$failures" -ne 0 ]; then
   printf '\n%d件の問題があります\n' "$failures"
