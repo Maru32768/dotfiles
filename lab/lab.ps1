@@ -261,8 +261,9 @@ if ($Command -eq 'verify') {
 
 if ($Command -eq 'run') {
     # PowerShell 7 turns a leading ~ into the Windows home, even inside bws-run, so the
-    # portable form is a path relative to the home
-    if ($Path -match '[:\\]') {
+    # portable form is a path relative to the home. Windows PowerShell 5.1 passes a " to an
+    # exe unescaped, which would swallow the arguments after --cd.
+    if ($Path -match '[:\\"]') {
         throw "-Path must be a path inside the instance, such as work/run, not $Path"
     }
     if ($Path -notmatch '^[~/]') {

@@ -60,7 +60,7 @@ try {
         # calling the shell, as bws-run does. The default ~/work above covers a leading ~.
         $r = Invoke-Run $shell @('-Path', '/home/research/x')
         Check "${shell}: an absolute path is passed as it is" (($r.Args -join '|') -eq ($call -f '/home/research/x')) $r
-        foreach ($path in 'C:\x', 'C:/x', 'C:\Users\u/work', 'work\run') {
+        foreach ($path in 'C:\x', 'C:/x', 'C:\Users\u/work', 'work\run', 'wo"rk') {
             $r = Invoke-Run $shell @('-Path', $path)
             Check "${shell}: $path fails, and wsl.exe is not called" ($r.Code -eq 1 -and $r.Args.Count -eq 0 -and $r.Out -like "*not $path*") $r
         }
