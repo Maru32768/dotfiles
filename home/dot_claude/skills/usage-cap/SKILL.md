@@ -33,7 +33,8 @@ allowed-tools: Read(~/.local/state/usage/weekly-cap) mcp__ccd_session_mgmt__get_
 
 新しい単位を始めずに止まり、次を報告して終わる。
 
-- 週の消費率と上限、枠がリセットされる時刻(`resetsAt`)
+- 止まった理由(上限に達した、上限のファイルが読めない、`get_usage`で読めない、など)
+- 週の消費率と上限、枠がリセットされる時刻(`resetsAt`)。読めなかったものは、読めなかったと書く
 - 終えた単位と、再開するときに始める単位
 - 再開の方法。`usage-log cap off`で上限を外すか、`usage-log cap <%>`で上げるか、リセットを待つ。どれにするかは利用者が決める
 
