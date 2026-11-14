@@ -27,6 +27,7 @@ Set-Content -LiteralPath (Join-Path $work 'wsl.cs') -Encoding Ascii -Value @'
 using System;
 class P { static int Main(string[] a) {
   for (int i = 0; i < a.Length; i++) Console.WriteLine("ARG=[" + a[i] + "]");
+  Console.WriteLine("WSLENV=[" + Environment.GetEnvironmentVariable("WSLENV") + "]");
   if (Console.IsInputRedirected) Console.WriteLine("STDIN_LEN=" + Console.In.ReadToEnd().Length);
   string e = Environment.GetEnvironmentVariable("FAKE_WSL_EXIT");
   return string.IsNullOrEmpty(e) ? 0 : int.Parse(e);
@@ -36,6 +37,7 @@ class P { static int Main(string[] a) {
 if ($LASTEXITCODE -ne 0) { throw 'could not build the fake wsl.exe' }
 $env:PATH = "$work;$env:PATH"
 $env:ANTHROPIC_API_KEY = 'dummy'
+$env:WSLENV = $null
 
 function Invoke-Run([string]$Shell, [string[]]$Arguments, [string]$Exit = '') {
     $env:FAKE_WSL_EXIT = $Exit
@@ -54,6 +56,7 @@ try {
     foreach ($shell in 'powershell', 'pwsh') {
         $r = Invoke-Run $shell @()
         Check "${shell}: the default path is ~/work, interactive, with stdin passed on" ((($r.Args -join '|') -eq ($call -f '~/work')) -and $r.Out -match 'STDIN_LEN=[1-9]') $r
+        Check "${shell}: the key goes to wsl.exe through WSLENV" ($r.Out -match 'WSLENV=\[ANTHROPIC_API_KEY/u\]') $r
         $r = Invoke-Run $shell @('-Path', 'work/run')
         Check "${shell}: a relative path is taken from the home" (($r.Args -join '|') -eq ($call -f '~/work/run')) $r
         # A literal ~/... cannot be tested here: this script's own PowerShell 7 expands it when
