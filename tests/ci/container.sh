@@ -124,17 +124,17 @@ if [ "$profile" = research ]; then
   launcher_want "両方あれば、隔離の検査の前に止まる" '[[ "$output" == *"両方があります"* && "$output" != *"FAIL "* ]]'
   output="$(launcher_output)"
   launcher_want "どちらもなければ、隔離の検査の前に止まる" '[[ "$output" == *"ANTHROPIC_API_KEY がありません"* && "$output" != *"FAIL "* ]]'
-  # 対照: 1 つだけなら資格情報の検査を通り、隔離の検査まで進む。コンテナでは検査が FAIL を出し、
-  # 通った場合は Claude がバージョンを出す。どちらも出なければ、検査を飛ばしたか途中で止まった
+  # 対照: 1 つだけなら資格情報の検査を通り、隔離の検査まで進む。コンテナでは検査が必ず FAIL を出して
+  # 止まるので、FAIL が無いか、Claude がバージョンを出したら、検査を飛ばしたか失敗を無視した
   # shellcheck disable=SC2034 # launcher_want の eval で読む
   output="$(launcher_output -e ANTHROPIC_API_KEY=dummy)"
-  launcher_want "API キーだけなら、資格情報の検査を通って隔離の検査まで進む" '[[ "$output" != *"両方があります"* && "$output" != *"がありません"* && ( "$output" == *"FAIL "* || "$output" == *"(Claude Code)"* ) ]]'
+  launcher_want "API キーだけなら、資格情報の検査を通って隔離の検査まで進む" '[[ "$output" != *"両方があります"* && "$output" != *"がありません"* && "$output" == *"FAIL "* && "$output" != *"(Claude Code)"* ]]'
 fi
 
 if [ "$profile" != main ]; then
   step "$profile の起動スクリプトは ~/work の下でだけ進む"
   # wsl.exe は --cd に失敗しても / で続けるので、/ も含めて ~/work の外を断る。
-  # 進むかどうかは、上と同じく出力で判定する (コンテナでは隔離の検査が FAIL を出す)。
+  # 進むかどうかは、上と同じく出力で判定する (コンテナでは隔離の検査が FAIL を出して止まる)。
   # 資格情報は、両方の起動スクリプトが受け付けるトークンにする
   # work<改行> は、末尾の改行を落とす $(pwd -P) では ~/work と同じに見える
   docker exec -u "$user" "$name" bash -c "mkdir -p /home/$user/workx /home/$user/work/run \"/home/$user/work\"\$'\\n' && ln -sfn / /home/$user/work/out" || failures=$((failures + 1))
@@ -149,7 +149,7 @@ if [ "$profile" != main ]; then
   for dir in "/home/$user/work" "/home/$user/work/run"; do
     # shellcheck disable=SC2034 # launcher_want の eval で読む
     output="$(run_in "$dir")"
-    launcher_want "$dir では、隔離の検査まで進む" '[[ "$output" != *"~/work の下で起動してください"* && ( "$output" == *"FAIL "* || "$output" == *"(Claude Code)"* ) ]]'
+    launcher_want "$dir では、隔離の検査まで進む" '[[ "$output" != *"~/work の下で起動してください"* && "$output" == *"FAIL "* && "$output" != *"(Claude Code)"* ]]'
   done
   # 資格情報の検査が先。/ で資格情報もなければ、資格情報のほうで止まる
   # shellcheck disable=SC2034 # launcher_want の eval で読む
