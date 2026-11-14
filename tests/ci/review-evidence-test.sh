@@ -56,6 +56,14 @@ chmod +x "$work/bin/build"
 PATH="$work/bin:$PATH" e "$log" run build -- build
 rc=$?
 equals "evidence.shの関数と同じ名前のコマンドは、PATHのコマンドを回す" "$rc $(last 4 "$log")" "7 7"
+e "$log" run ex -- eval 'exit 3'
+rc=$?
+equals "組み込みのコマンドがexitしても、その終了コードを返して記録する" "$rc $(last 3-4 "$log")" "3 ex	3"
+mkdir -p "$work/unwritable.tsv"
+e "$work/unwritable.tsv" run ok -- true > /dev/null 2>&1
+equals "記録を書けなければ、コマンドが成功しても2で終わる" "$?" "2"
+lines=$(wc -l < "$log")
+check "runのラベルにbaselineは使えず、実行も記録もしない" '! e "$log" run baseline -- touch "$work/baseline-ran" && [ ! -e "$work/baseline-ran" ] && [ "$(wc -l < "$log")" = "$lines" ]'
 lines=$(wc -l < "$log")
 check "タブを含むラベルは、実行も記録もせずに拒否する" '! e "$log" run "a	b" -- touch "$work/tab-ran" && [ ! -e "$work/tab-ran" ] && [ "$(wc -l < "$log")" = "$lines" ]'
 check "作業ツリーの中の、無視されていない記録は拒否する" '! e "$repo/evidence.tsv" run x -- true && [ ! -e "$repo/evidence.tsv" ]'
@@ -185,7 +193,98 @@ wait "$pid"
 rc=$?
 equals "変異の実行中にTERMを受けると、変異を戻してから130で終わる" "$mutated $rc" "1 130"
 check "TERMで止めた後、作業ツリーがきれいで指紋も同じ" same
+same || g checkout -q -- .
 check "TERMで止めると、変異の結果を記録しない" '! grep -q "	mutate	" "$work/signal.tsv"'
+# 変異のときだけ、コマンドが$2を実行してから待つ。待っている間に$1を送り、終了コードとmutateの行の数を出す。
+# 無視されたシグナルはtrapできない。Linuxの非対話のbashは&で起こしたジョブにINTを無視させ、テストを
+# 無視された状態で起動すれば(裏で回すときなど)それも引き継ぐので、envで既定に戻す
+interrupt() {
+  local go="$work/go-$3" pid
+  (cd "$repo" && exec env --default-signal="$1" bash "$ev" "$work/signal-$3.tsv" mutate "$work/kill.patch" -- \
+    sh -c 'if grep -q "1 - " app.sh; then $1; : > "$0.started"; until [ -e "$0" ]; do sleep 0.1; done; fi; sh test.sh' "$go" "$2") > /dev/null 2>&1 &
+  pid=$!
+  for _ in $(seq 600); do [ -e "$go.started" ] && break; sleep 0.1; done
+  kill -"$1" "$pid"
+  : > "$go"
+  wait "$pid"
+  echo "$? $(grep -c '	mutate	' "$work/signal-$3.tsv")"
+}
+for sig in HUP INT; do
+  equals "${sig}を受けても、変異を戻してから130で終わり、記録しない" "$(interrupt "$sig" : "$sig")" "130 0"
+  check "${sig}で止めた後、作業ツリーがきれいで指紋も同じ" same
+  same || g checkout -q -- .
+done
+equals "止めたときに変異の実行がファイルを残すと、5で終わり、記録しない" "$(interrupt TERM 'touch junk.txt' dirty)" "5 0"
+rm -f "$repo/junk.txt"
+same || g checkout -q -- .
+equals "MUTATE_BUILDがあるときに止めても、変異を戻してから130で終わる" "$(MUTATE_BUILD='mkdir -p build && cp app.sh build/app.sh' interrupt INT : build)" "130 0"
+check "止めた後も戻してからビルドし直し、成果物に変異を残さない" 'cmp -s "$repo/build/app.sh" "$repo/app.sh"'
+same || g checkout -q -- .
+# evidence.shがgitに$PAUSEを含む引数を渡す直前に、$GO.startedを作ってから$GOができるまで待つgit
+mkdir -p "$work/gitbin"
+printf '#!/bin/sh\ncase " $* " in *" $PAUSE "*) : > "$GO.started"; until [ -e "$GO" ]; do sleep 0.1; done ;; esac\nexec %q "$@"\n' "$(command -v git)" > "$work/gitbin/git"
+chmod +x "$work/gitbin/git"
+# gitに$1を渡す直前で待たせ、その間にTERMを送る。終了コードとmutateの行の数を出す
+paused() {
+  local go="$work/go-$2" pid
+  (cd "$repo" && PAUSE=$1 GO=$go PATH="$work/gitbin:$PATH" exec bash "$ev" "$work/signal-$2.tsv" mutate "$work/kill.patch" -- sh test.sh) > /dev/null 2>&1 &
+  pid=$!
+  for _ in $(seq 600); do [ -e "$go.started" ] && break; sleep 0.1; done
+  kill -TERM "$pid"
+  : > "$go"
+  wait "$pid"
+  echo "$? $(grep -c '	mutate	' "$work/signal-$2.tsv")"
+}
+equals "パッチを当てている最中にTERMを受けても、変異を戻してから130で終わり、記録しない" "$(paused 'apply --' apply)" "130 0"
+check "当てている最中に止めた後、作業ツリーがきれいで指紋も同じ" same
+same || g checkout -q -- .
+equals "パッチを戻している最中にTERMを受けても、戻し終えてから130で終わり、記録しない" "$(paused 'apply -R --' revert)" "130 0"
+check "戻している最中に止めた後、作業ツリーがきれいで指紋も同じ" same
+same || g checkout -q -- .
+# 変異の後の行と前後の3行が、同じファイルの別の場所にもあるパッチ。戻した後のツリーにも逆向きに当たる
+drepo="$work/dup"
+git init -q -b main "$drepo"
+git -C "$drepo" config user.name test
+git -C "$drepo" config user.email test@example.com
+printf 'top1\ntop2\np\nq\nr\nx=1\ns\nt\nu\nmid\np\nq\nr\nx=2\ns\nt\nu\nend1\nend2\n' > "$drepo/f.txt"
+git -C "$drepo" add -A && git -C "$drepo" commit -q -m base
+sed '6s/x=1/x=2/' "$drepo/f.txt" > "$work/f.mut"
+diff -u --label a/f.txt --label b/f.txt "$drepo/f.txt" "$work/f.mut" > "$work/dup.patch"
+(cd "$drepo" && PAUSE='apply -R --' GO="$work/go-dup" PATH="$work/gitbin:$PATH" exec bash "$ev" "$work/dup.tsv" mutate "$work/dup.patch" -- true) > /dev/null 2>&1 &
+pid=$!
+for _ in $(seq 600); do [ -e "$work/go-dup.started" ] && break; sleep 0.1; done
+kill -TERM "$pid"
+: > "$work/go-dup"
+wait "$pid"
+rc=$?
+equals "戻している最中に止めて、もう一度戻す処理が走っても、同じ並びの別の場所を書き換えない" "$rc [$(git -C "$drepo" status --porcelain)]" "130 []"
+# 変える前の行と前後の3行が、同じファイルの別の場所にもあるパッチ。当てた後のツリーにも順向きに当たる
+printf 'top1\ntop2\np\nq\nr\nx=1\ns\nt\nu\nmid\np\nq\nr\nx=1\ns\nt\nu\nend1\nend2\n' > "$drepo/g.txt"
+git -C "$drepo" add -A && git -C "$drepo" commit -q -m pre
+sed '6s/x=1/x=2/' "$drepo/g.txt" > "$work/g.mut"
+diff -u --label a/g.txt --label b/g.txt "$drepo/g.txt" "$work/g.mut" > "$work/pre.patch"
+(cd "$drepo" && bash "$ev" "$work/pre.tsv" mutate "$work/pre.patch" -- sh -c '! sed -n 6p g.txt | grep -q x=2') > /dev/null 2>&1
+rc=$?
+equals "変える前の並びが別の場所にもあるパッチも、当てた後に戻す" "$rc [$(git -C "$drepo" status --porcelain)]" "0 []"
+# 戻した後のビルドが、無視されないファイルを残す
+lines=$(wc -l < "$mlog")
+MUTATE_BUILD='touch gen.txt' e "$mlog" mutate "$work/kill.patch" -- sh -c 'rm -f gen.txt; sh test.sh' > /dev/null 2>&1
+rc=$?
+check "戻した後のビルドが無視されないファイルを残すと、5で終わり変異の結果を記録しない" '[ "$rc" = 5 ] && ! tail -n "+$((lines + 1))" "$mlog" | grep -q "	mutate	"'
+rm -f "$repo/gen.txt"
+# 無視されたファイルは指紋に入らない。それでも、当てたパッチは戻す
+printf 'mode=1\n' > "$repo/conf.log"
+printf 'mode=2\n' > "$work/conf.mut"
+diff -u --label a/conf.log --label b/conf.log "$repo/conf.log" "$work/conf.mut" > "$work/conf.patch"
+e "$mlog" mutate "$work/conf.patch" -- sh -c '! grep -q mode=2 conf.log' > /dev/null 2>&1
+rc=$?
+equals "無視されたファイルへのパッチも、当てた後に戻す" "$rc $(cat "$repo/conf.log")" "0 mode=1"
+rm -f "$repo/conf.log"
+e "$mlog" mutate "$work/kill.patch" -- eval 'sh test.sh || exit 1' > /dev/null 2>&1
+rc=$?
+equals "組み込みのコマンドがexitしても、変異を戻してから結果を記録する" "$rc $(last 2-4 "$mlog")" "0 mutate	kill.patch	Killed"
+check "組み込みのコマンドがexitした後、作業ツリーがきれいで指紋も同じ" same
+same || g checkout -q -- .
 
 e "$mlog" mutate "$work/kill.patch" -- sh -c 'cat app.sh >> "$0"; exit 1' "$work/seen" > /dev/null 2>&1
 rc=$?
@@ -197,6 +296,7 @@ e "$mlog" mutate "$work/kill.patch" -- sh -c 'touch junk.txt; exit 1' > /dev/nul
 rc=$?
 check "基準の実行が失敗してファイルを残すと、5で終わり何も記録しない" '[ "$rc" = 5 ] && [ "$(wc -l < "$mlog")" = "$lines" ]'
 rm -f "$repo/junk.txt"
+lines=$(wc -l < "$mlog")
 MUTATE_BUILD='touch junk.txt; exit 1' e "$mlog" mutate "$work/kill.patch" -- sh test.sh > /dev/null 2>&1
 rc=$?
 check "基準の実行のビルドが失敗してファイルを残すと、5で終わり何も記録しない" '[ "$rc" = 5 ] && [ "$(wc -l < "$mlog")" = "$lines" ]'
@@ -242,9 +342,12 @@ for c in awk basename cp date dirname git mkdir mktemp rm sh; do
   printf '#!/bin/sh\nexec %q "$@"\n' "$(command -v "$c")" > "$nobin/$c"
   chmod +x "$nobin/$c"
 done
-(cd "$repo" && MUTATE_TIMEOUT=2 PATH="$nobin" "$BASH" "$ev" "$mlog" mutate "$work/kill.patch" -- sh -c 'echo run >> "$0"; sh test.sh' "$count") > /dev/null 2>&1
+(cd "$repo" && MUTATE_TIMEOUT=2 PATH="$nobin" "$BASH" "$ev" "$mlog" mutate "$work/kill.patch" -- sh -c 'echo run >> "$0"; sh test.sh' "$count") > /dev/null 2> "$work/nobin.err"
 rc=$?
-check "MUTATE_TIMEOUTがあってtimeoutのコマンドが無いと、2で終わり、記録もせず、パッチも当てない" untouched
+check "MUTATE_TIMEOUTがあってtimeoutのコマンドが無いと、2で終わり、記録もせず、パッチも当てない" 'untouched && grep -q "no timeout command" "$work/nobin.err"'
+e "$work/unwritable.tsv" mutate "$work/kill.patch" -- sh -c 'echo run >> "$0"; sh test.sh' "$count" > /dev/null 2>&1
+rc=$?
+check "記録を書けなければ、mutateは基準の実行も回さずに2で終わり、パッチも当てない" untouched
 
 # 中身が変われば、同じコマンドでも基準の実行をやり直す
 printf 'there\n' >> "$repo/sub/here.txt"
@@ -282,6 +385,13 @@ slog="$work/sub.tsv"
 check "サブディレクトリから、その場所でコマンドを回す" '(cd "$repo/sub" && bash "$ev" "$slog" run here -- test -f here.txt)'
 check "サブディレクトリからcheckできる" '(cd "$repo/sub" && bash "$ev" "$slog" check here) && e "$slog" check here'
 check "サブディレクトリから、トップのファイルを変える変異を当てられる" '(cd "$repo/sub" && bash "$ev" "$work/subm.tsv" mutate "$work/kill.patch" -- sh ../test.sh) && same'
+# sub/でだけ通るコマンド。sub/で基準の実行を記録した後、トップから回すと、基準の実行が落ちる
+dlog="$work/dir.tsv"
+(cd "$repo/sub" && bash "$ev" "$dlog" mutate "$work/kill.patch" -- test -f here.txt) > /dev/null 2>&1
+equals "sub/からは基準の実行が通り、変異は生き残る" "$(last 2-4 "$dlog")" "mutate	kill.patch	Survived"
+e "$dlog" mutate "$work/kill.patch" -- test -f here.txt > /dev/null 2>&1
+rc=$?
+equals "作業ディレクトリが違えば、同じコマンドでも基準の実行をやり直す" "$rc $(last 2-4 "$dlog")" "4 mutate	kill.patch	Invalid"
 g worktree add -q "$work/wt" -b wt
 wlog="$work/wt.tsv"
 check "linked worktreeでrunとcheckが動く" '(cd "$work/wt" && bash "$ev" "$wlog" run w -- true && bash "$ev" "$wlog" check w)'
