@@ -18,7 +18,7 @@ Windows と WSL (Ubuntu 26.04) の設定と開発ツールを、[chezmoi](https:
 powershell -ExecutionPolicy Bypass -File bootstrap.ps1
 ```
 
-winget でアプリを入れ、このリポジトリを `~\dotfiles` に clone し、mise と chezmoi で設定を適用して、`tests\doctor.ps1` で確認する。
+Gitが無ければwingetで入れ、このリポジトリを`~\dotfiles`にcloneする。次に、`packages\winget.json`のアプリをwingetで入れ、miseとchezmoiで設定を適用して、`tests\doctor.ps1`で確認する。
 
 ### WSL のインスタンス
 
