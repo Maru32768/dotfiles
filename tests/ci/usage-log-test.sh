@@ -80,14 +80,15 @@ events = [
 rollout.write_text("\n".join(json.dumps(e) for e in events) + "\n", encoding="utf-8")
 EOF
 
-equals "collect は応答ごとに1行を足し、壊れた行と<synthetic>を飛ばす" "$(collect)" "3個のログを読み、8件の呼び出しを足した"
+equals "collect は応答ごとに1行を足し、<synthetic>を飛ばし、壊れた行を数える" "$(collect)" "3個のログを読み、8件の呼び出しを足した。形の違う1行を飛ばした"
 equals "変わっていないログは読み直さない" "$(collect)" "0個のログを読み、0件の呼び出しを足した"
 
 printf '%s\n' '{"type": "assistant", "timestamp": "2026-11-01T00:00:07Z", "sessionId": "sess1", "cwd": "C:/repo", "message": {"id": "m4", "model": "claude-opus-5-5", "usage": {"input_tokens": 1, "output_tokens": 1}}}' >>"$work/claude/C--repo/sess1.jsonl"
-equals "伸びたログは読み直し、新しい応答だけを足す" "$(collect)" "1個のログを読み、1件の呼び出しを足した"
+equals "伸びたログは読み直し、新しい応答だけを足す" "$(collect)" "1個のログを読み、1件の呼び出しを足した。形の違う1行を飛ばした"
 
 rm -rf "$work/claude" "$work/codex"
 equals "元のログを消しても、記録から集計できる" "$(field --by source -- "rows['claude']['calls'], rows['codex']['calls']")" "(6, 2)"
+equals "飛ばした行は、読み直したログの分を数え直して集計に出す" "$(usage report --since 2026-01-01 | grep '形が違う')" "これまでに読んだログで、形が違うので記録に入れなかった行: 1行"
 equals "期間の前の呼び出しは数えない" "$(field --since 2025-12-01 --by source -- "rows['claude']['calls']")" "7"
 
 # 100万分の1ドルで、m1: 入力10×4 + 5分の書き込み100×5 + 1時間の書き込み200×8 + 読み取り1000×0.2 + 出力100×20 = 4340、
@@ -137,25 +138,34 @@ main.write_text("\n".join([call("bad", cache_creation="n/a"), call("a1"), call("
                            call("d5", output_tokens=float("inf")), call("d6", input_tokens=2**70),
                            call("d7", top={"cwd": "\ud800"}),
                            # 集計に使わない属性の形が変わっても、呼び出しは数える
-                           call("d8", top={"effort": {"level": "high"}})]) + "\n", encoding="utf-8")
+                           call("d8", top={"effort": {"level": "high"}}),
+                           # 使用量の無い行で、サブエージェントを起こしたときのスキルが辞書
+                           json.dumps({"type": "assistant", "attributionSkill": {"x": 1},
+                                       "message": {"content": [{"type": "tool_use", "id": "t", "name": "Agent"}]}})]) + "\n", encoding="utf-8")
 # 読めないログ(名前が.jsonlのディレクトリ)は飛ばして、ほかのログを読む
 (odd / "claude/p/dir.jsonl").mkdir()
 sub.write_text(call("z1") + "\n", encoding="utf-8")
 sub.with_suffix(".meta.json").write_text("null", encoding="utf-8")
+# .meta.jsonの文字列でない値は使わず、呼び出しは数える
+(sub.parent / "agent-y.jsonl").write_text(call("y1") + "\n", encoding="utf-8")
+(sub.parent / "agent-y.meta.json").write_text(json.dumps({"agentType": 5, "toolUseId": "t"}), encoding="utf-8")
 rollout = odd / "codex/sessions/r.jsonl"
 rollout.parent.mkdir(parents=True)
 usage = {"input_tokens": 1, "cached_input_tokens": 0, "output_tokens": 1}
+text = {"input_tokens": "10", "cached_input_tokens": "4", "output_tokens": "1"}
 rollout.write_text("\n".join(json.dumps(e) for e in [
     {"type": "session_meta", "payload": {"id": "r", "cwd": "C:/repo", "source": {"subagent": ["x"]}}},
     {"type": "event_msg", "timestamp": "2026-11-01T00:00:00Z", "payload": {"type": "token_count", "info": "x"}},
     {"type": "event_msg", "timestamp": "2026-11-01T00:00:01Z",
      "payload": {"type": "token_count", "info": {"total_token_usage": usage, "last_token_usage": usage}}},
+    {"type": "event_msg", "timestamp": "2026-11-01T00:00:02Z",
+     "payload": {"type": "token_count", "info": {"total_token_usage": text, "last_token_usage": text}}},
 ]) + "\n", encoding="utf-8")
 EOF
-equals "型の違う行は飛ばし、ほかの行とログは読む" "$(collect "$work/odd" 2>/dev/null)" "3個のログを読み、5件の呼び出しを足した"
+equals "型の違う行は飛ばして数え、ほかの行とログは読む" "$(collect "$work/odd" 2>/dev/null)" "4個のログを読み、7件の呼び出しを足した。形の違う9行を飛ばした"
 equals "読めたログは読み直さない" "$(collect "$work/odd" 2>/dev/null)" "0個のログを読み、0件の呼び出しを足した"
-equals "文字列で書かれたトークンも数として集計する" "$(field --by source -- "rows['claude']['output']")" "5"
-equals ".meta.jsonの中身が無くても、名前がagent-のログはサブエージェントとして分ける" "$(field --by agent-type -- "len(rows)")" "2"
+equals "文字列で書かれたトークンも数として集計する" "$(field --by source -- "rows['claude']['output'], rows['codex']['input'], rows['codex']['cache_read']")" "(5, 7, 4)"
+equals ".meta.jsonの中身が無いか文字列でなくても、名前がagent-のログはサブエージェントとして分ける" "$(field --source claude --by agent-type -- "sorted(r['calls'] for r in rows.values())")" "[2, 3]"
 
 # Codexのサブエージェントの記録は、自分のsession_metaの次に親のものを持つ。親と同じ行番号の呼び出しも別に数える
 db="$work/fork.sqlite3"
