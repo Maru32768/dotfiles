@@ -127,9 +127,9 @@ out="$(bash "$lost" before-twice.md -- after-fence.md)"
 equals "同じ記述が2回あっても、最初の場所で1回だけ挙げる" "$? $out" "$want"
 
 # 後のファイルの2行にまたがる文字列は、残っているとみなさない。2文字の語は、codeとlineの判定に使わない
-printf '%s\n' '`toolinit`を使う。' "${fence}bash" 'ls -la /etc' "$fence" > before-match.md
+printf '%s\n' '`toolinit`を使う。' "${fence}bash" 'ls -la /etc' 'toolinit ls' "$fence" > before-match.md
 printf '%s\n' 'tool' 'init' 'ls etc' > after-match.md
-want="$(printf '1 span\tbefore-match.md:1\ttoolinit\nline\tbefore-match.md:3\tls -la /etc')"
+want="$(printf '1 span\tbefore-match.md:1\ttoolinit\nline\tbefore-match.md:3\tls -la /etc\ncode\tbefore-match.md:4\ttoolinit ls')"
 out="$(bash "$lost" before-match.md -- after-match.md)"
 equals "行をまたぐ一致は数えず、3文字に満たない語は見ない" "$? $out" "$want"
 
