@@ -5,6 +5,6 @@
 {{-   $current = fromJson .chezmoi.stdin -}}
 {{- end -}}
 {{- $shared := include ".claude-settings.json" | fromJson -}}
-{{- /* review-loop の台帳の置き場 (docs/claude.md)。~ で書いたパスを展開するかは文書にないので、絶対パスにする */ -}}
+{{- /* review-loop の台帳の置き場。絶対パスにする理由は docs/claude.md */ -}}
 {{- $shared = mergeOverwrite $shared (dict "permissions" (dict "additionalDirectories" (list (printf "%s/.local/state/review-loop" .chezmoi.homeDir)))) -}}
 {{ mergeOverwrite $current $shared | toPrettyJson "  " }}
