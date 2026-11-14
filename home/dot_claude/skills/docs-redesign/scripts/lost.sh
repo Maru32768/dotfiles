@@ -44,16 +44,14 @@ for f in "$@"; do cat < "$f" || die "後のファイルを読めない: $f"; ech
 HAY="$hay" awk '
 function norm(s) { gsub(/\r/, "", s); gsub(/[ \t]+/, " ", s); sub(/^ /, "", s); sub(/ $/, "", s); return s }
 # 後のファイルのどこかの行に、tokが別の語の一部としてではなく現れるか。前後が英数字、_、-の一致と、
-# 後ろに.、:、/と英数字が続く一致は数えない(-fと--force、.envと.env.example、/apiと/api/v2)。
-# tokの端が英数字、_、-でなければ、その側の隣は見ない(記号で終わる記述は、語の一部になりようがない)
-function present(tok,   i, h, off, j, p, l, r) {
+# 後ろに.、:、/と英数字が続く一致は数えない(-fと--force、.envと.env.example、/apiと/api/v2)
+function present(tok,   i, h, off, j, p) {
   if (index(hay, tok) == 0) return 0
-  l = substr(tok, 1, 1) ~ /[A-Za-z0-9_-]/; r = substr(tok, length(tok)) ~ /[A-Za-z0-9_-]/
   for (i = 1; i <= nh; i++) {
     h = hl[i]; off = 0
     while ((j = index(substr(h, off + 1), tok)) > 0) {
       p = off + j
-      if ((!l || p == 1 || substr(h, p - 1, 1) !~ /[A-Za-z0-9_-]/) && (!r || substr(h, p + length(tok), 2) !~ "^([A-Za-z0-9_-]|[.:/][A-Za-z0-9])")) return 1
+      if ((p == 1 || substr(h, p - 1, 1) !~ /[A-Za-z0-9_-]/) && substr(h, p + length(tok), 2) !~ "^([A-Za-z0-9_-]|[.:/][A-Za-z0-9])") return 1
       off = p
     }
   }
