@@ -22,7 +22,6 @@ collectを実行する(docs/claude.md)。ログの形式はClaude Codeの内部�
 
 import argparse
 import json
-import os
 import sqlite3
 import sys
 from datetime import datetime, timedelta, timezone
@@ -30,8 +29,8 @@ from pathlib import Path
 
 HOME = Path.home()
 DB = HOME / ".local/state/usage/usage.sqlite3"
-CLAUDE = Path(os.environ.get("CLAUDE_CONFIG_DIR") or HOME / ".claude") / "projects"
-CODEX = Path(os.environ.get("CODEX_HOME") or HOME / ".codex")
+CLAUDE = HOME / ".claude/projects"
+CODEX = HOME / ".codex"
 
 # 100万トークンあたりの米ドル: 入力、5分のキャッシュ書き込み、1時間のキャッシュ書き込み、キャッシュ読み取り、出力。
 # https://platform.claude.com/docs/en/about-claude/pricing (2026-11-14)。既定のモデルが変わったら直す。
