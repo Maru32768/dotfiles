@@ -112,6 +112,8 @@ try {
 
     $shimOutput = (& cmd /c "`"$shim`" noodlemap -- pwsh -NoProfile -ExecutionPolicy Bypass -File `"$printEnv`" `"x y`" z" 2>$null) -join "`n"
     Check 'op-run.cmd passes -- and quoted arguments through cmd' ($shimOutput -ceq 'cf value|a b = c|kept|unset|x y,z')
+    & cmd /c "`"$shim`" noodlemap -- pwsh -NoProfile -Command `"exit 7`"" 2>$null | Out-Null
+    Check 'op-run.cmd returns the exit code of the command' ($LASTEXITCODE -eq 7)
 
     Check 'an unknown vault fails' ((Invoke-OpRun @('nope', '--', 'pwsh', '-NoProfile', '-Command', 'exit 0')).Code -ne 0)
 
