@@ -118,7 +118,9 @@ try {
     # A token the caller already had is not passed on either
     Remove-Item Env:OP_SERVICE_ACCOUNT_TOKEN -ErrorAction SilentlyContinue
     foreach ($secret in $secrets) {
-        $callerEnv[$secret.key] = [Environment]::GetEnvironmentVariable($secret.key, 'Process')
+        if (-not $callerEnv.ContainsKey($secret.key)) {
+            $callerEnv[$secret.key] = [Environment]::GetEnvironmentVariable($secret.key, 'Process')
+        }
         [Environment]::SetEnvironmentVariable($secret.key, $secret.values[0], 'Process')
     }
     $command = $rest[0]

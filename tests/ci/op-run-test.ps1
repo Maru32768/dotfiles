@@ -54,13 +54,15 @@ function Write-Item([string]$VaultId, [object[]]$Items) {
 }
 $vaults = Write-Json (Join-Path $work 'vaults.json') @(@{ id = 'v-noodlemap'; name = 'noodlemap' }, @{ id = 'v-lattice'; name = 'lattice' },
     @{ id = 'v-bad'; name = 'bad' }, @{ id = 'v-dupkey'; name = 'dupkey' }, @{ id = 'v-none'; name = 'none' }, @{ id = 'v-two'; name = 'two' },
-    @{ id = 'v-broken'; name = 'broken' })
+    @{ id = 'v-broken'; name = 'broken' }, @{ id = 'v-optoken'; name = 'optoken' })
 $vaultsDup = Write-Json (Join-Path $work 'vaults-dup.json') @(@{ id = 'v-a'; name = 'dup' }, @{ id = 'v-b'; name = 'dup' })
 Write-Item 'v-noodlemap' @(@('CLOUDFLARE_API_TOKEN', 'cf value'), @('MULTI', 'a b = c'), @('EMPTY_EXTRA', 'kept', ''))
 Write-Item 'v-bad' @(, @('BAD=NAME', 'x'))
 Write-Item 'v-dupkey' @(@('A', '1'), @('a', '2'))
 Write-Item 'v-none' @(, @('NOTHING'))
 Write-Item 'v-two' @(, @('TWO', 'a', 'b'))
+# A vault may hold another service account token for the command itself
+Write-Item 'v-optoken' @(, @('OP_SERVICE_ACCOUNT_TOKEN', 'token for the command'))
 # The fake op fails to get the item with the id broken
 Write-Item 'v-broken' @(, @('GOOD', 'g'))
 Write-Json (Join-Path $work 'items\v-broken\list.json') @(@{ id = 'i0'; title = 'GOOD' }, @{ id = 'broken'; title = 'BROKEN' }) | Out-Null
@@ -110,6 +112,8 @@ try {
         -not (Test-Path Env:CLOUDFLARE_API_TOKEN) -and $env:MULTI -ceq 'caller multi' -and $env:OP_SERVICE_ACCOUNT_TOKEN -ceq 'caller-token')
     & $script --list noodlemap 2>$null | Out-Null
     Check 'run in the caller process, --list leaves the caller token in place' ($env:OP_SERVICE_ACCOUNT_TOKEN -ceq 'caller-token')
+    & $script optoken -- pwsh -NoProfile -Command 'exit 0' 2>$null
+    Check 'run in the caller process, an item named OP_SERVICE_ACCOUNT_TOKEN does not replace the caller token afterwards' ($env:OP_SERVICE_ACCOUNT_TOKEN -ceq 'caller-token')
     Remove-Item Env:OP_SERVICE_ACCOUNT_TOKEN, Env:MULTI, Env:CLOUDFLARE_API_TOKEN, Env:EMPTY_EXTRA -ErrorAction SilentlyContinue
     & $script broken -- pwsh -NoProfile -Command 'exit 0' 2>$null
     Check 'run in the caller process, a failing op leaves no token behind' (-not (Test-Path Env:OP_SERVICE_ACCOUNT_TOKEN))
