@@ -28,9 +28,11 @@ printf '%s\n' "\${FAKE_TOKEN:-$token}"
 EOF
 
 # 偽の op: トークンが合わなければ失敗する。vault の ID ごとのディレクトリにアイテムを置き、
-# 求められた vault の ID を記録する。FAKE_VAULTS で vault の一覧を変える
+# 求められた vault の ID を記録する。FAKE_VAULTS で vault の一覧を変える。
+# 本物の op は標準入力からも対象を読むので、端末でない標準入力は読み捨てる
 cat >"$work/bin/op" <<EOF
 #!/bin/bash
+[ -t 0 ] || cat >/dev/null
 [ "\${OP_SERVICE_ACCOUNT_TOKEN:-}" = "$token" ] || { echo "bad token" >&2; exit 1; }
 case "\$1 \$2" in
   "vault list") cat "\${FAKE_VAULTS:-$work/vaults.json}" ;;

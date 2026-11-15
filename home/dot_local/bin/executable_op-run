@@ -54,17 +54,17 @@ read_token() {
 }
 
 # 使い方: vault_items <トークン> <vault 名>  (アイテムの JSON を続けて並べて出力する)
-# トークンを op にだけ渡すため、サブシェルで動かす
+# トークンを op にだけ渡すため、サブシェルで動かす。op は標準入力からも対象を読むので、標準入力を渡さない
 vault_items() (
   export OP_SERVICE_ACCOUNT_TOKEN="$1"
   local name="$2" vaults id count items item_id
-  vaults="$(op vault list --format json)" || die "vault の一覧を取得できない"
+  vaults="$(op vault list --format json </dev/null)" || die "vault の一覧を取得できない"
   count="$(jq --arg name "$name" '[.[] | select(.name == $name)] | length' <<<"$vaults")" || die "vault の一覧を読めない"
   [ "$count" = 1 ] || die "vault $name が $count 個ある (このトークンで読めるものの中で、ちょうど 1 個である必要がある)"
   id="$(jq -r --arg name "$name" '.[] | select(.name == $name) | .id' <<<"$vaults")"
-  items="$(op item list --vault "$id" --format json)" || die "vault $name のアイテムの一覧を取得できない"
+  items="$(op item list --vault "$id" --format json </dev/null)" || die "vault $name のアイテムの一覧を取得できない"
   jq -r '.[].id' <<<"$items" | while IFS= read -r item_id; do
-    op item get "$item_id" --vault "$id" --format json --reveal || die "vault $name のアイテム $item_id を取得できない"
+    op item get "$item_id" --vault "$id" --format json --reveal </dev/null || die "vault $name のアイテム $item_id を取得できない"
   done
 )
 
