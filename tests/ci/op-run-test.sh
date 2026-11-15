@@ -78,6 +78,8 @@ item v-broken broken BROKEN b
 item v-emptytitle i1 "" "SEKRIT-EMPTY"
 item v-nltitle i1 "FOO
 " "SEKRIT-NL"
+# 検査がどれか 1 つではなくすべてのアイテムを見ることを確かめるため、正しいアイテムも置く
+for vault in v-bad v-two v-emptytitle v-nltitle; do item "$vault" i0 GOOD g; done
 
 run() { env PATH="$work/bin:$PATH" OP_RUN_TOKEN_FILE="$work/token.gpg" "$@"; }
 
