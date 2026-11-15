@@ -55,7 +55,7 @@ $vaults = Write-Json (Join-Path $work 'vaults.json') @(@{ id = 'v-noodlemap'; na
     @{ id = 'v-bad'; name = 'bad' }, @{ id = 'v-dupkey'; name = 'dupkey' }, @{ id = 'v-none'; name = 'none' }, @{ id = 'v-two'; name = 'two' })
 $vaultsDup = Write-Json (Join-Path $work 'vaults-dup.json') @(@{ id = 'v-a'; name = 'dup' }, @{ id = 'v-b'; name = 'dup' })
 Write-Item 'v-noodlemap' @(@('CLOUDFLARE_API_TOKEN', 'cf value'), @('MULTI', 'a b = c'), @('EMPTY_EXTRA', 'kept', ''))
-Write-Item 'v-bad' @(, @('BAD-NAME', 'x'))
+Write-Item 'v-bad' @(, @('BAD=NAME', 'x'))
 Write-Item 'v-dupkey' @(@('A', '1'), @('a', '2'))
 Write-Item 'v-none' @(, @('NOTHING'))
 Write-Item 'v-two' @(, @('TWO', 'a', 'b'))

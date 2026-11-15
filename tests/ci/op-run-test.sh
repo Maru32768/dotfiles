@@ -62,7 +62,7 @@ item v-noodlemap i1 CLOUDFLARE_API_TOKEN "cf value"
 item v-noodlemap i2 MULTI "line1
 line2 = x"
 item v-noodlemap i3 EMPTY_EXTRA "kept" ""
-item v-bad i1 BAD-NAME x
+item v-bad i1 BAD=NAME x
 item v-dupkey i1 A 1
 item v-dupkey i2 A 2
 item v-none i1 NOTHING
