@@ -66,7 +66,7 @@ PowerShellからは`op-run.ps1`が、`cmd`からは`op-run.cmd`が呼ばれる�
 
 ## 秘密情報を足す
 
-Web画面かデスクトップアプリで、そのvaultにアイテムを足す。種類はAPI CredentialかPasswordにし、タイトルを環境変数の名前にする(英数字と`_`)。値は秘匿フィールド(API Credentialの`credential`、Passwordの`password`)に入れる。
+Web画面かデスクトップアプリで、そのvaultにアイテムを足す。種類はAPI CredentialかPasswordにし、タイトルを環境変数の名前にする(英数字と`_`で、先頭は数字以外)。値は秘匿フィールド(API Credentialの`credential`、Passwordの`password`)に入れる。
 
 次のとき、`op-run`は何も実行せずに失敗する。
 
