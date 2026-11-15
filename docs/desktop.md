@@ -62,10 +62,12 @@ desktop の署名鍵は、Windows と WSL の鍵とは別にする。PC を失�
 - `tests/ci/render.sh` が、`linux-desktop` を描画して適用する。置かれるファイルが `linux-main` から WSLg の設定を除いたものと一致すること、`.gitconfig` の署名の設定、`signingKey` が残ること、desktop に `agent` を作れないことを確かめる。
 - `tests/ci/container.sh desktop` が、ユーザーを先に作ったコンテナで `root.sh`、`user.sh`、`doctor.sh` を流す。
 
-## まだ確かめていないこと
+## 実物の PC で確かめたこと
 
-実物の PC ではまだ動かしていない。次のことは、サブ PC で確かめる。
+サブ PC (Ubuntu 26.04.1、GNOME の Wayland のセッション) で、この手順のとおりに作って確かめた (2026-11-16)。
 
-- gpg-agent のパスフレーズの入力画面が出るか。Ubuntu Desktop では `pinentry-gnome3` が選ばれることがあり、`doctor.sh` はそれも GUI として通す。
-- SSH キーを gpg-agent で扱えるか。GNOME は自分の SSH エージェントを動かし、セッションの `SSH_AUTH_SOCK` をそちらに向ける。`.bashrc` はシェルの中で gpg-agent に向け直すが、シェルを通らない GUI のアプリは GNOME のエージェントを使う。
-- Claude Code のサンドボックス (bubblewrap) が動くか。Ubuntu は、権限のないユーザーの名前空間を AppArmor で制限している。
+- `doctor.sh` は、資格情報の TODO (1Password のトークンと Claude のログイン) のほかは通る。
+- パスフレーズの入力画面は出る。Ubuntu Desktop では `pinentry-gnome3` が選ばれ、`doctor.sh` はそれも GUI として通す。
+- 作った鍵で署名でき、GitHub への登録も `doctor.sh` が確かめる。
+- SSH キーは、シェルの中では gpg-agent で扱われる。GNOME は自分の SSH エージェントを動かし、セッションの `SSH_AUTH_SOCK` をそちらに向けるが、`.bashrc` がシェルの中で gpg-agent に向け直す。シェルを通らない GUI のアプリは、GNOME のエージェントを使う。
+- bubblewrap で名前空間を作れる。Ubuntu は権限のないユーザーの名前空間を AppArmor で制限できるが、このサブ PC では `kernel.apparmor_restrict_unprivileged_userns` が `0` だった。`1` の PC では、Claude Code のサンドボックスが動かないかもしれない。サンドボックスの中で Claude にコマンドを動かさせるところまでは、まだ試していない。
