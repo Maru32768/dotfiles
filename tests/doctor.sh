@@ -89,10 +89,11 @@ check "サンドボックスの依存" 'command -v bwrap && command -v socat'
 
 # 一覧にあるものがすべて入っていること。ビルドの失敗までは分からない
 plug_dir="$HOME/.vim/plugged"
-declared_plugins() { sed -nE "s|^Plug '[^/']+/([^']+)'.*|\\1|p" "$HOME/.vimrc" | sort -u; }
-installed_plugins() { find "$plug_dir" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' 2>/dev/null | sort -u; }
+# en_US.UTF-8 などでは sort と comm の順序が食い違うので、C の順序で比べる
+declared_plugins() { sed -nE "s|^Plug '[^/']+/([^']+)'.*|\\1|p" "$HOME/.vimrc" | LC_ALL=C sort -u; }
+installed_plugins() { find "$plug_dir" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' 2>/dev/null | LC_ALL=C sort -u; }
 declared_count="$(declared_plugins | wc -l)"
-missing_plugins="$(comm -23 <(declared_plugins) <(installed_plugins) | paste -sd ' ' -)"
+missing_plugins="$(LC_ALL=C comm -23 <(declared_plugins) <(installed_plugins) | paste -sd ' ' -)"
 if [ "$declared_count" -eq 0 ]; then
   fail "vim プラグイン (~/.vimrc に一覧がない)"
 elif [ -n "$missing_plugins" ]; then
