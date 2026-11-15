@@ -58,7 +58,8 @@ function Invoke-Op([string]$Token, [string[]]$Arguments) {
     $before = $env:OP_SERVICE_ACCOUNT_TOKEN
     $env:OP_SERVICE_ACCOUNT_TOKEN = $Token
     try {
-        $output = (& op @Arguments --format json) -join "`n"
+        # op reads its standard input too, which belongs to the command
+        $output = ($null | & op @Arguments --format json) -join "`n"
         if ($LASTEXITCODE -ne 0) { Stop-WithError "op $($Arguments -join ' ') failed" }
     } finally {
         if ($null -eq $before) { Remove-Item Env:OP_SERVICE_ACCOUNT_TOKEN -ErrorAction SilentlyContinue } else { $env:OP_SERVICE_ACCOUNT_TOKEN = $before }

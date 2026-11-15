@@ -91,6 +91,9 @@ blocked "アイテムのほかのフィールドは渡さない" '[[ "$out" == *
 run bash "$script" noodlemap -- bash -c 'exit 7'
 check "コマンドの終了コードを返す" '[ "$?" = 7 ]'
 
+out="$(printf 'piped input\n' | run bash "$script" noodlemap -- cat)"
+check "標準入力は op でなくコマンドに渡る" '[ "$out" = "piped input" ]'
+
 out="$(run bash "$script" --list noodlemap)"
 check "--list は名前だけを出す" '[ "$out" = "CLOUDFLARE_API_TOKEN
 EMPTY_EXTRA

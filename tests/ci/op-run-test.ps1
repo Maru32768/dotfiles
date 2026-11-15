@@ -21,8 +21,10 @@ Set-Content -LiteralPath (Join-Path $work 'token.gpg') -Value 'encrypted'
 # Decrypting returns the token, or FAKE_TOKEN when it is set
 Set-Content -LiteralPath (Join-Path $bin 'gpg.cmd') -Encoding Ascii -Value "@if defined FAKE_TOKEN (echo %FAKE_TOKEN%) else (echo $token)"
 # Fails when the token is wrong. Each vault id has a directory of items; records the vault it was asked for.
+# The real op also reads its standard input, so this one reads it all.
 Set-Content -LiteralPath (Join-Path $bin 'op.cmd') -Encoding Ascii -Value @"
 @echo off
+findstr "^" >nul
 if not "%OP_SERVICE_ACCOUNT_TOKEN%"=="$token" exit /b 1
 if "%1 %2"=="vault list" type "%FAKE_VAULTS%" & exit /b 0
 if "%1 %2"=="item list" (
@@ -103,6 +105,9 @@ try {
 
     $r = Invoke-OpRun @('noodlemap', '--', 'pwsh', '-NoProfile', '-Command', 'exit 7')
     Check 'the exit code of the command is returned' ($r.Code -eq 7)
+
+    $piped = ('piped input' | & pwsh -NoProfile -ExecutionPolicy Bypass -File $script noodlemap -- pwsh -NoProfile -Command '[Console]::In.ReadToEnd().Trim()' 2>$null) -join "`n"
+    Check 'the standard input goes to the command, not to op' ($piped -ceq 'piped input')
 
     # From PowerShell, op-run.ps1 runs in the caller's own process
     $env:OP_SERVICE_ACCOUNT_TOKEN = 'caller-token'
