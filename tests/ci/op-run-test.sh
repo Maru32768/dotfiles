@@ -19,10 +19,15 @@ token="ops_eyJzaWduSW5BZGRyZXNzIjoibXkuMXBhc3N3b3JkLmNvbSJ9-_$$"
 mkdir -p "$work/bin" "$work/items"
 printf 'encrypted' >"$work/token.gpg"
 
-# 偽の gpg: 暗号化では入力をそのまま --output に書き、復号ではトークン (FAKE_TOKEN があればそれ) を返す
+# 偽の gpg: 暗号化では、宛先が TESTKEY のときだけ、入力に enc: を付けて --output に書く。
+# 復号ではトークン (FAKE_TOKEN があればそれ) を返す
 cat >"$work/bin/gpg" <<EOF
 #!/bin/bash
-if [[ " \$* " == *" --encrypt "* ]]; then cat >"\${*: -1}"; exit 0; fi
+if [[ " \$* " == *" --encrypt "* ]]; then
+  [[ " \$* " == *" --recipient TESTKEY "* ]] || exit 3
+  { printf 'enc:'; cat; } >"\${*: -1}"
+  exit 0
+fi
 [ "\${*: -1}" = "$work/token.gpg" ] || exit 2
 printf '%s\n' "\${FAKE_TOKEN:-$token}"
 EOF
@@ -107,7 +112,7 @@ blocked "そのときコマンドは実行しない" '[ -e "$marker" ]'
 set_token() { printf '%s\n' "$1" | env PATH="$work/bin:$PATH" OP_RUN_GPG_RECIPIENT=TESTKEY OP_RUN_TOKEN_FILE="$work/new/token.gpg" script -qec "bash '$script' --set-token" /dev/null; }
 blocked "--set-token は 2 回貼り付けたトークンを保存しない" 'set_token "$token$token" && [ -e "$work/new/token.gpg" ]'
 blocked "--set-token は ops_ で始まらないトークンを保存しない" 'set_token "0.11111111-2222-3333-4444-555555555555.secret:a2V5==" && [ -e "$work/new/token.gpg" ]'
-check "--set-token は前後の空白を除いて保存する" 'set_token " $token " && [ "$(cat "$work/new/token.gpg")" = "$token" ]'
+check "--set-token は前後の空白を除き、署名の鍵に暗号化して保存する" 'set_token " $token " && [ "$(cat "$work/new/token.gpg")" = "enc:$token" ]'
 
 if [ "$failures" -gt 0 ]; then
   printf '\n%s 件の問題があります\n' "$failures"
