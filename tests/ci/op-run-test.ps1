@@ -37,7 +37,7 @@ if "%1 %2"=="item get" type "$work\items\%5\%3.json" & exit /b 0
 exit /b 4
 "@
 function Write-Json([string]$Path, $Value) {
-    ConvertTo-Json -InputObject $Value -Depth 4 | Set-Content -LiteralPath $Path -Encoding Ascii
+    ConvertTo-Json -InputObject $Value -Depth 4 -EscapeHandling EscapeNonAscii | Set-Content -LiteralPath $Path -Encoding Ascii
     return $Path
 }
 # Each item is @(title, concealed values...)
@@ -56,7 +56,8 @@ function Write-Item([string]$VaultId, [object[]]$Items) {
 }
 $vaults = Write-Json (Join-Path $work 'vaults.json') @(@{ id = 'v-noodlemap'; name = 'noodlemap' }, @{ id = 'v-lattice'; name = 'lattice' },
     @{ id = 'v-bad'; name = 'bad' }, @{ id = 'v-dupkey'; name = 'dupkey' }, @{ id = 'v-none'; name = 'none' }, @{ id = 'v-two'; name = 'two' },
-    @{ id = 'v-broken'; name = 'broken' }, @{ id = 'v-optoken'; name = 'optoken' }, @{ id = 'v-nltitle'; name = 'nltitle' })
+    @{ id = 'v-broken'; name = 'broken' }, @{ id = 'v-optoken'; name = 'optoken' }, @{ id = 'v-nltitle'; name = 'nltitle' },
+    @{ id = 'v-kelvin'; name = 'kelvin' })
 $vaultsDup = Write-Json (Join-Path $work 'vaults-dup.json') @(@{ id = 'v-a'; name = 'dup' }, @{ id = 'v-b'; name = 'dup' })
 Write-Item 'v-noodlemap' @(@('CLOUDFLARE_API_TOKEN', 'cf value'), @('MULTI', 'a b = c'), @('EMPTY_EXTRA', 'kept', ''))
 Write-Item 'v-bad' @(, @('BAD=NAME', 'x'))
@@ -67,6 +68,8 @@ Write-Item 'v-two' @(, @('TWO', 'a', 'b'))
 Write-Item 'v-optoken' @(, @('OP_SERVICE_ACCOUNT_TOKEN', 'token for the command'))
 # A title that ends with a newline is not a valid name either
 Write-Item 'v-nltitle' @(, @("FOO`n", 'x'))
+# Ignoring case, [A-Za-z] in .NET also matches the Kelvin sign (U+212A)
+Write-Item 'v-kelvin' @(, @("$([char]0x212A)EY", 'x'))
 # The fake op fails to get the item with the id broken
 Write-Item 'v-broken' @(, @('GOOD', 'g'))
 Write-Json (Join-Path $work 'items\v-broken\list.json') @(@{ id = 'i0'; title = 'GOOD' }, @{ id = 'broken'; title = 'BROKEN' }) | Out-Null
@@ -148,6 +151,7 @@ try {
 
     Check 'a name that cannot be an environment variable fails, and the command does not run' (Test-FailsWithoutRunning 'bad')
     Check 'a name that ends with a newline fails, and the command does not run' (Test-FailsWithoutRunning 'nltitle')
+    Check 'a name with a non-ASCII letter fails, and the command does not run' (Test-FailsWithoutRunning 'kelvin')
     Check 'two items with the same name (ignoring case) fail, and the command does not run' (Test-FailsWithoutRunning 'dupkey')
     Check 'an item without a concealed field fails, and the command does not run' (Test-FailsWithoutRunning 'none')
     Check 'an item with two concealed fields fails, and the command does not run' (Test-FailsWithoutRunning 'two')
