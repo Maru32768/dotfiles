@@ -96,9 +96,10 @@ check "--list は名前だけを出す" '[ "$out" = "CLOUDFLARE_API_TOKEN
 EMPTY_EXTRA
 MULTI" ]'
 
-blocked "知らない vault は失敗する" 'run bash "$script" nope -- true'
 marker="$work/ran"
-blocked "同じ名前の vault が複数あれば失敗する" 'FAKE_VAULTS="$work/vaults-dup.json" run bash "$script" dup -- touch "$marker"'
+blocked "知らない vault は失敗する" 'run bash "$script" nope -- touch "$marker"'
+blocked "vault 名は大文字と小文字を区別して比べる" 'run bash "$script" NOODLEMAP -- touch "$marker"'
+check "同じ名前の vault が複数あれば、そう伝えて失敗する" '! FAKE_VAULTS="$work/vaults-dup.json" run bash "$script" dup -- touch "$marker" 2>"$work/err" && grep -q "vault dup が 2 個ある" "$work/err"'
 blocked "そのときコマンドは実行しない" '[ -e "$marker" ]'
 blocked "環境変数にできない名前があれば失敗する" 'run bash "$script" bad -- touch "$marker"'
 blocked "そのときコマンドは実行しない" '[ -e "$marker" ]'
@@ -107,7 +108,8 @@ blocked "秘匿フィールドのないアイテムがあれば失敗する" 'ru
 check "秘匿フィールドが 2 つあるアイテムがあれば、そう伝えて失敗する" '! run bash "$script" two -- touch "$marker" 2>"$work/err" && grep -q "ちょうど 1 つではない.*TWO" "$work/err"'
 blocked "アイテムを取得できなければ失敗する" 'run bash "$script" broken -- touch "$marker"'
 blocked "そのときコマンドは実行しない" '[ -e "$marker" ]'
-blocked "トークンのファイルがなければ失敗する" 'env PATH="$work/bin:$PATH" OP_RUN_TOKEN_FILE="$work/missing.gpg" bash "$script" noodlemap -- true'
+blocked "トークンのファイルがなければ失敗する" 'env PATH="$work/bin:$PATH" OP_RUN_TOKEN_FILE="$work/missing.gpg" bash "$script" noodlemap -- touch "$marker"'
+blocked "そのときコマンドは実行しない" '[ -e "$marker" ]'
 blocked "コマンドがなければ失敗する" 'run bash "$script" noodlemap --'
 check "保存したトークンの形式が違えば、そう伝えて失敗する" '! FAKE_TOKEN="$token$token" run bash "$script" noodlemap -- touch "$marker" 2>"$work/err" && grep -q "トークンの形式が違う" "$work/err"'
 blocked "そのときコマンドは実行しない" '[ -e "$marker" ]'

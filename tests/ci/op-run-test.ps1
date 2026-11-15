@@ -122,11 +122,14 @@ try {
     & cmd /c "`"$shim`" noodlemap -- pwsh -NoProfile -Command `"exit 7`"" 2>$null | Out-Null
     Check 'op-run.cmd returns the exit code of the command' ($LASTEXITCODE -eq 7)
 
-    Check 'an unknown vault fails' ((Invoke-OpRun @('nope', '--', 'pwsh', '-NoProfile', '-Command', 'exit 0')).Code -ne 0)
+    Check 'an unknown vault fails, and the command does not run' (Test-FailsWithoutRunning 'nope')
+    Check 'vault names are compared case-sensitively' (Test-FailsWithoutRunning 'NOODLEMAP')
 
+    Remove-Item -LiteralPath $marker -ErrorAction SilentlyContinue
     $env:FAKE_VAULTS = $vaultsDup
-    Check 'two vaults with the same name fail, and the command does not run' (Test-FailsWithoutRunning 'dup')
+    $err = (& pwsh -NoProfile -ExecutionPolicy Bypass -File $script @(@('dup', '--') + $touch) 2>&1) -join "`n"
     $env:FAKE_VAULTS = $vaults
+    Check 'two vaults with the same name fail with that reason, and the command does not run' ($err -like '*found 2 vaults named dup*' -and -not (Test-Path -LiteralPath $marker))
 
     Check 'a name that cannot be an environment variable fails, and the command does not run' (Test-FailsWithoutRunning 'bad')
     Check 'two items with the same name (ignoring case) fail, and the command does not run' (Test-FailsWithoutRunning 'dupkey')
@@ -135,7 +138,7 @@ try {
     Check 'an item that op cannot get fails, and the command does not run' (Test-FailsWithoutRunning 'broken')
 
     $env:OP_RUN_TOKEN_FILE = Join-Path $work 'missing.gpg'
-    Check 'a missing token file fails' ((Invoke-OpRun @('noodlemap', '--', 'pwsh', '-NoProfile', '-Command', 'exit 0')).Code -ne 0)
+    Check 'a missing token file fails, and the command does not run' (Test-FailsWithoutRunning 'noodlemap')
     $env:OP_RUN_TOKEN_FILE = Join-Path $work 'token.gpg'
 
     Check 'a missing command fails' ((Invoke-OpRun @('noodlemap', '--')).Code -ne 0)
