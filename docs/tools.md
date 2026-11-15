@@ -27,7 +27,7 @@ cp ~/.config/mise/mise.lock ~/dotfiles/home/dot_config/mise/
 
 マイナーバージョンをまたぐときは (Python の 3.14 から 3.15 など)、先に `config.toml` を書き換える。
 
-1PasswordのCLI(`aqua:1password/cli`)は、`--bump`では上がらない。aquaの定義からバージョンの一覧を引けないので、`config.toml`に正確なバージョンを書いているため。上げるときは、[リリースノート](https://releases.1password.com/developers/cli/)で新しいバージョンを確かめて`config.toml`を書き換え、`mise lock --global aqua:1password/cli`する。短い名前の`1password`なら範囲で書けるが、vfoxのプラグイン(GitHubに置かれたLuaのコード)を動かすことになるので使わない。
+1PasswordのCLI(`aqua:1password/cli`)は、aquaの定義からバージョンの一覧を引けないので、`config.toml`に正確なバージョンを書いている。そのため、`--bump`では上がらない。上げるときは、[リリースノート](https://releases.1password.com/developers/cli/)で新しいバージョンを確かめて`config.toml`を書き換え、`mise lock --global aqua:1password/cli`を実行する。短い名前の`1password`ならバージョンを範囲で書けるが、vfoxのプラグイン(GitHubに置かれたLuaのコード)を動かすことになるので使わない。
 
 mise 本体は `MISE_VERSION` と `$MiseVersion` を書き換える。ずれていると CI が失敗する。引数なしの `mise self-update` で上げると、別の環境とずれる。 Windows の mise は winget で入れているので、バージョンが違ってもセットアップは止めず、警告だけ出す。
 
