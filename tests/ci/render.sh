@@ -116,13 +116,13 @@ check "windows-main: Codex の共通設定が優先される" 'jq -e ".windows.s
 check "Codex の設定がない環境でも共通設定から作れる" '[ "$(cm windows-main execute-template --with-stdin "$(cat "$root/home/dot_codex/modify_config.toml")" </dev/null | cm windows-main execute-template --with-stdin "{{ .chezmoi.stdin | fromToml | toJson }}")" = "$(toml_json windows-main "$root/home/.codex-config.toml")" ]'
 
 # --- 普段の環境 ---
-for file in .ssh/config .gnupg/gpg-agent.conf .claude/settings.json .claude/CLAUDE.md .tmux.conf .vimrc .local/bin/bws-run .local/bin/split-pdf .local/bin/usage-log; do
+for file in .ssh/config .gnupg/gpg-agent.conf .claude/settings.json .claude/CLAUDE.md .tmux.conf .vimrc .local/bin/op-run .local/bin/split-pdf .local/bin/usage-log; do
   check "linux-main: $file がある" '[ -f "$work/linux-main/home/$file" ]'
 done
-for tool in bws-run split-pdf usage-log; do
+for tool in op-run split-pdf usage-log; do
   check "linux-main: $tool が実行できる" '[ -x "$work/linux-main/home/.local/bin/$tool" ]'
 done
-for file in .local/bin/bws-run.ps1 .local/bin/bws-run.cmd .local/bin/split-pdf.cmd .local/bin/usage-log.cmd; do
+for file in .local/bin/op-run.ps1 .local/bin/op-run.cmd .local/bin/split-pdf.cmd .local/bin/usage-log.cmd; do
   blocked "linux-main: $file がない" '[ -e "$work/linux-main/home/$file" ]'
 done
 blocked "linux-main: plamo-server.cmd がない" '[ -e "$work/linux-main/home/.local/bin/plamo-server.cmd" ]'
@@ -187,12 +187,12 @@ allowed-tools: Read(~/.local/state/usage/weekly-cap) mcp__ccd_session_mgmt__get_
 done
 
 # --- Windows ---
-for file in .wslconfig OneDrive/Documents/PowerShell/Microsoft.PowerShell_profile.ps1 .claude/settings.json .claude/CLAUDE.md .vimrc .local/bin/bws-run.ps1 .local/bin/bws-run.cmd .local/bin/split-pdf .local/bin/split-pdf.cmd .local/bin/usage-log .local/bin/usage-log.cmd; do
+for file in .wslconfig OneDrive/Documents/PowerShell/Microsoft.PowerShell_profile.ps1 .claude/settings.json .claude/CLAUDE.md .vimrc .local/bin/op-run.ps1 .local/bin/op-run.cmd .local/bin/split-pdf .local/bin/split-pdf.cmd .local/bin/usage-log .local/bin/usage-log.cmd; do
   check "windows-main: $file がある" '[ -f "$work/windows-main/home/$file" ]'
 done
 check "windows-main: plamo-server.cmd がある" '[ -f "$work/windows-main/home/.local/bin/plamo-server.cmd" ]'
 check "windows-main: plamo-server は 127.0.0.1 だけで待ち受け、CORS を localhost に絞る" 'grep -qF -- "--host 127.0.0.1 --port 8077 --cors-origins localhost --no-cors-credentials" "$work/windows-main/home/.local/bin/plamo-server.cmd"'
-for file in .tmux.conf .ssh .config/environment.d .local/bin/bws-run; do
+for file in .tmux.conf .ssh .config/environment.d .local/bin/op-run; do
   blocked "windows-main: $file がない" '[ -e "$work/windows-main/home/$file" ]'
 done
 equals "windows-main: gpg-agent.conf は既存の行を残し、キャッシュを WSL と同じにする" "$(cat "$work/windows-main/home/.gnupg/gpg-agent.conf")" 'pinentry-program C:\pinentry.exe

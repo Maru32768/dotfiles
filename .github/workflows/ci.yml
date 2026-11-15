@@ -58,9 +58,9 @@ jobs:
       - name: Windows PowerShell 5.1 の構文
         shell: powershell
         run: .\tests\ci\windows.ps1
-      - name: bws-run のテスト
+      - name: op-run のテスト
         shell: pwsh
-        run: .\tests\ci\bws-run-test.ps1
+        run: .\tests\ci\op-run-test.ps1
       - name: lab.ps1 run のテスト
         shell: pwsh
         run: .\tests\ci\lab-run-test.ps1

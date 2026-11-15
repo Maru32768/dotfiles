@@ -46,7 +46,7 @@ lock_versions() {
     "$HOME/.config/mise/mise.lock" | grep -v '^github:ggml-org/llama.cpp ' | sort
 }
 check "ツールのバージョンが mise.lock と一致" 'diff <(lock_versions) <(mise ls --current | awk "{print \$1, \$2}" | sort)'
-for tool in chezmoi go node rustc deno bun uv python java terraform aws bws codex gh ghq rg fd shellcheck yt-dlp goimports; do
+for tool in chezmoi go node rustc deno bun uv python java terraform aws op codex gh ghq rg fd shellcheck yt-dlp goimports; do
   check "ツール: $tool" "command -v $tool"
 done
 
@@ -114,10 +114,10 @@ else
   todo "SSH キー: provision/setup-credentials.sh を実行"
 fi
 
-if [ -s ~/.config/bws/token.gpg ]; then
-  pass "Bitwarden Secrets Manager のトークン"
+if [ -s ~/.config/op-run/token.gpg ]; then
+  pass "1Password のサービスアカウントのトークン"
 else
-  todo "Bitwarden Secrets Manager のトークン: bws-run --set-token を実行 (docs/secrets.md)"
+  todo "1Password のサービスアカウントのトークン: op-run --set-token を実行 (docs/secrets.md)"
 fi
 
 if claude auth status >/dev/null 2>&1; then

@@ -124,17 +124,17 @@ check "名前解決できる (/mnt/wsl を外しても)" 'getent hosts github.co
 
 # --- 資格情報 ---
 ssh_private_keys() { grep -rl 'PRIVATE KEY' "$HOME/.ssh" 2>/dev/null; }
-secret_env() { compgen -e | grep -E '^(AWS_|GH_TOKEN$|GITHUB_TOKEN$|ANTHROPIC_|BWS_ACCESS_TOKEN$|BW_SESSION$|CLOUDFLARE_API_TOKEN$|TYPESAFE_API_KEY$)'; }
+secret_env() { compgen -e | grep -E '^(AWS_|GH_TOKEN$|GITHUB_TOKEN$|ANTHROPIC_|OP_SERVICE_ACCOUNT_TOKEN$|OP_SESSION_|OP_CONNECT_TOKEN$|CLOUDFLARE_API_TOKEN$|TYPESAFE_API_KEY$)'; }
 blocked "SSH の秘密鍵がない" '[ -n "$(ssh_private_keys)" ]'
 blocked "GPG の秘密鍵がない" '[ -n "$(ls -A "$HOME/.gnupg/private-keys-v1.d" 2>/dev/null)" ]'
 blocked "SSH エージェントに鍵がない" 'SSH_AUTH_SOCK="${SSH_AUTH_SOCK:-$(gpgconf --list-dirs agent-ssh-socket 2>/dev/null)}" ssh-add -l'
 blocked "秘密情報の環境変数がない" '[ -n "$(secret_env)" ]'
 # 空のファイルは資格情報ではないので、中身の有無で判断する
-for file in .aws/credentials .config/gh/hosts.yml .git-credentials .netrc .npmrc .docker/config.json .claude/.credentials.json .config/bws/token.gpg; do
+for file in .aws/credentials .config/gh/hosts.yml .git-credentials .netrc .npmrc .docker/config.json .claude/.credentials.json .config/op-run/token.gpg; do
   blocked "~/$file に中身がない" "[ -s \"\$HOME/$file\" ]"
 done
-# Bitwarden のパスワードの金庫にもログインしない (docs/secrets.md)
-blocked "Bitwarden CLI にログインしていない" '[ -s "$HOME/.config/Bitwarden CLI/data.json" ]'
+# 1Password のアカウントにもサインインしない。サービスアカウントでなく本人のアカウントなら、すべての vault に届く (docs/secrets.md)
+blocked "1Password CLI にアカウントがない" 'op account list --format json 2>/dev/null | jq -e "length > 0"'
 
 # --- Claude の管理設定 ---
 managed=/etc/claude-code/managed-settings.json

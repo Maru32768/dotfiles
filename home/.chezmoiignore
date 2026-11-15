@@ -11,7 +11,7 @@
 30-vim-plugins.sh
 40-claude-code.sh
 50-gh-extensions.sh
-.local/bin/bws-run
+.local/bin/op-run
 {{ else }}
 .wslconfig
 OneDrive
@@ -19,8 +19,8 @@ OneDrive/**
 .codex
 .codex/**
 .local/bin/plamo-server.cmd
-.local/bin/bws-run.ps1
-.local/bin/bws-run.cmd
+.local/bin/op-run.ps1
+.local/bin/op-run.cmd
 .local/bin/split-pdf.cmd
 .local/bin/usage-log.cmd
 10-mise-install.ps1
@@ -36,7 +36,7 @@ OneDrive/**
 .claude/**
 .agents
 .agents/**
-.local/bin/bws-run
+.local/bin/op-run
 .local/bin/split-pdf
 .local/bin/usage-log
 .local/state

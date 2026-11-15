@@ -1,0 +1,118 @@
+#!/bin/bash
+# 1Password の 1 つの vault に置いた秘密情報を、指定したコマンドにだけ環境変数で渡す。
+# vault の 1 つのアイテムが 1 つの環境変数になる。名前はアイテムのタイトル、値はアイテムの秘匿フィールド。
+# サービスアカウントのトークンは GPG で暗号化して置き、実行のたびに復号する (docs/secrets.md)。
+# Windows では op-run.cmd と op-run.ps1 が同じことをする。
+#
+#   op-run <vault 名> [--] <コマンド> [引数...]
+#   op-run --list <vault 名>   渡す環境変数の名前だけを表示する (値は出さない)
+#   op-run --set-token         トークンを入力し、GPG で暗号化して保存する
+set -euo pipefail
+
+token_file="${OP_RUN_TOKEN_FILE:-$HOME/.config/op-run/token.gpg}"
+
+die() {
+  printf 'op-run: %s\n' "$1" >&2
+  exit 1
+}
+
+# ops_ の後に、JSON を base64url にしたもの。2 回貼り付けたものは ops_eyJ が 2 回現れる
+valid_token() { [[ "$1" =~ ^ops_eyJ[A-Za-z0-9_-]+=*$ && "${1:4}" != *ops_eyJ* ]]; }
+
+usage() {
+  sed -n 's/^#   //p' "${BASH_SOURCE[0]}" >&2
+  exit 2
+}
+
+set_token() {
+  local recipient token dir
+  # 宛先は署名の鍵。OP_RUN_GPG_RECIPIENT はテストが使う
+  recipient="${OP_RUN_GPG_RECIPIENT:-}"
+  [ -n "$recipient" ] || recipient="$(git config --global user.signingkey)" || die "git の user.signingkey がない (暗号化の宛先に使う)"
+  [ -t 0 ] || die "--set-token は端末から実行する"
+  read -rsp 'サービスアカウントのトークン (入力は表示されない。1 回だけ貼り付けて Enter): ' token
+  printf '\n' >&2
+  [ -n "$token" ] || die "トークンが空"
+  valid_token "$token" || die "トークンの形式が違う (2 回貼り付けたり、ほかのキーが混ざったりしていないか確かめる)"
+  dir="$(dirname "$token_file")"
+  mkdir -p "$dir"
+  chmod 700 "$dir"
+  printf '%s' "$token" | gpg --quiet --yes --encrypt --recipient "$recipient" --output "$token_file.tmp"
+  mv "$token_file.tmp" "$token_file"
+  printf '保存しました: %s\n' "$token_file" >&2
+}
+
+# 復号したトークンを出力する。キャッシュが切れていれば gpg がパスフレーズを求める
+read_token() {
+  [ -f "$token_file" ] || die "トークンがない: $token_file (op-run --set-token で保存する)"
+  local token
+  token="$(gpg --quiet --decrypt "$token_file")" || die "トークンを復号できない: $token_file"
+  token="${token//[$'\t\r\n ']/}"
+  [ -n "$token" ] || die "トークンが空: $token_file"
+  valid_token "$token" || die "トークンの形式が違う: $token_file (op-run --set-token で保存し直す)"
+  printf '%s' "$token"
+}
+
+# 使い方: vault_items <トークン> <vault 名>  (アイテムを 1 行に 1 つの JSON で出力する)
+# トークンを op にだけ渡すため、サブシェルで動かす
+vault_items() (
+  export OP_SERVICE_ACCOUNT_TOKEN="$1"
+  local name="$2" vaults id count items item_id
+  vaults="$(op vault list --format json)" || die "vault の一覧を取得できない"
+  count="$(jq --arg name "$name" '[.[] | select(.name == $name)] | length' <<<"$vaults")" || die "vault の一覧を読めない"
+  [ "$count" = 1 ] || die "vault $name が $count 個ある (このトークンで読めるものの中で、ちょうど 1 個である必要がある)"
+  id="$(jq -r --arg name "$name" '.[] | select(.name == $name) | .id' <<<"$vaults")"
+  items="$(op item list --vault "$id" --format json)" || die "vault $name のアイテムの一覧を取得できない"
+  jq -r '.[].id' <<<"$items" | while IFS= read -r item_id; do
+    op item get "$item_id" --vault "$id" --format json --reveal | jq -c . || die "vault $name のアイテム $item_id を取得できない"
+  done
+)
+
+# アイテムから [{key, value}] を作る。名前が環境変数として使えて、重複がなく、値がちょうど 1 つであること
+to_secrets() {
+  local items="$1" bad
+  items="$(jq -s 'map({key: .title, values: [.fields[]? | select(.type == "CONCEALED" and (.value // "") != "") | .value]})' <<<"$items")" || die "アイテムを読めない"
+  bad="$(jq -r '.[] | select(.values | length != 1) | .key' <<<"$items")"
+  [ -z "$bad" ] || die "秘匿フィールドがちょうど 1 つではないアイテムがある: $(printf '%s' "$bad" | paste -sd ' ' -)"
+  bad="$(jq -r '.[].key | select(test("^[A-Za-z_][A-Za-z0-9_]*$") | not)' <<<"$items")"
+  [ -z "$bad" ] || die "環境変数にできない名前がある: $(printf '%s' "$bad" | paste -sd ' ' -)"
+  jq -e '[.[].key] | length == (unique | length)' >/dev/null <<<"$items" || die "同じ名前のアイテムが複数ある"
+  jq 'map({key, value: .values[0]})' <<<"$items"
+}
+
+[ "$#" -gt 0 ] || usage
+case "$1" in
+  --set-token)
+    [ "$#" -eq 1 ] || usage
+    set_token
+    exit 0
+    ;;
+  --list)
+    [ "$#" -eq 2 ] || usage
+    token="$(read_token)"
+    items="$(vault_items "$token" "$2")"
+    secrets="$(to_secrets "$items")"
+    jq -r '.[].key' <<<"$secrets" | sort
+    exit 0
+    ;;
+  -*) usage ;;
+esac
+
+vault="$1"
+shift
+[ "${1:-}" = -- ] && shift
+[ "$#" -gt 0 ] || usage
+
+# 失敗を拾えるよう、トークンの復号と取得は別の行で行う
+token="$(read_token)"
+items="$(vault_items "$token" "$vault")"
+unset token
+secrets="$(to_secrets "$items")"
+unset items
+# 呼び出し元が持っていたトークンも、コマンドには渡さない
+unset OP_SERVICE_ACCOUNT_TOKEN
+while IFS= read -r -d '' pair; do
+  export "${pair?}"
+done < <(jq -j '.[] | .key, "=", .value, "\u0000"' <<<"$secrets")
+unset secrets
+exec "$@"

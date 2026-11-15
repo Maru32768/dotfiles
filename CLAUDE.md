@@ -7,10 +7,10 @@ Windows と WSL (Ubuntu 26.04) の設定とツールを chezmoi と mise で管�
 ## コマンド
 
 ```bash
-bash tests/ci/static.sh                 # 環境を作らずにできる検査をすべて (shellcheck、フックのテスト、bws-run のテスト、split-pdf のテスト、usage-logのテスト、split-pr-stackのテスト、review-loopの記録のテスト、docs-redesignのスクリプトのテスト、不変条件、レンダリング、gitleaks、actionlint)
+bash tests/ci/static.sh                 # 環境を作らずにできる検査をすべて (shellcheck、フックのテスト、op-run のテスト、split-pdf のテスト、usage-logのテスト、split-pr-stackのテスト、review-loopの記録のテスト、docs-redesignのスクリプトのテスト、不変条件、レンダリング、gitleaks、actionlint)
 bash tests/ci/invariants.sh             # 不変条件だけ
 bash tests/ci/render.sh                 # linux-main / linux-agent / windows-main を描画して置かれるものを確かめる (スキルの取得でネットワークを使う)
-bash tests/ci/bws-run-test.sh           # bws-run (bash 版) のテスト
+bash tests/ci/op-run-test.sh            # op-run (bash 版) のテスト
 bash tests/ci/split-pdf-test.sh         # split-pdf のテスト (pypdf を PyPI から取得する)
 bash tests/ci/usage-log-test.sh         # usage-logのテスト(作ったClaude CodeとCodexのログで試す)
 bash tests/ci/split-pr-stack-test.sh    # split-pr-stackのスクリプトのテスト(偽のghで試す。jqをmiseで取得する)
@@ -23,7 +23,7 @@ bash tests/doctor.sh                    # 今の環境の確認
 chezmoi diff && chezmoi apply           # ホームへの反映
 ```
 
-`container.sh` は作業ツリーの内容を使うので、コミット前に試せる。Windows 側の検査 (`tests/ci/windows.ps1`、`tests/ci/bws-run-test.ps1`、`tests/ci/lab-run-test.ps1`) は CI の windows ジョブで動く。CI は `docs/**` と `**.md` だけの変更では動かない。
+`container.sh` は作業ツリーの内容を使うので、コミット前に試せる。Windows 側の検査 (`tests/ci/windows.ps1`、`tests/ci/op-run-test.ps1`、`tests/ci/lab-run-test.ps1`) は CI の windows ジョブで動く。CI は `docs/**` と `**.md` だけの変更では動かない。
 
 ## 構造の要点
 
@@ -43,7 +43,7 @@ chezmoi diff && chezmoi apply           # ホームへの反映
 - `tests/ci/invariants.sh` が検査している約束: PowerShell と cmd のスクリプトは ASCII だけ (Windows PowerShell 5.1 は BOM なしの UTF-8 を、cmd はコードページの違う文字を読み違える)。mise 本体のバージョンは `provision/user.sh` の `MISE_VERSION` と `bootstrap.ps1` の `$MiseVersion` で揃える。GPG のフィンガープリントは各スクリプトで揃える。
 - PowerShell のスクリプトは Windows PowerShell 5.1 でも動くように書く。
 - 改行は LF (`.gitattributes`)。
-- 公開リポジトリなので、秘密情報を入れない (gitleaks が履歴すべてを調べる)。API キーは Bitwarden Secrets Manager と `bws-run` で渡す (`docs/secrets.md`)。
+- 公開リポジトリなので、秘密情報を入れない (gitleaks が履歴すべてを調べる)。APIキーは1Passwordと`op-run`で渡す (`docs/secrets.md`)。
 - CI の Actions はコミットのハッシュで固定する。CI 専用のツール (gitleaks、actionlint) のバージョンは `tests/ci/static.sh` に書き、`mise.lock` には載せない。
 - `block-signing-bypass` フックが署名を回避する操作を拒否する。署名できないときは回避せず、失敗を報告して止まる。止めるコマンドと通すコマンドの一覧は `main_test.go` にあり、ルールを直す前にケースを足す。
 - コミットメッセージは日本語。1 行目に変更の要約、本文に理由を書く。
