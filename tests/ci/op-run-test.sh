@@ -52,7 +52,7 @@ chmod +x "$work/bin/gpg" "$work/bin/op"
 
 jq -n '[{id: "v-noodlemap", name: "noodlemap"}, {id: "v-lattice", name: "lattice"}, {id: "v-bad", name: "bad"},
   {id: "v-dupkey", name: "dupkey"}, {id: "v-none", name: "none"}, {id: "v-two", name: "two"},
-  {id: "v-broken", name: "broken"}]' >"$work/vaults.json"
+  {id: "v-broken", name: "broken"}, {id: "v-emptytitle", name: "emptytitle"}, {id: "v-nltitle", name: "nltitle"}]' >"$work/vaults.json"
 jq -n '[{id: "v-dup", name: "dup"}, {id: "v-dup2", name: "dup"}]' >"$work/vaults-dup.json"
 
 # 使い方: item <vault の ID> <アイテムの ID> <タイトル> [秘匿フィールドの値...]
@@ -75,6 +75,9 @@ item v-none i1 NOTHING
 item v-two i1 TWO a b
 item v-broken i1 GOOD g
 item v-broken broken BROKEN b
+item v-emptytitle i1 "" "SEKRIT-EMPTY"
+item v-nltitle i1 "FOO
+" "SEKRIT-NL"
 
 run() { env PATH="$work/bin:$PATH" OP_RUN_TOKEN_FILE="$work/token.gpg" "$@"; }
 
@@ -105,6 +108,9 @@ blocked "vault 名は大文字と小文字を区別して比べる" 'run bash "$
 check "同じ名前の vault が複数あれば、そう伝えて失敗する" '! FAKE_VAULTS="$work/vaults-dup.json" run bash "$script" dup -- touch "$marker" 2>"$work/err" && grep -q "vault dup が 2 個ある" "$work/err"'
 blocked "そのときコマンドは実行しない" '[ -e "$marker" ]'
 blocked "環境変数にできない名前があれば失敗する" 'run bash "$script" bad -- touch "$marker"'
+for vault in emptytitle nltitle; do
+  check "タイトルが $vault でも、名前の検査で止まり、値を出さない" '! run bash "$script" $vault -- touch "$marker" 2>"$work/err" && grep -q "環境変数にできない名前がある" "$work/err" && ! grep -q SEKRIT "$work/err"'
+done
 blocked "そのときコマンドは実行しない" '[ -e "$marker" ]'
 blocked "同じ名前のアイテムが複数あれば失敗する" 'run bash "$script" dupkey -- touch "$marker"'
 blocked "秘匿フィールドのないアイテムがあれば失敗する" 'run bash "$script" none -- touch "$marker"'

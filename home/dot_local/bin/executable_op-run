@@ -68,14 +68,18 @@ vault_items() (
   done
 )
 
+# 合否は jq -e の真偽で決める。名前の一覧を文字列で比べると、空のタイトルが空の一覧に見え、
+# 検査を通った後の export が値ごとエラーに出す。jq の $ は末尾の改行の前にも一致するので \z を使う
+jq_defs='def valid_name: type == "string" and test("\\A[A-Za-z_][A-Za-z0-9_]*\\z");'
+
 # アイテムから [{key, value}] を作る。名前が環境変数として使えて、重複がなく、値がちょうど 1 つであること
 to_secrets() {
-  local items="$1" bad
+  local items="$1"
   items="$(jq -s 'map({key: .title, values: [.fields[]? | select(.type == "CONCEALED" and (.value // "") != "") | .value]})' <<<"$items")" || die "アイテムを読めない"
-  bad="$(jq -r '.[] | select(.values | length != 1) | .key' <<<"$items")"
-  [ -z "$bad" ] || die "秘匿フィールドがちょうど 1 つではないアイテムがある: $(printf '%s' "$bad" | paste -sd ' ' -)"
-  bad="$(jq -r '.[].key | select(test("^[A-Za-z_][A-Za-z0-9_]*$") | not)' <<<"$items")"
-  [ -z "$bad" ] || die "環境変数にできない名前がある: $(printf '%s' "$bad" | paste -sd ' ' -)"
+  jq -e "$jq_defs"' all(.[]; .key | valid_name)' >/dev/null <<<"$items" ||
+    die "環境変数にできない名前がある: $(jq -r "$jq_defs"' [.[] | select(.key | valid_name | not) | .key | tojson] | join(" ")' <<<"$items")"
+  jq -e 'all(.[]; .values | length == 1)' >/dev/null <<<"$items" ||
+    die "秘匿フィールドがちょうど 1 つではないアイテムがある: $(jq -r '[.[] | select(.values | length != 1) | .key] | join(" ")' <<<"$items")"
   jq -e '[.[].key] | length == (unique | length)' >/dev/null <<<"$items" || die "同じ名前のアイテムが複数ある"
   jq 'map({key, value: .values[0]})' <<<"$items"
 }

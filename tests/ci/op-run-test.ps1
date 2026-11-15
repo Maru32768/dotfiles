@@ -56,7 +56,7 @@ function Write-Item([string]$VaultId, [object[]]$Items) {
 }
 $vaults = Write-Json (Join-Path $work 'vaults.json') @(@{ id = 'v-noodlemap'; name = 'noodlemap' }, @{ id = 'v-lattice'; name = 'lattice' },
     @{ id = 'v-bad'; name = 'bad' }, @{ id = 'v-dupkey'; name = 'dupkey' }, @{ id = 'v-none'; name = 'none' }, @{ id = 'v-two'; name = 'two' },
-    @{ id = 'v-broken'; name = 'broken' }, @{ id = 'v-optoken'; name = 'optoken' })
+    @{ id = 'v-broken'; name = 'broken' }, @{ id = 'v-optoken'; name = 'optoken' }, @{ id = 'v-nltitle'; name = 'nltitle' })
 $vaultsDup = Write-Json (Join-Path $work 'vaults-dup.json') @(@{ id = 'v-a'; name = 'dup' }, @{ id = 'v-b'; name = 'dup' })
 Write-Item 'v-noodlemap' @(@('CLOUDFLARE_API_TOKEN', 'cf value'), @('MULTI', 'a b = c'), @('EMPTY_EXTRA', 'kept', ''))
 Write-Item 'v-bad' @(, @('BAD=NAME', 'x'))
@@ -65,6 +65,8 @@ Write-Item 'v-none' @(, @('NOTHING'))
 Write-Item 'v-two' @(, @('TWO', 'a', 'b'))
 # A vault may hold another service account token for the command itself
 Write-Item 'v-optoken' @(, @('OP_SERVICE_ACCOUNT_TOKEN', 'token for the command'))
+# A title that ends with a newline is not a valid name either
+Write-Item 'v-nltitle' @(, @("FOO`n", 'x'))
 # The fake op fails to get the item with the id broken
 Write-Item 'v-broken' @(, @('GOOD', 'g'))
 Write-Json (Join-Path $work 'items\v-broken\list.json') @(@{ id = 'i0'; title = 'GOOD' }, @{ id = 'broken'; title = 'BROKEN' }) | Out-Null
@@ -145,6 +147,7 @@ try {
     Check 'two vaults with the same name fail with that reason, and the command does not run' ($err -like '*found 2 vaults named dup*' -and -not (Test-Path -LiteralPath $marker))
 
     Check 'a name that cannot be an environment variable fails, and the command does not run' (Test-FailsWithoutRunning 'bad')
+    Check 'a name that ends with a newline fails, and the command does not run' (Test-FailsWithoutRunning 'nltitle')
     Check 'two items with the same name (ignoring case) fail, and the command does not run' (Test-FailsWithoutRunning 'dupkey')
     Check 'an item without a concealed field fails, and the command does not run' (Test-FailsWithoutRunning 'none')
     Check 'an item with two concealed fields fails, and the command does not run' (Test-FailsWithoutRunning 'two')

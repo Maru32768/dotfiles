@@ -81,7 +81,8 @@ function Get-VaultSecret([string]$Token, [string]$Name) {
     })
     $bad = @($secrets | Where-Object { $_.values.Count -ne 1 } | ForEach-Object { $_.key })
     if ($bad.Count -gt 0) { Stop-WithError "items without exactly one concealed field: $($bad -join ' ')" }
-    $bad = @($secrets | Where-Object { $_.key -cnotmatch '^[A-Za-z_][A-Za-z0-9_]*$' } | ForEach-Object { $_.key })
+    # $ would also match before a trailing newline
+    $bad = @($secrets | Where-Object { $_.key -cnotmatch '\A[A-Za-z_][A-Za-z0-9_]*\z' } | ForEach-Object { $_.key })
     if ($bad.Count -gt 0) { Stop-WithError "names that cannot be environment variables: $($bad -join ' ')" }
     # Windows does not tell environment variables apart by case, so neither does this check
     if (@($secrets | ForEach-Object { $_.key } | Sort-Object -Unique).Count -ne $secrets.Count) {
