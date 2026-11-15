@@ -102,7 +102,7 @@ wsl -d dev -u root passwd maru
 - SSH キーは環境ごとに作り直せるので、バックアップしない。作り直したら古い鍵を GitHub から消す。
 - SSH キーのパスフレーズも gpg-agent で扱う。入力はポップアップで、キャッシュは GPG と同じ (最後に使ってから 24 時間、最長 72 時間)。
 - 長く保管する秘密は GPG 鍵だけ (`docs/gpg.md`)。
-- パスワードマネージャーは Bitwarden。構築の前提にはしない。`agent` ではログインしない。
+- パスワードマネージャーは1Password。構築の前提にはしない。`agent`ではサインインしない。
 - API キーは Secrets Manager に置き、`bws-run` で渡す。`.env` や `mise.local.toml` に平文で書かない (`docs/secrets.md`)。
 
 ## エージェント用の環境
