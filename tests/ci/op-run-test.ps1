@@ -30,6 +30,7 @@ if "%1 %2"=="item list" (
   type "$work\items\%4\list.json"
   exit /b 0
 )
+if "%1 %2"=="item get" if "%3"=="broken" exit /b 1
 if "%1 %2"=="item get" type "$work\items\%5\%3.json" & exit /b 0
 exit /b 4
 "@
@@ -52,13 +53,17 @@ function Write-Item([string]$VaultId, [object[]]$Items) {
     Write-Json (Join-Path $dir 'list.json') $list | Out-Null
 }
 $vaults = Write-Json (Join-Path $work 'vaults.json') @(@{ id = 'v-noodlemap'; name = 'noodlemap' }, @{ id = 'v-lattice'; name = 'lattice' },
-    @{ id = 'v-bad'; name = 'bad' }, @{ id = 'v-dupkey'; name = 'dupkey' }, @{ id = 'v-none'; name = 'none' }, @{ id = 'v-two'; name = 'two' })
+    @{ id = 'v-bad'; name = 'bad' }, @{ id = 'v-dupkey'; name = 'dupkey' }, @{ id = 'v-none'; name = 'none' }, @{ id = 'v-two'; name = 'two' },
+    @{ id = 'v-broken'; name = 'broken' })
 $vaultsDup = Write-Json (Join-Path $work 'vaults-dup.json') @(@{ id = 'v-a'; name = 'dup' }, @{ id = 'v-b'; name = 'dup' })
 Write-Item 'v-noodlemap' @(@('CLOUDFLARE_API_TOKEN', 'cf value'), @('MULTI', 'a b = c'), @('EMPTY_EXTRA', 'kept', ''))
 Write-Item 'v-bad' @(, @('BAD=NAME', 'x'))
 Write-Item 'v-dupkey' @(@('A', '1'), @('a', '2'))
 Write-Item 'v-none' @(, @('NOTHING'))
 Write-Item 'v-two' @(, @('TWO', 'a', 'b'))
+# The fake op fails to get the item with the id broken
+Write-Item 'v-broken' @(, @('GOOD', 'g'))
+Write-Json (Join-Path $work 'items\v-broken\list.json') @(@{ id = 'i0'; title = 'GOOD' }, @{ id = 'broken'; title = 'BROKEN' }) | Out-Null
 $printEnv = Join-Path $work 'printenv.ps1'
 Set-Content -LiteralPath $printEnv -Value @'
 $caller = if ($null -eq $env:OP_SERVICE_ACCOUNT_TOKEN) { 'unset' } else { $env:OP_SERVICE_ACCOUNT_TOKEN }
@@ -106,6 +111,8 @@ try {
     & $script --list noodlemap 2>$null | Out-Null
     Check 'run in the caller process, --list leaves the caller token in place' ($env:OP_SERVICE_ACCOUNT_TOKEN -ceq 'caller-token')
     Remove-Item Env:OP_SERVICE_ACCOUNT_TOKEN, Env:MULTI, Env:CLOUDFLARE_API_TOKEN, Env:EMPTY_EXTRA -ErrorAction SilentlyContinue
+    & $script broken -- pwsh -NoProfile -Command 'exit 0' 2>$null
+    Check 'run in the caller process, a failing op leaves no token behind' (-not (Test-Path Env:OP_SERVICE_ACCOUNT_TOKEN))
 
     $r = Invoke-OpRun @('--list', 'noodlemap')
     Check '--list prints only the names' ($r.Output -ceq "CLOUDFLARE_API_TOKEN`nEMPTY_EXTRA`nMULTI")
@@ -125,6 +132,7 @@ try {
     Check 'two items with the same name (ignoring case) fail, and the command does not run' (Test-FailsWithoutRunning 'dupkey')
     Check 'an item without a concealed field fails, and the command does not run' (Test-FailsWithoutRunning 'none')
     Check 'an item with two concealed fields fails, and the command does not run' (Test-FailsWithoutRunning 'two')
+    Check 'an item that op cannot get fails, and the command does not run' (Test-FailsWithoutRunning 'broken')
 
     $env:OP_RUN_TOKEN_FILE = Join-Path $work 'missing.gpg'
     Check 'a missing token file fails' ((Invoke-OpRun @('noodlemap', '--', 'pwsh', '-NoProfile', '-Command', 'exit 0')).Code -ne 0)

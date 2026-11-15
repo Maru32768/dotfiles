@@ -44,14 +44,15 @@ case "\$1 \$2" in
   "item list")
     printf '%s' "\$4" >"$work/requested-vault"
     jq -s 'map({id, title})' "$work/items/\$4"/*.json ;;
-  "item get") cat "$work/items/\$5/\$3.json" ;;
+  "item get") [ "\$3" != broken ] || exit 1; cat "$work/items/\$5/\$3.json" ;;
   *) exit 4 ;;
 esac
 EOF
 chmod +x "$work/bin/gpg" "$work/bin/op"
 
 jq -n '[{id: "v-noodlemap", name: "noodlemap"}, {id: "v-lattice", name: "lattice"}, {id: "v-bad", name: "bad"},
-  {id: "v-dupkey", name: "dupkey"}, {id: "v-none", name: "none"}, {id: "v-two", name: "two"}]' >"$work/vaults.json"
+  {id: "v-dupkey", name: "dupkey"}, {id: "v-none", name: "none"}, {id: "v-two", name: "two"},
+  {id: "v-broken", name: "broken"}]' >"$work/vaults.json"
 jq -n '[{id: "v-dup", name: "dup"}, {id: "v-dup2", name: "dup"}]' >"$work/vaults-dup.json"
 
 # 使い方: item <vault の ID> <アイテムの ID> <タイトル> [秘匿フィールドの値...]
@@ -72,6 +73,8 @@ item v-dupkey i1 A 1
 item v-dupkey i2 A 2
 item v-none i1 NOTHING
 item v-two i1 TWO a b
+item v-broken i1 GOOD g
+item v-broken broken BROKEN b
 
 run() { env PATH="$work/bin:$PATH" OP_RUN_TOKEN_FILE="$work/token.gpg" "$@"; }
 
@@ -102,6 +105,7 @@ blocked "そのときコマンドは実行しない" '[ -e "$marker" ]'
 blocked "同じ名前のアイテムが複数あれば失敗する" 'run bash "$script" dupkey -- touch "$marker"'
 blocked "秘匿フィールドのないアイテムがあれば失敗する" 'run bash "$script" none -- touch "$marker"'
 check "秘匿フィールドが 2 つあるアイテムがあれば、そう伝えて失敗する" '! run bash "$script" two -- touch "$marker" 2>"$work/err" && grep -q "ちょうど 1 つではない.*TWO" "$work/err"'
+blocked "アイテムを取得できなければ失敗する" 'run bash "$script" broken -- touch "$marker"'
 blocked "そのときコマンドは実行しない" '[ -e "$marker" ]'
 blocked "トークンのファイルがなければ失敗する" 'env PATH="$work/bin:$PATH" OP_RUN_TOKEN_FILE="$work/missing.gpg" bash "$script" noodlemap -- true'
 blocked "コマンドがなければ失敗する" 'run bash "$script" noodlemap --'
