@@ -26,7 +26,8 @@ fi
 
 # フィンガープリントはスクリプトごとに持っている。chezmoi の外でも動く必要があるため
 fingerprints="$(grep -hoE '[0-9A-F]{40}' tests/doctor.sh tests/doctor.ps1 provision/setup-credentials.sh provision/gpg_import_key.sh docs/gpg.md | sort -u)"
-signing_key="$(sed -n 's/^ *signingKey = "\(.*\)"$/\1/p' home/.chezmoi.toml.tmpl)"
+# desktop は PC ごとの鍵なので、比べるのは Windows と WSL の鍵 ($mainSigningKey) だけ
+signing_key="$(sed -n 's/^.*[$]mainSigningKey := "\([0-9A-F]*\)".*$/\1/p' home/.chezmoi.toml.tmpl)"
 if [ "$(printf '%s\n' "$fingerprints" | wc -l)" -ne 1 ]; then
   fail "GPG のフィンガープリントが揃っていない: $(printf '%s ' "$fingerprints")"
 elif [ "${fingerprints: -16}" != "$signing_key" ]; then

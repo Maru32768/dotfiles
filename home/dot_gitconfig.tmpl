@@ -1,7 +1,7 @@
 [user]
 	name = {{ .name }}
 	email = {{ .email }}
-{{- if eq .profile "main" }}
+{{- if and (eq .profile "main") .signingKey }}
 	signingkey = {{ .signingKey }}
 {{- end }}
 [core]

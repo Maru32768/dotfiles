@@ -1,10 +1,33 @@
 {{- /* chezmoi init をやり直しても、環境変数がなければ今のプロファイルを保つ。agent が main に戻らないように */ -}}
 {{- $profile := env "DOTFILES_PROFILE" | default (get . "profile") | default "main" -}}
+{{- /* host: windows、wsl (WSL のインスタンス)、desktop (WSL ではない Linux の PC)。Linux では WSL のカーネルかどうかで決める。
+       CI のコンテナはどちらのカーネルでも動くので、DOTFILES_HOST で指定する */ -}}
+{{- $host := "windows" -}}
+{{- if ne .chezmoi.os "windows" -}}
+{{-   $detected := "desktop" -}}
+{{-   if and (hasKey .chezmoi "kernel") (contains "microsoft" (lower .chezmoi.kernel.osrelease)) -}}
+{{-     $detected = "wsl" -}}
+{{-   end -}}
+{{-   $host = env "DOTFILES_HOST" | default (get . "host") | default $detected -}}
+{{- end -}}
+{{- if not (has $host (list "windows" "wsl" "desktop")) -}}
+{{-   fail (printf "DOTFILES_HOST は wsl か desktop: %s" $host) -}}
+{{- end -}}
+{{- if and (eq $host "desktop") (ne $profile "main") -}}
+{{-   fail "agent と research は WSL のインスタンスにだけ作る (docs/desktop.md)" -}}
+{{- end -}}
+{{- /* Windows と WSL は同じ鍵で署名する。desktop は PC ごとの鍵で、provision/setup-credentials.sh が作って DOTFILES_SIGNING_KEY で渡す */ -}}
+{{- $mainSigningKey := "78324D99D34D3111" -}}
+{{- $signingKey := $mainSigningKey -}}
+{{- if eq $host "desktop" -}}
+{{-   $signingKey = env "DOTFILES_SIGNING_KEY" | default (get . "signingKey") | default "" -}}
+{{- end -}}
 sourceDir = "{{ .chezmoi.sourceDir | trimSuffix "/home" }}"
 
 [data]
     # main: 普段の開発環境 / agent: Claude を動かす使い捨て環境
     profile = "{{ $profile }}"
+    host = "{{ $host }}"
     name = "Maru32768"
     email = "maru32768@gmail.com"
-    signingKey = "78324D99D34D3111"
+    signingKey = "{{ $signingKey }}"

@@ -27,6 +27,11 @@ OneDrive/**
 20-build-hooks.ps1
 50-gh-extensions.ps1
 {{ end }}
+{{ if eq (get . "host" | default "") "desktop" }}
+# WSLg のための設定。デスクトップのセッションは、自分で DISPLAY を systemd に渡す
+.config/environment.d
+.config/environment.d/**
+{{ end }}
 {{ if eq .profile "agent" }}
 .ssh
 .ssh/**

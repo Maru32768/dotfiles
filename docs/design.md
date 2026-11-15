@@ -31,7 +31,7 @@
 ```text
 .chezmoiroot             chezmoi のソースが home/ だと示す
 home/                    chezmoi のソース
-  .chezmoi.toml.tmpl     プロファイルと共通の値
+  .chezmoi.toml.tmpl     プロファイル、host (windows、wsl、desktop)、共通の値
   .claude-settings.json  Claude Code の共通設定
   .codex-config.toml     Codex の共通設定
   .chezmoidata/          スキルの一覧
@@ -80,6 +80,8 @@ powershell -ExecutionPolicy Bypass -File lab\lab.ps1 new dev
 3. ユーザーで mise と chezmoi を入れ、設定を適用する
 4. `doctor.sh` で確認する
 
+WSL ではない Linux の PC (サブ PC など) は、PC の上で `provision/root.sh` と `provision/user.sh` を直接実行する。`wsl.conf` とユーザーの作成を飛ばし、署名鍵は PC ごとに作る (`docs/desktop.md`)。
+
 対話が必要なものは、作成後に手で行う。
 
 ```powershell
@@ -96,6 +98,7 @@ wsl -d dev -u root passwd maru
 |---|---|---|
 | Windows | 既存の `~/.ssh/github` | 正式な鍵 |
 | `dev` | 環境ごとに新規作成して GitHub に登録 | 正式な鍵を取り込む |
+| WSL ではない PC (desktop) | PC ごとに新規作成して GitHub に登録 | PC ごとに新規作成して GitHub に登録 (`docs/desktop.md`) |
 | `agent`、`research` | 持たない | 持たない |
 
 - `~/.ssh` と `~/.gitconfig` を Windows へのリンクにしない。WSL が単体で復元できなくなり、隔離とも両立しないため。

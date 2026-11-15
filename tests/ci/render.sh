@@ -34,10 +34,15 @@ cm() {
     --override-data "{\"chezmoi\":{\"os\":\"$os\"}}"
 }
 
+# linux-main と linux-agent は WSL、linux-desktop は WSL ではない PC。CI はどちらのカーネルでも動くので、host を指定する
 prepare() {
-  local name="$1" profile="${1#*-}"
+  local name="$1" profile="${1#*-}" host=wsl
+  case "$name" in
+    windows-*) host="" ;;
+    linux-desktop) profile=main host=desktop ;;
+  esac
   mkdir -p "$work/$name/home" "$work/$name/fakehome"
-  if ! DOTFILES_PROFILE="$profile" cm "$name" init; then
+  if ! DOTFILES_PROFILE="$profile" DOTFILES_HOST="$host" cm "$name" init; then
     fail "$name: chezmoi init"
     return 1
   fi
@@ -72,7 +77,7 @@ printf 'kept\n' >"$work/linux-main/home/.local/state/review-loop/repo/branch/led
 mkdir -p "$work/windows-main/home/.gnupg"
 printf 'default-cache-ttl 34560000\r\nmax-cache-ttl 34560000\r\npinentry-program C:\\pinentry.exe\r\n' >"$work/windows-main/home/.gnupg/gpg-agent.conf"
 
-for name in linux-main linux-agent windows-main; do
+for name in linux-main linux-agent linux-desktop windows-main; do
   prepare "$name"
 done
 
@@ -203,6 +208,34 @@ max-cache-ttl-ssh 259200'
 check "windows-main: .vimrc が VS Code 用" 'cmp -s "$work/windows-main/home/.vimrc" "$root/home/.vimrc-files/vscode.vimrc"'
 equals "windows-main: 実行するスクリプト" "$(scripts_of windows-main)" "10-mise-install.ps1 20-build-hooks.ps1 50-gh-extensions.ps1"
 
+# --- WSL ではない PC (desktop) ---
+data_of() { cm "$1" data --format json | jq -r "$2"; }
+equals "linux-desktop: host" "$(data_of linux-desktop .host)" desktop
+equals "linux-main: host" "$(data_of linux-main .host)" wsl
+# linux-main の review-loop の台帳は、上で置いたもの
+equals "linux-desktop: 置かれるファイルは linux-main から WSLg の設定を除いたもの" "$(files_of linux-desktop)" \
+  "$(files_of linux-main | tr ' ' '\n' | grep -vxE '\.config/environment\.d/wslg\.conf|\.local/state/review-loop/repo/branch/ledger\.md' | paste -sd ' ' -)"
+check "linux-main: Windows 側の mise の設定を読まない" 'grep -q MISE_IGNORED_CONFIG_PATHS "$work/linux-main/home/.bash_profile"'
+blocked "linux-desktop: /mnt/c を前提にしない" 'grep -q MISE_IGNORED_CONFIG_PATHS "$work/linux-desktop/home/.bash_profile"'
+check "linux-desktop: コミット署名が有効" 'grep -q "gpgsign = true" "$work/linux-desktop/home/.gitconfig"'
+blocked "linux-desktop: 鍵を作る前は signingkey を書かない" 'grep -q signingkey "$work/linux-desktop/home/.gitconfig"'
+equals "linux-desktop: 鍵を作る前の signingKey は空" "$(data_of linux-desktop .signingKey)" ""
+DOTFILES_SIGNING_KEY=0123456789ABCDEF cm linux-desktop init >/dev/null 2>&1 && cm linux-desktop apply --exclude scripts,externals >/dev/null 2>&1
+check "linux-desktop: 作った鍵が signingkey になる" 'grep -qx "	signingkey = 0123456789ABCDEF" "$work/linux-desktop/home/.gitconfig"'
+cm linux-desktop init >/dev/null 2>&1
+equals "linux-desktop: 環境変数なしで init し直しても鍵と host が残る" "$(data_of linux-desktop '.signingKey + " " + .host')" "0123456789ABCDEF desktop"
+DOTFILES_SIGNING_KEY=0123456789ABCDEF cm linux-main init >/dev/null 2>&1
+equals "linux-main: DOTFILES_SIGNING_KEY があっても、Windows と同じ鍵のまま" "$(data_of linux-main .signingKey)" 78324D99D34D3111
+# init の設定のテンプレートには --override-data が効かず、動いている機械のカーネルを読む。
+# 手元の WSL では wsl、CI の GitHub のランナーでは desktop になり、両方の場合を試せる
+mkdir -p "$work/linux-detect/home" "$work/linux-detect/fakehome"
+if grep -qi microsoft /proc/sys/kernel/osrelease; then detected=wsl; else detected=desktop; fi
+cm linux-detect init >/dev/null 2>&1
+equals "DOTFILES_HOST がなければ、カーネルから判定する ($detected)" "$(data_of linux-detect .host)" "$detected"
+mkdir -p "$work/linux-bad/home" "$work/linux-bad/fakehome"
+blocked "desktop に agent は作れない" 'DOTFILES_PROFILE=agent DOTFILES_HOST=desktop cm linux-bad init'
+blocked "知らない host は init で止まる" 'DOTFILES_HOST=mac cm linux-bad init'
+
 # --- プロファイル ---
 profile_of() { sed -n 's/^ *profile = "\(.*\)"$/\1/p' "$work/$1/chezmoi.toml"; }
 unset DOTFILES_PROFILE
@@ -215,7 +248,7 @@ equals "新しい環境の既定は main" "$(profile_of linux-default)" main
 # --- テンプレートから作られるシェルスクリプト ---
 for template in "$root"/home/*.sh.tmpl "$root"/home/dot_bashrc.tmpl "$root"/home/dot_bash_profile.tmpl; do
   rendered="$work/rendered-$(basename "$template")"
-  for name in linux-main linux-agent; do
+  for name in linux-main linux-agent linux-desktop; do
     if ! cm "$name" execute-template <"$template" >"$rendered" 2>"$rendered.err"; then
       fail "$name: $(basename "$template") を描画できない: $(cat "$rendered.err")"
       continue

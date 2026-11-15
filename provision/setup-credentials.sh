@@ -1,7 +1,8 @@
 #!/bin/bash
 # 対話が必要な資格情報の設定。環境を作った後に、普段の端末から実行する。
 # 使い方: setup-credentials.sh [エクスポートした GPG 秘密鍵ファイル]
-#   ファイルを渡さなければ、Windows 側の gpg から取り込む。
+#   WSL: ファイルを渡さなければ、Windows 側の gpg から取り込む。
+#   desktop (WSL ではない PC): この PC 専用の署名鍵を作り、chezmoi の signingKey にする (docs/desktop.md)。
 set -euo pipefail
 
 GPG_FPR="7AF93B4735CF2AAC930EF5CD78324D99D34D3111"
@@ -13,7 +14,26 @@ GPG_TTY="$(tty)" && export GPG_TTY
 SSH_AUTH_SOCK="$(gpgconf --list-dirs agent-ssh-socket)"
 export SSH_AUTH_SOCK
 
-if ! gpg --list-secret-keys "$GPG_FPR" >/dev/null 2>&1; then
+export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$PATH"
+data="$(cd "$HOME" && chezmoi data --format json)"
+host="$(jq -r '.host // "wsl"' <<<"$data")"
+
+if [ "$host" = desktop ]; then
+  key="$(jq -r '.signingKey // ""' <<<"$data")"
+  if [ -z "$key" ] || ! gpg --list-secret-keys "$key" >/dev/null 2>&1; then
+    echo "==> この PC 専用の GPG 署名鍵を作ります (ポップアップでパスフレーズを聞かれます)"
+    # GitHub はメールアドレスで鍵とコミットを結びつける。PC の名前はコメントに入れて、ほかの PC の鍵と見分ける
+    uid="$(jq -r --arg host "$(hostname)" '"\(.name) (\($host)) <\(.email)>"' <<<"$data")"
+    fpr="$(gpg --status-fd 1 --quick-generate-key "$uid" ed25519 sign never | awk '$2 == "KEY_CREATED" { print $4 }')"
+    [ -n "$fpr" ] || { echo "鍵を作れませんでした" >&2; exit 1; }
+    # op-run はトークンを署名の鍵あてに暗号化するので、暗号化の副鍵も要る
+    gpg --quick-add-key "$fpr" cv25519 encr never
+    key="${fpr: -16}"
+    (cd "$HOME" && DOTFILES_SIGNING_KEY="$key" chezmoi init --no-tty && chezmoi apply --no-tty "$HOME/.gitconfig")
+    echo "==> 次の公開鍵を https://github.com/settings/gpg/new に登録してください"
+    gpg --armor --export "$key"
+  fi
+elif ! gpg --list-secret-keys "$GPG_FPR" >/dev/null 2>&1; then
   echo "==> GPG 署名鍵を取り込みます"
   if [ -n "${1:-}" ]; then
     bash "$here/gpg_import_key.sh" "$1"
