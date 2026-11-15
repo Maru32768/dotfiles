@@ -3,18 +3,22 @@
 # コンテナには systemd も WSL もないので、wsl.conf の効果や隔離は確かめられない (lab.ps1 で確かめる)。
 # research の通信の制限だけは、コンテナが自分のネットワークの名前空間を持つので、読み込んで試す。
 #
-# 使い方: container.sh <main|agent|research>
+# 使い方: container.sh <main|agent|research|desktop>
+#   desktop は WSL ではない PC の main (docs/desktop.md)。ユーザーは OS のインストールで作ってある前提なので、先に作る
 # shellcheck disable=SC2016
 set -uo pipefail
 
 # home: ユーザーのファイルを作る chezmoi のプロファイル。research は agent のものを使う
+# host: wsl か desktop。ランナーのカーネルは WSL ではないので、指定しないと desktop と判定される
 # run_options: research の nft には CAP_NET_ADMIN が要る。効くのはこのコンテナの名前空間だけ
-profile="${1:?使い方: container.sh <main|agent|research>}"
+profile="${1:?使い方: container.sh <main|agent|research|desktop>}"
 run_options=()
+host=wsl
 case "$profile" in
   main) user=maru home=main ;;
   agent) user=agent home=agent ;;
   research) user=research home=agent run_options=(--cap-add NET_ADMIN) ;;
+  desktop) user=maru home=main host=desktop ;;
   *) echo "不明なプロファイル: $profile" >&2; exit 2 ;;
 esac
 
@@ -44,11 +48,17 @@ step "作業ツリーをコピー"
   [ -e "$file" ] && printf '%s\n' "$file"
 done | tar -cf - -T -) | docker exec -i "$name" sh -c 'mkdir -p /tmp/src && tar -xf - -C /tmp/src && chmod -R a+rX /tmp/src' || exit 1
 
+if [ "$host" = desktop ]; then
+  step "OS のインストールで作られるユーザー"
+  docker exec "$name" useradd --create-home --shell /bin/bash --groups sudo "$user" || exit 1
+fi
+
 step "root.sh"
-docker exec "$name" bash /tmp/src/provision/root.sh "$user" /tmp/src/packages/apt.txt "$profile" || exit 1
+# root.sh のプロファイルは隔離の種類 (research は research)。desktop は main
+docker exec -e "DOTFILES_HOST=$host" "$name" bash /tmp/src/provision/root.sh "$user" /tmp/src/packages/apt.txt "${profile/desktop/main}" || exit 1
 
 step "user.sh"
-docker exec -u "$user" -w "/home/$user" -e "HOME=/home/$user" "$name" bash /tmp/src/provision/user.sh "$home" /tmp/src 2>&1 | tee "$user_log" || exit 1
+docker exec -u "$user" -w "/home/$user" -e "HOME=/home/$user" -e "DOTFILES_HOST=$host" "$name" bash /tmp/src/provision/user.sh "$home" /tmp/src 2>&1 | tee "$user_log" || exit 1
 
 failures=0
 # 導入のスクリプトは構築を止めないので、ここで警告を拾う
@@ -56,7 +66,7 @@ if grep -q "警告がありました" "$user_log"; then
   echo "FAIL user.sh が警告を出した"
   failures=$((failures + 1))
 fi
-if [ "$profile" = main ]; then
+if [ "$home" = main ]; then
   step "doctor.sh"
   # TODO (資格情報の登録) は失敗に数えない
   as_user 'bash ~/dotfiles/tests/doctor.sh --container' || failures=$((failures + 1))
@@ -131,7 +141,21 @@ if [ "$profile" = research ]; then
   launcher_want "API キーだけなら、資格情報の検査を通って隔離の検査まで進む" '[[ "$output" != *"両方があります"* && "$output" != *"がありません"* && "$output" == *"FAIL "* && "$output" != *"(Claude Code)"* ]]'
 fi
 
-if [ "$profile" != main ]; then
+if [ "$host" = desktop ]; then
+  step "desktop の確認"
+  as_user '
+    failed=0
+    want() { if eval "$2" >/dev/null 2>&1; then echo "PASS $1"; else echo "FAIL $1"; failed=1; fi; }
+    want "host が desktop" "[ \"\$(chezmoi data --format json | jq -r .host)\" = desktop ]"
+    want "wsl.conf を書いていない" "[ ! -e /etc/wsl.conf ]"
+    want "WSLg の設定を置いていない" "[ ! -e ~/.config/environment.d ]"
+    want "鍵を作る前は signingkey がない" "! git config --global user.signingkey"
+    want "コミット署名は有効" "[ \"\$(git config --global commit.gpgsign)\" = true ]"
+    exit "$failed"
+  ' || failures=$((failures + 1))
+fi
+
+if [ "$home" != main ]; then
   step "$profile の起動スクリプトは ~/work の下でだけ進む"
   # wsl.exe は --cd に失敗しても / で続けるので、/ も含めて ~/work の外を断る。
   # 進むかどうかは、上と同じく出力で判定する (コンテナでは隔離の検査が FAIL を出して止まる)。

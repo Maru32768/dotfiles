@@ -19,6 +19,9 @@ export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$PATH"
 cd "$HOME" || exit 1
 GPG_FPR="7AF93B4735CF2AAC930EF5CD78324D99D34D3111"
 failures=0
+# wsl か desktop (WSL ではない PC)。desktop は PC ごとの署名鍵を使う (docs/desktop.md)
+host="$(chezmoi data --format json 2>/dev/null | jq -r '.host // "wsl"')"
+signing_key="$(git config --global user.signingkey || true)"
 
 pass() { printf 'PASS %s\n' "$1"; }
 fail() { printf 'FAIL %s\n' "$1"; failures=$((failures + 1)); }
@@ -27,7 +30,12 @@ skip() { printf 'SKIP %s\n' "$1"; }
 check() { if eval "$2" >/dev/null 2>&1; then pass "$1"; else fail "$1"; fi; }
 
 check "Ubuntu 26.04" 'grep -q "VERSION_ID=\"26.04\"" /etc/os-release'
-check "既定ユーザーが wsl.conf にある" 'grep -q "^default=$(id -un)$" /etc/wsl.conf'
+if [ "$host" = desktop ]; then
+  check "wsl.conf がない" '[ ! -e /etc/wsl.conf ]'
+  check "WSLg の設定がない" '[ ! -e ~/.config/environment.d/wslg.conf ]'
+else
+  check "既定ユーザーが wsl.conf にある" 'grep -q "^default=$(id -un)$" /etc/wsl.conf'
+fi
 if "$container"; then
   skip "systemd が動いている"
 else
@@ -61,7 +69,8 @@ check ".ssh が実ディレクトリ" '[ -d ~/.ssh ] && [ ! -L ~/.ssh ]'
 check ".ssh の権限が 700" '[ "$(stat -c %a ~/.ssh)" = 700 ]'
 check ".gnupg の権限が 700" '[ "$(stat -c %a ~/.gnupg)" = 700 ]'
 check "コミット署名が有効" '[ "$(git config --global commit.gpgsign)" = true ]'
-check "pinentry が GUI" 'readlink -f /usr/bin/pinentry | grep -q gtk'
+# デスクトップでは、Ubuntu が入れる pinentry-gnome3 が選ばれることもある
+check "pinentry が GUI" 'readlink -f /usr/bin/pinentry | grep -qE "gtk|gnome3"'
 check "gpg-agent の設定" 'grep -q "^enable-ssh-support$" ~/.gnupg/gpg-agent.conf'
 if "$container"; then
   skip "systemd の環境に DISPLAY がある"
@@ -94,8 +103,21 @@ fi
 # エラーの内容は vim -N -es -u ~/.vimrc -i NONE +qall で見られる
 check ".vimrc をエラーなしで読める" 'vim -N -es -u ~/.vimrc -i NONE +qall </dev/null'
 
-if gpg --list-secret-keys "$GPG_FPR" >/dev/null 2>&1; then
-  pass "GPG 署名鍵"
+if [ "$host" = desktop ]; then
+  if [ -n "$signing_key" ] && gpg --list-secret-keys "$signing_key" >/dev/null 2>&1; then
+    pass "GPG 署名鍵 (この PC 専用: $signing_key)"
+    # 公開の API で、登録した鍵の ID を確かめる。主鍵の ID で署名するので、主鍵の key_id と比べる
+    registered_gpg="$(curl -fsS --max-time 15 https://api.github.com/users/Maru32768/gpg_keys || true)"
+    if jq -e --arg key "$signing_key" 'any(.[]; .key_id == $key)' <<<"$registered_gpg" >/dev/null 2>&1; then
+      pass "GPG 署名鍵が GitHub に登録されている"
+    else
+      todo "GPG 署名鍵の登録: gpg --armor --export $signing_key を https://github.com/settings/gpg/new に登録"
+    fi
+  else
+    todo "GPG 署名鍵: provision/setup-credentials.sh で作る"
+  fi
+elif gpg --list-secret-keys "$GPG_FPR" >/dev/null 2>&1; then
+  check "GPG 署名鍵" '[ "$signing_key" = "${GPG_FPR: -16}" ]'
 else
   todo "GPG 署名鍵: provision/setup-credentials.sh を実行"
 fi

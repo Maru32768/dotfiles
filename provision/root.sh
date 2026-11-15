@@ -1,6 +1,8 @@
 #!/bin/bash
 # root で 1 回実行する: OS パッケージ、ユーザー、wsl.conf。
 # 使い方: root.sh <ユーザー名> <packages/apt.txt のパス> [プロファイル]
+#   WSL ではない PC (desktop) では、OS パッケージだけを入れる。ユーザーは OS のインストールで作ってあるものを使う。
+#   どちらかは WSL のカーネルかどうかで決める。DOTFILES_HOST (wsl か desktop) で指定もできる (docs/desktop.md)
 set -euo pipefail
 
 user="$1"
@@ -8,9 +10,24 @@ apt_list="$2"
 profile="${3:-main}"
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+host="${DOTFILES_HOST:-}"
+if [ -z "$host" ]; then
+  if grep -qi microsoft /proc/sys/kernel/osrelease 2>/dev/null; then host=wsl; else host=desktop; fi
+fi
+case "$host" in
+  wsl) ;;
+  desktop)
+    [ "$profile" = main ] || { echo "agent と research は WSL のインスタンスにだけ作る" >&2; exit 2; }
+    id "$user" >/dev/null 2>&1 || { echo "ユーザー $user がない。desktop では OS のインストールで作ったユーザーを使う" >&2; exit 2; }
+    ;;
+  *) echo "DOTFILES_HOST は wsl か desktop: $host" >&2; exit 2 ;;
+esac
+
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -q
 grep -vE '^(#|$)' "$apt_list" | xargs apt-get install -y -q --no-install-recommends
+
+[ "$host" = desktop ] && exit 0
 
 # 隔離するプロファイル。agent と research は同じ隔離の上に立ち、管理設定と起動スクリプトが違う (docs/research.md)。
 # uid は普段のユーザー (1000) とも互いとも分ける。共有された場所のファイルの所有者と重ならないように。

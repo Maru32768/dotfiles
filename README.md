@@ -38,6 +38,8 @@ wsl -d dev -u root passwd maru
 ~/dotfiles/provision/setup-credentials.sh
 ```
 
+WSL ではない Linux の PC (サブ PC など) の作り方は `docs/desktop.md` にある。
+
 名前が `agent-` で始まるインスタンスは、エージェント用の隔離した環境になる (`docs/agent.md`)。`research-` で始まると、同じ隔離で Web を読ませる調べもの用の環境になる (`docs/research.md`)。
 
 ### 設定を変えたあと
@@ -65,7 +67,7 @@ CI (`.github/workflows/ci.yml`) と同じ検査を手元でも実行できる。
 
 ```bash
 bash tests/ci/static.sh          # shellcheck、テスト、不変条件、レンダリング、gitleaks、actionlint
-bash tests/ci/container.sh main  # コンテナで環境を作って確かめる (agent と research も可)
+bash tests/ci/container.sh main  # コンテナで環境を作って確かめる (agent、research、desktop も可)
 ```
 
 CI で確かめられない WSL の挙動は、`lab.ps1 restore-test` で実物のインスタンスを作って確かめる (`docs/ci.md`)。
@@ -84,4 +86,5 @@ CI で確かめられない WSL の挙動は、`lab.ps1 restore-test` で実物�
 | [docs/research.md](docs/research.md) | Web を読ませる調べもの用の環境と、LAN への通信の制限 |
 | [docs/secrets.md](docs/secrets.md) | APIキーの扱い(1Passwordと`op-run`) |
 | [docs/gpg.md](docs/gpg.md) | GPG のコミット署名 |
+| [docs/desktop.md](docs/desktop.md) | WSL ではない Linux の PC (サブ PC) |
 | [docs/ci.md](docs/ci.md) | CI、復元テスト、`stable` タグ |

@@ -5,7 +5,7 @@
 | ジョブ | スクリプト | 内容 |
 |---|---|---|
 | `static` | `tests/ci/static.sh` | shellcheck、フック･`op-run`･`split-pdf`･`split-pr-stack`･review-loopの`evidence.sh`･`usage-log`･docs-redesignのスクリプト･docs-overviewのスクリプトのテスト、不変条件、chezmoi のレンダリング、gitleaks、actionlint |
-| `container` | `tests/ci/container.sh <main\|agent\|research>` | `ubuntu:26.04` で環境を作り、確認と再適用まで行う |
+| `container` | `tests/ci/container.sh <main\|agent\|research\|desktop>` | `ubuntu:26.04` で環境を作り、確認と再適用まで行う。`desktop` は WSL ではない PC (`docs/desktop.md`) |
 | `windows` | `tests/ci/windows.ps1`、`tests/ci/op-run-test.ps1`、`tests/ci/lab-run-test.ps1` | Windows PowerShell 5.1 での構文、Windows 版の `op-run` のテスト、`lab.ps1 run`が偽の`wsl.exe`に渡す引数のテスト(Windows PowerShell 5.1とPowerShell 7の両方で動かす)、PSScriptAnalyzer |
 
 定期実行は、固定していないもの (apt、インストーラー、Vim プラグイン) の破損に気づくためにある。
@@ -30,12 +30,16 @@ bash tests/ci/container.sh agent
 bash tests/ci/container.sh research
 ```
 
+```bash
+bash tests/ci/container.sh desktop
+```
+
 `container.sh` は作業ツリーの内容を使うので、コミットの前に試せる。1 回あたり数分かかり、数 GB をダウンロードする。
 
 ## 確かめていること
 
 - **`tests/ci/invariants.sh`:** PowerShell と cmd のスクリプトが ASCII だけ、mise 本体のバージョンが `user.sh` と `bootstrap.ps1` で同じ、GPG の鍵の指定が同じ、など。コメントや手順でしか守られていない約束をここに移す。
-- **`tests/ci/render.sh`:** `linux-main`、`linux-agent`、`windows-main` の 3 通りを描画して適用する。スクリプトは実行しない。スキルだけはアーカイブを実際に取ってきて、`SKILL.md` があることまで確かめるので、ネットワークを使う (`docs/skills.md`)。
+- **`tests/ci/render.sh`:** `linux-main`、`linux-agent`、`linux-desktop`、`windows-main` の 4 通りを描画して適用する。スクリプトは実行しない。スキルだけはアーカイブを実際に取ってきて、`SKILL.md` があることまで確かめるので、ネットワークを使う (`docs/skills.md`)。
 - **agent に置くファイルの一覧:** `render.sh` に書いた一覧と完全に一致しないと失敗する。新しいファイルを足すと必ず失敗するので、そのときに隔離への影響を考えて一覧を直す。
 
 ## 確かめられないこと
@@ -44,6 +48,7 @@ bash tests/ci/container.sh research
 |---|---|---|
 | systemd と `wsl.conf` の効果 | コンテナにはない。`doctor.sh --container` は飛ばす | `lab.ps1 restore-test` |
 | agentとresearchの隔離 | WSLの設定に依存する。researchの通信の制限は、コンテナに`CAP_NET_ADMIN`を与えて試す(`docs/research.md`)。`verify-isolation.sh --e2e`は`claude`を偽物に替えて動かし、`~/work`がリポジトリなら止まることと、サンドボックスの外から書くものがサンドボックスから書ける場所を使わないことだけを見る | `lab.ps1 restore-test` |
+| desktop のセッション (pinentry、GNOME の SSH エージェント、AppArmor の下のサンドボックス) | コンテナにはデスクトップのセッションがない | サブ PC で `doctor.sh` (`docs/desktop.md`) |
 | Windows での適用 | `render.sh` はテンプレートの `.chezmoi.os` を差し替えるだけ。`.ps1.tmpl` の構文も見ない | `bootstrap.ps1` |
 
 ## 復元テスト
