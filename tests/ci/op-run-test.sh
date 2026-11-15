@@ -43,7 +43,8 @@ esac
 EOF
 chmod +x "$work/bin/gpg" "$work/bin/op"
 
-jq -n '[{id: "v-noodlemap", name: "noodlemap"}, {id: "v-lattice", name: "lattice"}]' >"$work/vaults.json"
+jq -n '[{id: "v-noodlemap", name: "noodlemap"}, {id: "v-lattice", name: "lattice"}, {id: "v-bad", name: "bad"},
+  {id: "v-dupkey", name: "dupkey"}, {id: "v-none", name: "none"}, {id: "v-two", name: "two"}]' >"$work/vaults.json"
 jq -n '[{id: "v-dup", name: "dup"}, {id: "v-dup2", name: "dup"}]' >"$work/vaults-dup.json"
 
 # 使い方: item <vault の ID> <アイテムの ID> <タイトル> [秘匿フィールドの値...]
@@ -66,12 +67,6 @@ item v-none i1 NOTHING
 item v-two i1 TWO a b
 
 run() { env PATH="$work/bin:$PATH" OP_RUN_TOKEN_FILE="$work/token.gpg" "$@"; }
-# 使い方: with_vault <名前> <ID> <コマンド...>  (一覧にその vault だけを載せて実行する)
-with_vault() {
-  jq -n --arg name "$1" --arg id "$2" '[{id: $id, name: $name}]' >"$work/vaults-one.json"
-  shift 2
-  FAKE_VAULTS="$work/vaults-one.json" "$@"
-}
 
 out="$(run bash "$script" noodlemap -- bash -c 'printf "%s|%s|%s|%s" "$CLOUDFLARE_API_TOKEN" "$MULTI" "$EMPTY_EXTRA" "${OP_SERVICE_ACCOUNT_TOKEN-unset}"')"
 check "秘匿フィールドの値がコマンドの環境変数に入る (空の秘匿フィールドは数えない)" '[ "$out" = "cf value|line1
@@ -95,11 +90,11 @@ blocked "知らない vault は失敗する" 'run bash "$script" nope -- true'
 marker="$work/ran"
 blocked "同じ名前の vault が複数あれば失敗する" 'FAKE_VAULTS="$work/vaults-dup.json" run bash "$script" dup -- touch "$marker"'
 blocked "そのときコマンドは実行しない" '[ -e "$marker" ]'
-blocked "環境変数にできない名前があれば失敗する" 'with_vault bad v-bad run bash "$script" bad -- touch "$marker"'
+blocked "環境変数にできない名前があれば失敗する" 'run bash "$script" bad -- touch "$marker"'
 blocked "そのときコマンドは実行しない" '[ -e "$marker" ]'
-blocked "同じ名前のアイテムが複数あれば失敗する" 'with_vault dupkey v-dupkey run bash "$script" dupkey -- touch "$marker"'
-blocked "秘匿フィールドのないアイテムがあれば失敗する" 'with_vault none v-none run bash "$script" none -- touch "$marker"'
-check "秘匿フィールドが 2 つあるアイテムがあれば、そう伝えて失敗する" '! with_vault two v-two run bash "$script" two -- touch "$marker" 2>"$work/err" && grep -q "ちょうど 1 つではない.*TWO" "$work/err"'
+blocked "同じ名前のアイテムが複数あれば失敗する" 'run bash "$script" dupkey -- touch "$marker"'
+blocked "秘匿フィールドのないアイテムがあれば失敗する" 'run bash "$script" none -- touch "$marker"'
+check "秘匿フィールドが 2 つあるアイテムがあれば、そう伝えて失敗する" '! run bash "$script" two -- touch "$marker" 2>"$work/err" && grep -q "ちょうど 1 つではない.*TWO" "$work/err"'
 blocked "そのときコマンドは実行しない" '[ -e "$marker" ]'
 blocked "トークンのファイルがなければ失敗する" 'env PATH="$work/bin:$PATH" OP_RUN_TOKEN_FILE="$work/missing.gpg" bash "$script" noodlemap -- true'
 blocked "コマンドがなければ失敗する" 'run bash "$script" noodlemap --'

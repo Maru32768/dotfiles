@@ -37,9 +37,6 @@ function Write-Json([string]$Path, $Value) {
     ConvertTo-Json -InputObject $Value -Depth 4 | Set-Content -LiteralPath $Path -Encoding Ascii
     return $Path
 }
-function Write-Vault([string]$Name, [string]$Id) {
-    return Write-Json (Join-Path $work "vaults-$Name.json") @(@{ id = $Id; name = $Name })
-}
 # Each item is @(title, concealed values...)
 function Write-Item([string]$VaultId, [object[]]$Items) {
     $dir = Join-Path $work "items\$VaultId"
@@ -54,7 +51,8 @@ function Write-Item([string]$VaultId, [object[]]$Items) {
     }
     Write-Json (Join-Path $dir 'list.json') $list | Out-Null
 }
-$vaults = Write-Json (Join-Path $work 'vaults.json') @(@{ id = 'v-noodlemap'; name = 'noodlemap' }, @{ id = 'v-lattice'; name = 'lattice' })
+$vaults = Write-Json (Join-Path $work 'vaults.json') @(@{ id = 'v-noodlemap'; name = 'noodlemap' }, @{ id = 'v-lattice'; name = 'lattice' },
+    @{ id = 'v-bad'; name = 'bad' }, @{ id = 'v-dupkey'; name = 'dupkey' }, @{ id = 'v-none'; name = 'none' }, @{ id = 'v-two'; name = 'two' })
 $vaultsDup = Write-Json (Join-Path $work 'vaults-dup.json') @(@{ id = 'v-a'; name = 'dup' }, @{ id = 'v-b'; name = 'dup' })
 Write-Item 'v-noodlemap' @(@('CLOUDFLARE_API_TOKEN', 'cf value'), @('MULTI', 'a b = c'), @('EMPTY_EXTRA', 'kept', ''))
 Write-Item 'v-bad' @(, @('BAD-NAME', 'x'))
@@ -78,12 +76,10 @@ function Invoke-OpRun([string[]]$Arguments) {
     $output = & pwsh -NoProfile -ExecutionPolicy Bypass -File $script @Arguments 2>$null
     return @{ Code = $LASTEXITCODE; Output = ($output -join "`n") }
 }
-# Runs with only the given vault listed, and reports whether it failed without running the command
-function Test-FailsWithVault([string]$Name, [string]$Id) {
+# Runs the command with the given vault, and reports whether it failed without running the command
+function Test-FailsWithoutRunning([string]$Vault) {
     Remove-Item -LiteralPath $marker -ErrorAction SilentlyContinue
-    $env:FAKE_VAULTS = Write-Vault $Name $Id
-    $r = Invoke-OpRun (@($Name, '--') + $touch)
-    $env:FAKE_VAULTS = $vaults
+    $r = Invoke-OpRun (@($Vault, '--') + $touch)
     return ($r.Code -ne 0 -and -not (Test-Path -LiteralPath $marker))
 }
 
@@ -109,16 +105,14 @@ try {
 
     Check 'an unknown vault fails' ((Invoke-OpRun @('nope', '--', 'pwsh', '-NoProfile', '-Command', 'exit 0')).Code -ne 0)
 
-    Remove-Item -LiteralPath $marker -ErrorAction SilentlyContinue
     $env:FAKE_VAULTS = $vaultsDup
-    $r = Invoke-OpRun (@('dup', '--') + $touch)
+    Check 'two vaults with the same name fail, and the command does not run' (Test-FailsWithoutRunning 'dup')
     $env:FAKE_VAULTS = $vaults
-    Check 'two vaults with the same name fail, and the command does not run' ($r.Code -ne 0 -and -not (Test-Path -LiteralPath $marker))
 
-    Check 'a name that cannot be an environment variable fails, and the command does not run' (Test-FailsWithVault 'bad' 'v-bad')
-    Check 'two items with the same name (ignoring case) fail, and the command does not run' (Test-FailsWithVault 'dupkey' 'v-dupkey')
-    Check 'an item without a concealed field fails, and the command does not run' (Test-FailsWithVault 'none' 'v-none')
-    Check 'an item with two concealed fields fails, and the command does not run' (Test-FailsWithVault 'two' 'v-two')
+    Check 'a name that cannot be an environment variable fails, and the command does not run' (Test-FailsWithoutRunning 'bad')
+    Check 'two items with the same name (ignoring case) fail, and the command does not run' (Test-FailsWithoutRunning 'dupkey')
+    Check 'an item without a concealed field fails, and the command does not run' (Test-FailsWithoutRunning 'none')
+    Check 'an item with two concealed fields fails, and the command does not run' (Test-FailsWithoutRunning 'two')
 
     $env:OP_RUN_TOKEN_FILE = Join-Path $work 'missing.gpg'
     Check 'a missing token file fails' ((Invoke-OpRun @('noodlemap', '--', 'pwsh', '-NoProfile', '-Command', 'exit 0')).Code -ne 0)
