@@ -9,7 +9,7 @@ APIキーやトークンは、1Passwordのvaultに置く。使うときは`op-ru
 | `op`(CLI) | mise(`aqua:1password/cli`、`mise.lock`で固定) |
 | `op-run` | chezmoiが`~/.local/bin`に置く。Linuxはbash(`op-run`)、WindowsはPowerShell(`op-run.cmd`と`op-run.ps1`) |
 
-Webサービスのパスワードも1Passwordに置く。デスクトップアプリ(wingetの`AgileBits.1Password`)の設定にある「1Password CLIと連携」は有効にしない。有効にすると、アプリのロックが解けている間、同じユーザーで動く`op`(Claudeも含む)が、本人のアカウントのすべてのvaultを読めるようになるため。`op`はサービスアカウントのトークンでだけ使う。
+Webサービスのパスワードも1Passwordに置く。長く保管する鍵は、`op-run`が読むvaultとは別の、Personal vaultに置く([長く保管する鍵](#長く保管する鍵))。デスクトップアプリ(wingetの`AgileBits.1Password`)の設定にある「1Password CLIと連携」は有効にしない。有効にすると、アプリのロックが解けている間、同じユーザーで動く`op`(Claudeも含む)が、本人のアカウントのすべてのvaultを読めるようになるため。`op`はサービスアカウントのトークンでだけ使う。
 
 ## 使い方
 
@@ -73,6 +73,20 @@ Web画面かデスクトップアプリで、そのvaultにアイテムを足す
 - タイトルが環境変数の名前に使えない
 - 同じタイトルが重なっている(Windowsでは、大文字と小文字だけが違うタイトルも重なりとみなす)
 - 値の入った秘匿フィールドが1つではない(ログインのアイテムに追加のパスワードを足したときなど)
+
+## 長く保管する鍵
+
+次のものは、1PasswordのPersonal vaultに置く。
+
+| もの | 置き方 | 失うと |
+|---|---|---|
+| GPGの署名鍵と失効証明書 | ドキュメントのアイテム。鍵のパスフレーズは1Passwordに入れない(`docs/gpg.md`) | 新しい鍵に替えて、GitHubに登録し直す。`op-run --set-token`でトークンを保存し直す |
+| Latticeの更新の署名鍵(`%USERPROFILE%\.tauri\lattice.key`)とパスワード | 鍵はファイルの中身をそのまま、パスワードはその隣のフィールドに置く。パスワードはLatticeの`scripts/setup-updater.ps1 -CopyPassword`でクリップボードに写し、貼った後にクリップボードを消す | インストールされたLatticeが更新を受け取れなくなり、手で入れ直してもらうしかない |
+
+- **`op-run`が読むvaultに置かない。** `op-run`はvaultのアイテムをすべて環境変数にしようとするので、そのvaultを使うコマンドに鍵まで渡るか、アイテムの検査で止まる。
+- **サービスアカウントから届かない場所に置く。** サービスアカウントにはPersonal vaultの権限を付けられない。端末のトークンが1つ漏れても、署名鍵には届かない。
+- **GPGの鍵を`op-run`で渡さない。** `op-run`のトークンはGPGの鍵で暗号化しているので、鍵を失ったときに`op-run`では取り出せない。1Passwordには本人のアカウントで、Web画面かデスクトップアプリから入る。
+- Latticeの鍵は、リリースのときにはGitHub ActionsのSecretsが使う。Secretsは登録した後に読み出せず、`lattice.key.password.xml`はWindowsのDPAPIで暗号化してあって同じPCの同じアカウントでしか読めない。そのため、PCを失ったときに戻せるのは1Passwordの控えだけになる。手元の`.tauri`は残してよい。
 
 ## リクエストの上限
 

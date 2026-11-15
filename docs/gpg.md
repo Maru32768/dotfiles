@@ -44,23 +44,20 @@ Kleopatra 系の `%APPDATA%\gnupg` は別の場所で、署名には使ってい
 
 ## バックアップ
 
-残すものは次の 3 つ。**どれもこのリポジトリには入れない** (`.gitignore` で `*.asc`, `*.gpg`, `*.rev` を除外している)。
+次の 2 つを、1Password の Personal vault にドキュメントのアイテムとして置く。**どれもこのリポジトリには入れない** (`.gitignore` で `*.asc`, `*.gpg`, `*.rev` を除外している)。
 
 | ファイル | 作り方 | 用途 |
 |---|---|---|
-| 秘密鍵 | `gpg --armor --export-secret-keys 78324D99D34D3111` | 復元 |
+| 秘密鍵 | `gpg --armor --export-secret-keys 78324D99D34D3111 > secret-key.asc` | 復元 |
 | 失効証明書 | `~/.gnupg/openpgp-revocs.d/<フィンガープリント>.rev` (Windows 側) | 鍵を失った・漏れたときの失効 |
-| ownertrust | `gpg --export-ownertrust` | 信頼設定の復元 |
 
-### クラウドに置く前に暗号化する
+- **Personal vault に置く。** `op-run` が読む vault (`lattice` など) に置くと、その vault を使うコマンドに鍵まで渡るか、`op-run` がアイテムの検査で止まる。サービスアカウントには Personal vault の権限を付けられないので、端末のトークンが漏れても鍵には届かない (`docs/secrets.md`)。
+- **鍵のパスフレーズは 1Password に入れない。** 秘密鍵を守っているのはパスフレーズだけなので、同じ場所にあると、1Password のアカウントが破られたときに鍵がそのまま使える。
+- **1Password に置くなら、別のパスフレーズで暗号化し直さなくてよい。** 1Password は端末の側で暗号化する。Google Drive などに置くときだけ、鍵とは別の強いパスフレーズでファイルごと暗号化し (`gpg --symmetric --cipher-algo AES256 --output secret-key.asc.gpg secret-key.asc`)、そのパスフレーズを同じ場所に置かない。失効証明書には鍵のパスフレーズの保護がなく、ファイルがあれば誰でも鍵を失効できる。
+- ownertrust は残さない。`provision/gpg_import_key.sh` が取り込むときに設定する。
+- エクスポートした `secret-key.asc` は、1Password に置いたら消す。
 
-エクスポートした秘密鍵を守っているのは鍵のパスフレーズだけで、ファイルが漏れるとオフラインで総当たりされうる。失効証明書には鍵のパスフレーズの保護がなく、ファイルがあれば誰でも鍵を失効できる。Google Drive などに置くなら、鍵とは別の強いパスフレーズでファイルごと暗号化する。
-
-```bash
-gpg --symmetric --cipher-algo AES256 --output secret-key.asc.gpg secret-key.asc
-```
-
-このパスフレーズを同じ場所に保管しないこと。復元は `gpg --output secret-key.asc --decrypt secret-key.asc.gpg` で行う。
+戻すときは、1Password からファイルをダウンロードして、[新しい環境のセットアップ](#新しい環境のセットアップ)の `setup-credentials.sh <エクスポートしたファイル>` に渡す。取り込んだら、ダウンロードしたファイルを消す。
 
 ## パスフレーズの入力
 
