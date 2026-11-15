@@ -220,11 +220,11 @@ blocked "linux-desktop: /mnt/c を前提にしない" 'grep -q MISE_IGNORED_CONF
 check "linux-desktop: コミット署名が有効" 'grep -q "gpgsign = true" "$work/linux-desktop/home/.gitconfig"'
 blocked "linux-desktop: 鍵を作る前は signingkey を書かない" 'grep -q signingkey "$work/linux-desktop/home/.gitconfig"'
 equals "linux-desktop: 鍵を作る前の signingKey は空" "$(data_of linux-desktop .signingKey)" ""
-DOTFILES_SIGNING_KEY=0123456789ABCDEF cm linux-desktop init >/dev/null 2>&1 && cm linux-desktop apply --exclude scripts,externals >/dev/null 2>&1
-check "linux-desktop: 作った鍵が signingkey になる" 'grep -qx "	signingkey = 0123456789ABCDEF" "$work/linux-desktop/home/.gitconfig"'
+DOTFILES_SIGNING_KEY=1111222233334444 cm linux-desktop init >/dev/null 2>&1 && cm linux-desktop apply --exclude scripts,externals >/dev/null 2>&1
+check "linux-desktop: 作った鍵が signingkey になる" 'grep -qx "	signingkey = 1111222233334444" "$work/linux-desktop/home/.gitconfig"'
 cm linux-desktop init >/dev/null 2>&1
-equals "linux-desktop: 環境変数なしで init し直しても鍵と host が残る" "$(data_of linux-desktop '.signingKey + " " + .host')" "0123456789ABCDEF desktop"
-DOTFILES_SIGNING_KEY=0123456789ABCDEF cm linux-main init >/dev/null 2>&1
+equals "linux-desktop: 環境変数なしで init し直しても鍵と host が残る" "$(data_of linux-desktop '.signingKey + " " + .host')" "1111222233334444 desktop"
+DOTFILES_SIGNING_KEY=1111222233334444 cm linux-main init >/dev/null 2>&1
 equals "linux-main: DOTFILES_SIGNING_KEY があっても、Windows と同じ鍵のまま" "$(data_of linux-main .signingKey)" 78324D99D34D3111
 # init の設定のテンプレートには --override-data が効かず、動いている機械のカーネルを読む。
 # 手元の WSL では wsl、CI の GitHub のランナーでは desktop になり、両方の場合を試せる
