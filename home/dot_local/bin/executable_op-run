@@ -53,7 +53,7 @@ read_token() {
   printf '%s' "$token"
 }
 
-# 使い方: vault_items <トークン> <vault 名>  (アイテムを 1 行に 1 つの JSON で出力する)
+# 使い方: vault_items <トークン> <vault 名>  (アイテムの JSON を続けて並べて出力する)
 # トークンを op にだけ渡すため、サブシェルで動かす
 vault_items() (
   export OP_SERVICE_ACCOUNT_TOKEN="$1"
@@ -64,7 +64,7 @@ vault_items() (
   id="$(jq -r --arg name "$name" '.[] | select(.name == $name) | .id' <<<"$vaults")"
   items="$(op item list --vault "$id" --format json)" || die "vault $name のアイテムの一覧を取得できない"
   jq -r '.[].id' <<<"$items" | while IFS= read -r item_id; do
-    op item get "$item_id" --vault "$id" --format json --reveal | jq -c . || die "vault $name のアイテム $item_id を取得できない"
+    op item get "$item_id" --vault "$id" --format json --reveal || die "vault $name のアイテム $item_id を取得できない"
   done
 )
 
