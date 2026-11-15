@@ -97,6 +97,16 @@ try {
     $r = Invoke-OpRun @('noodlemap', '--', 'pwsh', '-NoProfile', '-Command', 'exit 7')
     Check 'the exit code of the command is returned' ($r.Code -eq 7)
 
+    # From PowerShell, op-run.ps1 runs in the caller's own process
+    $env:OP_SERVICE_ACCOUNT_TOKEN = 'caller-token'
+    $env:MULTI = 'caller multi'
+    & $script noodlemap -- pwsh -NoProfile -Command 'exit 0' 2>$null
+    Check 'run in the caller process, the secrets are gone and the caller variables are back afterwards' (
+        -not (Test-Path Env:CLOUDFLARE_API_TOKEN) -and $env:MULTI -ceq 'caller multi' -and $env:OP_SERVICE_ACCOUNT_TOKEN -ceq 'caller-token')
+    & $script --list noodlemap 2>$null | Out-Null
+    Check 'run in the caller process, --list leaves the caller token in place' ($env:OP_SERVICE_ACCOUNT_TOKEN -ceq 'caller-token')
+    Remove-Item Env:OP_SERVICE_ACCOUNT_TOKEN, Env:MULTI, Env:CLOUDFLARE_API_TOKEN, Env:EMPTY_EXTRA -ErrorAction SilentlyContinue
+
     $r = Invoke-OpRun @('--list', 'noodlemap')
     Check '--list prints only the names' ($r.Output -ceq "CLOUDFLARE_API_TOKEN`nEMPTY_EXTRA`nMULTI")
 

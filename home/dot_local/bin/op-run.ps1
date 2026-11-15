@@ -53,14 +53,15 @@ function Read-Token {
     return $token
 }
 
-# The token goes to op only, and is removed again before the command runs
+# The token goes to op only. Afterwards the variable is what it was before.
 function Invoke-Op([string]$Token, [string[]]$Arguments) {
+    $before = $env:OP_SERVICE_ACCOUNT_TOKEN
     $env:OP_SERVICE_ACCOUNT_TOKEN = $Token
     try {
         $output = (& op @Arguments --format json) -join "`n"
         if ($LASTEXITCODE -ne 0) { Stop-WithError "op $($Arguments -join ' ') failed" }
     } finally {
-        Remove-Item Env:OP_SERVICE_ACCOUNT_TOKEN -ErrorAction SilentlyContinue
+        if ($null -eq $before) { Remove-Item Env:OP_SERVICE_ACCOUNT_TOKEN -ErrorAction SilentlyContinue } else { $env:OP_SERVICE_ACCOUNT_TOKEN = $before }
     }
     return $output | ConvertFrom-Json
 }
@@ -107,15 +108,31 @@ $rest = @($args | Select-Object -Skip 1)
 if ($rest.Count -gt 0 -and $rest[0] -eq '--') { $rest = @($rest | Select-Object -Skip 1) }
 if ($rest.Count -eq 0) { Show-Usage }
 
-$token = Read-Token
-$secrets = Get-VaultSecret $token $vault
-Remove-Variable token
-# A token the caller already had is not passed on either
-Remove-Item Env:OP_SERVICE_ACCOUNT_TOKEN -ErrorAction SilentlyContinue
-foreach ($secret in $secrets) {
-    [Environment]::SetEnvironmentVariable($secret.key, $secret.values[0], 'Process')
+# From PowerShell this script runs in the caller's process, so the variables it sets would outlive
+# the command. Put back what the caller had once the command ends, even when it fails.
+$callerEnv = @{ OP_SERVICE_ACCOUNT_TOKEN = $env:OP_SERVICE_ACCOUNT_TOKEN }
+try {
+    $token = Read-Token
+    $secrets = Get-VaultSecret $token $vault
+    Remove-Variable token
+    # A token the caller already had is not passed on either
+    Remove-Item Env:OP_SERVICE_ACCOUNT_TOKEN -ErrorAction SilentlyContinue
+    foreach ($secret in $secrets) {
+        $callerEnv[$secret.key] = [Environment]::GetEnvironmentVariable($secret.key, 'Process')
+        [Environment]::SetEnvironmentVariable($secret.key, $secret.values[0], 'Process')
+    }
+    $command = $rest[0]
+    $commandArgs = @($rest | Select-Object -Skip 1)
+    & $command @commandArgs
+    $exitCode = $LASTEXITCODE
+} finally {
+    foreach ($name in $callerEnv.Keys) {
+        # PowerShell passes $null to .NET as '', which would leave an empty variable behind
+        if ($null -eq $callerEnv[$name]) {
+            Remove-Item -LiteralPath "Env:$name" -ErrorAction SilentlyContinue
+        } else {
+            [Environment]::SetEnvironmentVariable($name, $callerEnv[$name], 'Process')
+        }
+    }
 }
-$command = $rest[0]
-$commandArgs = @($rest | Select-Object -Skip 1)
-& $command @commandArgs
-exit $LASTEXITCODE
+exit $exitCode
