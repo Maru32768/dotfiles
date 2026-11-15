@@ -22,7 +22,7 @@
 | インスタンスの作成と削除 | `lab/lab.ps1` | Windows 側にあるので、WSL が壊れていても動く |
 | 確認 | `tests/doctor.sh`、CI (`docs/ci.md`) | 作り直せたことを機械的に確かめる |
 | 秘密情報 | リポジトリに入れない | 公開リポジトリのため |
-| API キー | Bitwarden Secrets Manager と `bws-run` | 使うコマンドにだけ渡す (`docs/secrets.md`) |
+| API キー | 1Passwordと`op-run` | 使うコマンドにだけ渡す (`docs/secrets.md`) |
 
 作業データは対象外。
 
@@ -101,15 +101,15 @@ wsl -d dev -u root passwd maru
 - `~/.ssh` と `~/.gitconfig` を Windows へのリンクにしない。WSL が単体で復元できなくなり、隔離とも両立しないため。
 - SSH キーは環境ごとに作り直せるので、バックアップしない。作り直したら古い鍵を GitHub から消す。
 - SSH キーのパスフレーズも gpg-agent で扱う。入力はポップアップで、キャッシュは GPG と同じ (最後に使ってから 24 時間、最長 72 時間)。
-- 長く保管する秘密は GPG 鍵だけ (`docs/gpg.md`)。
-- パスワードマネージャーは Bitwarden。構築の前提にはしない。`agent` ではログインしない。
-- API キーは Secrets Manager に置き、`bws-run` で渡す。`.env` や `mise.local.toml` に平文で書かない (`docs/secrets.md`)。
+- 長く保管する秘密は、GPG 鍵と Lattice の更新の署名鍵。1Password の Personal vault に置く (`docs/secrets.md`)。
+- パスワードマネージャーは1Password。構築の前提にはしない。`agent`ではサインインしない。
+- APIキーは1Passwordのvaultに置き、`op-run`で渡す。`.env` や `mise.local.toml` に平文で書かない (`docs/secrets.md`)。
 
 ## エージェント用の環境
 
 WSL の分離だけには頼らず、インスタンス、ユーザー、資格情報、Claude の設定、サンドボックス、通信の層を重ねる。成果物は署名なしの `agent/*` ブランチで受け取り、確認してから署名する。詳しくは `docs/agent.md`。
 
-Web を読ませる調べものには、同じ隔離に、uid で絞ったファイアウォールで LAN への通信を止める層を足した `research` を使う。API キーは呼び出し元が `bws-run` で渡す。詳しくは `docs/research.md`。
+Web を読ませる調べものには、同じ隔離に、uid で絞ったファイアウォールで LAN への通信を止める層を足した `research` を使う。APIキーは呼び出し元が`op-run`で渡す。詳しくは `docs/research.md`。
 
 WSL の各インスタンスは VM とカーネルを共有するので、悪意あるコードを閉じ込める壁としては弱い。信頼できないリポジトリには devcontainer や `wslc` を使う。隔離の効果は `tests/verify-isolation.sh` で実際に試して確かめる。
 

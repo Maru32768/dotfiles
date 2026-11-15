@@ -10,13 +10,13 @@ export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$PATH"
 # 隔離を確かめたバージョンのまま動かす。更新はインスタンスを作り直して行う (docs/agent.md)
 export DISABLE_AUTOUPDATER=1
 
-# 資格情報はちょうど 1 つ。普段は bws-run で渡す API キー、lab.ps1 verify の検査では保存したトークン
+# 資格情報はちょうど 1 つ。普段は op-run で渡す API キー、lab.ps1 verify の検査では保存したトークン
 if [ -n "${ANTHROPIC_API_KEY:-}" ] && [ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
   echo "ANTHROPIC_API_KEY と CLAUDE_CODE_OAUTH_TOKEN の両方があります。どちらか 1 つにしてください" >&2
   exit 1
 fi
 if [ -z "${ANTHROPIC_API_KEY:-}" ] && [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
-  echo "ANTHROPIC_API_KEY がありません。Windows から bws-run を通して lab.ps1 run で起動してください" >&2
+  echo "ANTHROPIC_API_KEY がありません。Windows から op-run を通して lab.ps1 run で起動してください" >&2
   exit 1
 fi
 

@@ -18,7 +18,7 @@
         { "PackageIdentifier": "Docker.DockerDesktop" },
         { "PackageIdentifier": "Amazon.AWSCLI" },
         { "PackageIdentifier": "Anthropic.Claude" },
-        { "PackageIdentifier": "Bitwarden.Bitwarden" },
+        { "PackageIdentifier": "AgileBits.1Password" },
         { "PackageIdentifier": "7zip.7zip" }
       ]
     }

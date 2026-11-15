@@ -63,13 +63,13 @@ if (& gpg --list-secret-keys $GpgFingerprint 2>$null) {
     Todo 'GPG signing key: restore it, see docs/gpg.md'
 }
 
-$bwsToken = Join-Path $HOME '.config\bws\token.gpg'
-if ((Test-Path -LiteralPath $bwsToken) -and (Get-Item -LiteralPath $bwsToken).Length -gt 0) {
-    Pass 'Bitwarden Secrets Manager token'
+$opToken = Join-Path $HOME '.config\op-run\token.gpg'
+if ((Test-Path -LiteralPath $opToken) -and (Get-Item -LiteralPath $opToken).Length -gt 0) {
+    Pass '1Password service account token'
 } else {
-    Todo 'Bitwarden Secrets Manager token: run bws-run --set-token, see docs/secrets.md'
+    Todo '1Password service account token: run op-run --set-token, see docs/secrets.md'
 }
-Check 'bws-run on PATH' { Get-Command bws-run.cmd -ErrorAction Stop }
+Check 'op-run on PATH' { Get-Command op-run.cmd -ErrorAction Stop }
 
 $settings = Get-Content -Raw (Join-Path $HOME '.claude\settings.json') | ConvertFrom-Json
 $hookCommand = $settings.hooks.PreToolUse[0].hooks[0].command

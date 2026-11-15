@@ -25,7 +25,7 @@ powershell -ExecutionPolicy Bypass -File lab\lab.ps1 new research-foo
 ```
 
 ```powershell
-bws-run research -- powershell -ExecutionPolicy Bypass -File lab\lab.ps1 run research-foo -Path work/run
+op-run research -- powershell -ExecutionPolicy Bypass -File lab\lab.ps1 run research-foo -Path work/run
 ```
 
 `run`はClaudeを対話で起動する。`-Prompt '<プロンプト>'`を付けると、対話の代わりに`claude -p`でそのプロンプトを1回だけ実行し、結果を表示して終わる。`-Path`の書き方はagentと同じ(`docs/agent.md`)。
@@ -38,7 +38,7 @@ powershell -ExecutionPolicy Bypass -File lab\lab.ps1 rm research-foo
 
 ## API キー
 
-- Secrets Manager に、このキーだけを置くプロジェクトを作る (例: `research`)。`bws-run` はプロジェクトの秘密情報をすべて `lab.ps1` の環境変数にするので、ほかのキーと同じプロジェクトに置かない (`docs/secrets.md`)。
+- 1Passwordに、このキーだけを置くvaultを作る(例: `research`)。`op-run`はvaultのアイテムをすべて`lab.ps1`の環境変数にするので、ほかのキーと同じvaultに置かない (`docs/secrets.md`)。
 - キーは専用の Anthropic のワークスペースで発行し、そのワークスペースに使用量の上限を設定する。インスタンスの中の Claude 本体はキーを持つので、持ち出されたときの被害は上限で抑える。
 - `lab.ps1` はキーを保存しない。1 回の `wsl.exe` の実行にだけ `WSLENV` で渡し、終われば `WSLENV` を元に戻す。
 - インスタンスの中では、キーは Claude 本体の環境変数にだけある。`sandbox.credentials.envVars` で Bash から隠す。

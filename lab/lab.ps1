@@ -10,7 +10,7 @@
 #   lab.ps1 run agent-foo [-Path work/repo] [-Prompt '...']
 #                                  (-Path is inside the instance, relative to the home, default work.
 #                                   -Prompt runs claude -p instead of an interactive Claude)
-#   bws-run <project> -- powershell -ExecutionPolicy Bypass -File lab\lab.ps1 run research-foo -Path work/run
+#   op-run <vault> -- powershell -ExecutionPolicy Bypass -File lab\lab.ps1 run research-foo -Path work/run
 #                                  (research runs on ANTHROPIC_API_KEY from the caller)
 #   lab.ps1 verify agent-foo
 #   lab.ps1 rm agent-foo           (only agent-*, research-* and restore-test*)
@@ -49,7 +49,7 @@ $Profiles = [ordered]@{
     agent    = @{ Prefix = 'agent-'; User = 'agent'; Home = 'agent'; Launcher = '/usr/local/bin/agent-claude'; RunWith = 'Invoke-WithToken'
                   Next = 'lab.ps1 token (once), then lab.ps1 run {0}' }
     research = @{ Prefix = 'research-'; User = 'research'; Home = 'agent'; Launcher = '/usr/local/bin/research-claude'; RunWith = 'Invoke-WithApiKey'
-                  Next = 'bws-run <project> -- powershell -ExecutionPolicy Bypass -File lab\lab.ps1 run {0} -Path work/run' }
+                  Next = 'op-run <vault> -- powershell -ExecutionPolicy Bypass -File lab\lab.ps1 run {0} -Path work/run' }
 }
 
 function Get-ProfileName([string]$InstanceName) {
@@ -111,10 +111,10 @@ function Invoke-WithToken([scriptblock]$Action) {
     }
 }
 
-# The key comes from the caller (bws-run) and is never stored here.
+# The key comes from the caller (op-run) and is never stored here.
 function Invoke-WithApiKey([scriptblock]$Action) {
     if (-not $env:ANTHROPIC_API_KEY) {
-        throw "ANTHROPIC_API_KEY is not set. Run through bws-run: bws-run <project> -- powershell -ExecutionPolicy Bypass -File lab\lab.ps1 run $Name"
+        throw "ANTHROPIC_API_KEY is not set. Run through op-run: op-run <vault> -- powershell -ExecutionPolicy Bypass -File lab\lab.ps1 run $Name"
     }
     Invoke-WithWslEnv 'ANTHROPIC_API_KEY' $Action
 }
@@ -260,7 +260,7 @@ if ($Command -eq 'verify') {
 }
 
 if ($Command -eq 'run') {
-    # PowerShell 7 turns a leading ~ into the Windows home, even inside bws-run, so the
+    # PowerShell 7 turns a leading ~ into the Windows home, even inside op-run, so the
     # portable form is a path relative to the home. Windows PowerShell 5.1 passes a " to an
     # exe unescaped, which would swallow the arguments after --cd.
     if ($Path -match '[:\\"]') {

@@ -24,7 +24,7 @@ powershell -ExecutionPolicy Bypass -File lab\lab.ps1 verify agent-foo
 powershell -ExecutionPolicy Bypass -File lab\lab.ps1 rm agent-foo
 ```
 
-`-Path`はインスタンスの中のパスで、`/`か`~`で始まらなければホームからの相対パスとみなす。省くと `~/work` で動く。`~/work/repo`とは書かない。PowerShell 7では先頭の`~`がWindowsのホームに展開され、`bws-run`を通すと引用符で囲んでも展開される(PowerShell 7.6で確認)。`-Prompt '<プロンプト>'`を付けると、対話せずに、そのプロンプトを`claude -p`で1回だけ実行する。プロンプトには`"`を入れず、末尾を`\`にしない。Windows PowerShell 5.1はこれらをエスケープせずにwsl.exeへ渡すので、プロンプトが割れるか欠ける。`lab.ps1`はこのプロンプトを拒む。サンドボックスは作業ディレクトリへの書き込みを許すので、起動スクリプトは`~/work`の外ではClaudeを起動しない。`wsl.exe`は`--cd`のディレクトリが無くても`/`で続けるので、`-Path`のディレクトリは前もって作っておく。`rm` で消せるのは `agent-*`、`research-*`、`restore-test*` だけ。ほかは `wsl --unregister` を自分で実行する。
+`-Path`はインスタンスの中のパスで、`/`か`~`で始まらなければホームからの相対パスとみなす。省くと `~/work` で動く。`~/work/repo`とは書かない。PowerShell 7では先頭の`~`がWindowsのホームに展開され、`op-run`を通すと引用符で囲んでも展開される(PowerShell 7.6で確認)。`-Prompt '<プロンプト>'`を付けると、対話せずに、そのプロンプトを`claude -p`で1回だけ実行する。プロンプトには`"`を入れず、末尾を`\`にしない。Windows PowerShell 5.1はこれらをエスケープせずにwsl.exeへ渡すので、プロンプトが割れるか欠ける。`lab.ps1`はこのプロンプトを拒む。サンドボックスは作業ディレクトリへの書き込みを許すので、起動スクリプトは`~/work`の外ではClaudeを起動しない。`wsl.exe`は`--cd`のディレクトリが無くても`/`で続けるので、`-Path`のディレクトリは前もって作っておく。`rm` で消せるのは `agent-*`、`research-*`、`restore-test*` だけ。ほかは `wsl --unregister` を自分で実行する。
 
 ## コードの受け渡し
 
@@ -120,7 +120,7 @@ powershell -ExecutionPolicy Bypass -File lab\lab.ps1 new agent-foo
 
 Windows のユーザー環境変数には入れない。Windows 上の Claude Code でも `/login` より優先されてしまう。
 
-API キーで動かすのは research 環境で、キーは呼び出し元が `bws-run` で渡す (`docs/research.md`)。
+API キーで動かすのは research 環境で、キーは呼び出し元が`op-run`で渡す (`docs/research.md`)。
 
 ## CLAUDE_CODE_SUBPROCESS_ENV_SCRUB を使わない理由
 
