@@ -84,7 +84,8 @@ check "コミット署名が有効" '[ "$(git config --global --includes commit.
 if [ "$host" = mac ]; then
   # JetBrains IDE が書いたものも含め、gpg-agent.conf が指す pinentry が実行できる
   check "pinentry が実行できる" 'pinentry="$(sed -n "s/^pinentry-program //p" ~/.gnupg/gpg-agent.conf | tail -1)" && [ -x "$pinentry" ]'
-  check "zsh のログインシェルで mise が使える" 'zsh -lic "command -v mise" </dev/null'
+  # doctor が足した PATH を引き継がないように、環境を空にして、zsh の設定だけで mise が見つかるかを見る
+  check "zsh のログインシェルで mise が使える" 'env -i HOME="$HOME" PATH=/usr/bin:/bin zsh -lic "command -v mise" </dev/null'
 else
   # デスクトップでは、Ubuntu が入れる pinentry-gnome3 が選ばれることもある
   check "pinentry が GUI" 'readlink -f /usr/bin/pinentry | grep -qE "gtk|gnome3"'
