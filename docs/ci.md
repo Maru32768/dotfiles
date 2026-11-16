@@ -6,7 +6,7 @@
 |---|---|---|
 | `static` | `tests/ci/static.sh` | shellcheck、フック･`op-run`･`setup-credentials.sh`･`split-pdf`･`split-pr-stack`･review-loopの`evidence.sh`･`usage-log`･docs-redesignのスクリプト･docs-overviewのスクリプトのテスト、不変条件、chezmoi のレンダリング、gitleaks、actionlint |
 | `container` | `tests/ci/container.sh <main\|agent\|research\|desktop>` | `ubuntu:26.04` で環境を作り、確認と再適用まで行う。`desktop` は WSL ではない PC (`docs/desktop.md`)。`main` と `desktop` では、先に `user.sh` の予行 (`DOTFILES_PREVIEW=1`) が、書き換わる今のファイル (`useradd` が置いた `.bashrc`) と消える今のファイル (第三者のスキルに置いたファイル) を出し、何も適用せず、ホームに chezmoi の設定も書かないことを確かめる |
-| `macos` | `packages/Brewfile`、`provision/user.sh`、`tests/doctor.sh`、`tests/ci/setup-credentials-test.sh`、`tests/ci/render.sh` | `macos-latest`のランナーで、Homebrewの一覧と`user.sh`でmacの環境を作り、`doctor.sh`で確かめる。`render.sh`の検査のうち、macでしか効かないもの(HomebrewのPATH、Appleのssh)も回す(`docs/mac.md`) |
+| `macos` | `packages/Brewfile`、`provision/user.sh`、`tests/doctor.sh`、`tests/ci/setup-credentials-test.sh`、`tests/ci/render.sh` | `macos-latest`のランナーで、Homebrewの一覧と`user.sh`でmacの環境を作り、`doctor.sh`で確かめる。その前に`user.sh`の予行が、今ある`~/.zshrc`を書き換わるファイルとして出すことを確かめる。`render.sh`の検査のうち、macでしか効かないもの(HomebrewのPATH、Appleのssh)も回す(`docs/mac.md`) |
 | `windows` | `tests/ci/windows.ps1`、`tests/ci/op-run-test.ps1`、`tests/ci/lab-run-test.ps1` | Windows PowerShell 5.1 での構文、Windows 版の `op-run` のテスト、`lab.ps1 run`が偽の`wsl.exe`に渡す引数のテスト(Windows PowerShell 5.1とPowerShell 7の両方で動かす)、PSScriptAnalyzer |
 
 定期実行は、固定していないもの (apt、インストーラー、Vim プラグイン) の破損に気づくためにある。
