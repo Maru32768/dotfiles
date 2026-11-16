@@ -1,6 +1,6 @@
 #!/bin/bash
 # chezmoi のソースを環境ごとに描画して、置かれるものを確かめる。スクリプトは実行しない。
-# Linux の上で Windows 向けも描画できるが、テンプレートの .chezmoi.os を差し替えるだけなので、
+# Windows 向けも、テンプレートの .chezmoi.os を差し替えて描画する。差し替えるだけなので、
 # Windows での実際の動作までは分からない。
 # shellcheck disable=SC2016
 set -uo pipefail
@@ -34,6 +34,14 @@ cm() {
     --override-data "{\"chezmoi\":{\"os\":\"$os\"}}"
 }
 
+# chezmoi init は設定のテンプレートに --override-data を効かせず、動いている機械の OS を読む。
+# execute-template --init なら効くので、その結果を設定にする。カーネルは差し替えない
+init_of() {
+  local config
+  config="$(cm "$1" execute-template --init <"$root/home/.chezmoi.toml.tmpl")" || return 1
+  printf '%s\n' "$config" >"$work/$1/chezmoi.toml"
+}
+
 # linux-main と linux-agent は WSL、linux-desktop は WSL ではない PC。CI はどちらのカーネルでも動くので、host を指定する
 prepare() {
   local name="$1" profile="${1#*-}" host=wsl
@@ -42,7 +50,7 @@ prepare() {
     linux-desktop) profile=main host=desktop ;;
   esac
   mkdir -p "$work/$name/home" "$work/$name/fakehome"
-  if ! DOTFILES_PROFILE="$profile" DOTFILES_HOST="$host" cm "$name" init; then
+  if ! DOTFILES_PROFILE="$profile" DOTFILES_HOST="$host" init_of "$name"; then
     fail "$name: chezmoi init"
     return 1
   fi
@@ -150,7 +158,7 @@ for name in linux-main windows-main; do
   skill="$work/$name/home/.claude/skills/knowledge-capture/SKILL.md"
   check "$name: knowledge-capture がある" '[ -f "$skill" ]'
   # description を除く frontmatter の完全一致。hooks などのキーを足して許可を広げる変更も落ちる
-  equals "$name: knowledge-capture の frontmatter" "$(sed -n '1{/^---$/!q;d};/^---$/q;/^description: /d;p' "$skill" 2>/dev/null)" "name: knowledge-capture
+  equals "$name: knowledge-capture の frontmatter" "$(sed -n '1{/^---$/!q;d;};/^---$/q;/^description: /d;p' "$skill" 2>/dev/null)" "name: knowledge-capture
 argument-hint: \"[記録する内容のメモ]\"
 allowed-tools: $knowledge_tools"
   check "$name: knowledge-capture がコミットの前に gitleaks で調べる" 'grep -qF "先に\`mise -C ~/work/blog/marulabs-knowledge exec -- gitleaks dir --no-banner --redact -v --config .gitleaks.toml --exit-code 3 <記録のパス>\`を" "$skill"'
@@ -181,7 +189,7 @@ check "windows-main: Claude の設定の既存のキーと permissions.allow が
 for name in linux-main windows-main; do
   skill="$work/$name/home/.claude/skills/usage-cap/SKILL.md"
   # description を除く frontmatter の完全一致。hooks などのキーを足して許可を広げる変更も落ちる
-  equals "$name: usage-cap の frontmatter" "$(sed -n '1{/^---$/!q;d};/^---$/q;/^description: /d;p' "$skill" 2>/dev/null)" "name: usage-cap
+  equals "$name: usage-cap の frontmatter" "$(sed -n '1{/^---$/!q;d;};/^---$/q;/^description: /d;p' "$skill" 2>/dev/null)" "name: usage-cap
 user-invocable: false
 allowed-tools: Read(~/.local/state/usage/weekly-cap) mcp__ccd_session_mgmt__get_usage"
   # 本体が読むのは description だけなので、止まる側に倒す約束と、本体で呼ばない約束を確かめる
@@ -220,29 +228,29 @@ blocked "linux-desktop: /mnt/c を前提にしない" 'grep -q MISE_IGNORED_CONF
 check "linux-desktop: コミット署名が有効" 'grep -q "gpgsign = true" "$work/linux-desktop/home/.gitconfig"'
 blocked "linux-desktop: 鍵を作る前は signingkey を書かない" 'grep -q signingkey "$work/linux-desktop/home/.gitconfig"'
 equals "linux-desktop: 鍵を作る前の signingKey は空" "$(data_of linux-desktop .signingKey)" ""
-DOTFILES_SIGNING_KEY=1111222233334444 cm linux-desktop init >/dev/null 2>&1 && cm linux-desktop apply --exclude scripts,externals >/dev/null 2>&1
+DOTFILES_SIGNING_KEY=1111222233334444 init_of linux-desktop >/dev/null 2>&1 && cm linux-desktop apply --exclude scripts,externals >/dev/null 2>&1
 check "linux-desktop: 作った鍵が signingkey になる" 'grep -qx "	signingkey = 1111222233334444" "$work/linux-desktop/home/.gitconfig"'
-cm linux-desktop init >/dev/null 2>&1
+init_of linux-desktop >/dev/null 2>&1
 equals "linux-desktop: 環境変数なしで init し直しても鍵と host が残る" "$(data_of linux-desktop '.signingKey + " " + .host')" "1111222233334444 desktop"
-DOTFILES_SIGNING_KEY=1111222233334444 cm linux-main init >/dev/null 2>&1
+DOTFILES_SIGNING_KEY=1111222233334444 init_of linux-main >/dev/null 2>&1
 equals "linux-main: DOTFILES_SIGNING_KEY があっても、Windows と同じ鍵のまま" "$(data_of linux-main .signingKey)" 78324D99D34D3111
-# init の設定のテンプレートには --override-data が効かず、動いている機械のカーネルを読む。
+# カーネルは差し替えないので、動いている機械のものを読む。
 # 手元の WSL では wsl、CI の GitHub のランナーでは desktop になり、両方の場合を試せる
 mkdir -p "$work/linux-detect/home" "$work/linux-detect/fakehome"
-if grep -qi microsoft /proc/sys/kernel/osrelease; then detected=wsl; else detected=desktop; fi
-cm linux-detect init >/dev/null 2>&1
+if grep -qi microsoft /proc/sys/kernel/osrelease 2>/dev/null; then detected=wsl; else detected=desktop; fi
+init_of linux-detect >/dev/null 2>&1
 equals "DOTFILES_HOST がなければ、カーネルから判定する ($detected)" "$(data_of linux-detect .host)" "$detected"
 mkdir -p "$work/linux-bad/home" "$work/linux-bad/fakehome"
-blocked "desktop に agent は作れない" 'DOTFILES_PROFILE=agent DOTFILES_HOST=desktop cm linux-bad init'
-blocked "知らない host は init で止まる" 'DOTFILES_HOST=mac cm linux-bad init'
+blocked "desktop に agent は作れない" 'DOTFILES_PROFILE=agent DOTFILES_HOST=desktop init_of linux-bad'
+blocked "知らない host は init で止まる" 'DOTFILES_HOST=mac init_of linux-bad'
 
 # --- プロファイル ---
 profile_of() { sed -n 's/^ *profile = "\(.*\)"$/\1/p' "$work/$1/chezmoi.toml"; }
 unset DOTFILES_PROFILE
-cm linux-agent init >/dev/null 2>&1
+init_of linux-agent >/dev/null 2>&1
 equals "環境変数なしで init し直しても agent のまま" "$(profile_of linux-agent)" agent
 mkdir -p "$work/linux-default/home" "$work/linux-default/fakehome"
-cm linux-default init >/dev/null 2>&1
+init_of linux-default >/dev/null 2>&1
 equals "新しい環境の既定は main" "$(profile_of linux-default)" main
 
 # --- テンプレートから作られるシェルスクリプト ---

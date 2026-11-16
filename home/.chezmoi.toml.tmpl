@@ -5,7 +5,7 @@
 {{- $host := "windows" -}}
 {{- if ne .chezmoi.os "windows" -}}
 {{-   $detected := "desktop" -}}
-{{-   if and (hasKey .chezmoi "kernel") (contains "microsoft" (lower .chezmoi.kernel.osrelease)) -}}
+{{-   if contains "microsoft" (lower (dig "kernel" "osrelease" "" .chezmoi)) -}}
 {{-     $detected = "wsl" -}}
 {{-   end -}}
 {{-   $host = env "DOTFILES_HOST" | default (get . "host") | default $detected -}}
