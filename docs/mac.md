@@ -101,10 +101,11 @@ desktopと同じく、PCごとの鍵で署名し、WindowsとWSLの鍵は使わ�
 | `~/.claude/settings.json` | 移さなくてよい。共通の設定にあるキーだけが書き換わり、ほかのキーは残る。配列(`hooks`の各イベント、`permissions.additionalDirectories`など)は丸ごと置き換わる(`docs/claude.md`) |
 | そのほか(`~/.claude/skills/`の同じ名前のスキル、`~/.vimrc`、`~/.config/mise/config.toml`など) | 移さない(dotfilesのものを使う)。第三者のスキルは、上流に無いファイルも消える |
 
-次の2つは書き換わらないので、予行に出ない。
+次のものは予行に出ない。
 
-- `/setup-pstack`が、dotfilesの`~/.claude/pstack-models.md`と別の場所(`~/.claude/rules/pstack-models.md`など)に書いたモデルの指定。残すと、食い違う2つが両方読まれるので消す。
-- `~/.claude/skills/`にあるシンボリックリンク(`npx skills`で入れたスキルなど)。`doctor.sh`が失敗にする。使い続けるスキルは`home/.chezmoidata/skills.toml`に足してから(`docs/skills.md`)、リンクを消す。
+- `/setup-pstack`が、dotfilesの`~/.claude/pstack-models.md`と別の場所(`~/.claude/rules/pstack-models.md`など)に書いたモデルの指定。書き換わらずに残り、食い違う2つが両方読まれるので消す。
+- `~/.claude/skills/`にある、dotfilesのスキルと別の名前のシンボリックリンク(`npx skills`で入れたスキルなど)。書き換わらずに残り、`doctor.sh`が失敗にする。使い続けるスキルは`home/.chezmoidata/skills.toml`に足してから(`docs/skills.md`)、リンクを消す。同じ名前のリンクは置き換わり、予行に`M`で出る。
+- 適用の後に動くスクリプトがすること。`~/.local/bin/claude`が無ければClaude Codeを入れる。`~/.zprofile`は`~/.local/bin`をHomebrewより先に置くので、HomebrewやnpmのClaude Codeがあっても、こちらが使われる。ghの拡張のgh-stackは、固定した版で入れ直す。
 
 ## 確かめていること
 
