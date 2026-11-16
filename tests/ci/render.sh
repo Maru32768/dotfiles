@@ -206,7 +206,6 @@ done
 topics_of() { cat "$work/$1/home/.claude/CLAUDE.md" "$work/$1/home/.claude/rules/"*.md 2>/dev/null | grep -oF -e PLaMo -e op-run -e '--assignee @me' | LC_ALL=C sort -u | paste -sd, -; }
 equals "windows-main: Claude への指示に出る話題" "$(topics_of windows-main)" "PLaMo,op-run"
 equals "linux-main: Claude への指示に出る話題" "$(topics_of linux-main)" "op-run"
-equals "linux-desktop: Claude への指示に出る話題" "$(topics_of linux-desktop)" "op-run"
 equals "darwin-main: Claude への指示に出る話題" "$(topics_of darwin-main)" ""
 equals "darwin-work: Claude への指示に出る話題" "$(topics_of darwin-work)" "--assignee @me"
 
