@@ -56,10 +56,7 @@ else
 fi
 
 check "mise" 'mise --version'
-case "$(uname -s)-$(uname -m)" in
-  Darwin-arm64) platform=macos-arm64 ;;
-  *) platform=linux-x64 ;;
-esac
+platform=linux-x64; [ "$host" = mac ] && platform=macos-arm64
 # config.toml の os でほかの OS に絞ったツール (Windows の llama.cpp、mac の op と codex) は、
 # lock にこの platform の行が無く、mise ls --current にも出ない。platform の行が 1 つも無いもの (rust など) は入る
 lock_versions() {
