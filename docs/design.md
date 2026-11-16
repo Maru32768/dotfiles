@@ -103,7 +103,7 @@ PCごとの設定や仕事の設定(社内のホスト、社内のCAなど)は�
 | `~/.ssh/config.local` | `~/.ssh/config`の最後(`Match all`の後の`Include`) | `~/.ssh/config`を置く環境(Windowsと`agent`以外) |
 | `~/.zshrc.local` | `~/.zshrc`の最後 | mac(`docs/mac.md`) |
 
-- gitは後に書いた値を使う。`~/.gitconfig.local`の値は、署名の設定(`commit.gpgsign`、`gpg.program`)のほかは、dotfilesの値より優先される。署名の設定は`[include]`の後に書くので、`~/.gitconfig.local`や、そこから読むファイルでは変えられない。
+- gitは後に書いた値を使う。`~/.gitconfig.local`の値は、署名の設定(`commit.gpgsign`、`user.signingkey`、`gpg.format`、`gpg.program`)のほかは、dotfilesの値より優先される。署名の設定は`[include]`の後に書くので、`~/.gitconfig.local`や、そこから読むファイルでは変えられない。gpgの場所を変えるときも、dotfilesの`gpg.program`を直す。
 - `~/.ssh/config.local`を最後に読むのは、GitHubの設定を先に置くため。sshは最初に見つけた値を使い、`IdentityFile`は見つけた順に試す。そのため、`config.local`の`Host *`に鍵があっても、GitHubに接続するときはdotfilesの設定が指定する鍵(`~/.ssh/github`)を先に試す。
 - `Include`を`Match all`の後に置くのは、直前の`Host`の中に入って、GitHubに接続するときだけ読まれるのを避けるため。
 

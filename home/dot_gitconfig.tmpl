@@ -1,9 +1,6 @@
 [user]
 	name = {{ .name }}
 	email = {{ .email }}
-{{- if and (eq .profile "main") .signingKey }}
-	signingkey = {{ .signingKey }}
-{{- end }}
 [core]
 	editor = vim -c \"set fenc=utf-8\"
 	ignorecase = false
@@ -22,11 +19,16 @@
 [mergetool]
 	prompt = false
 {{- if eq .profile "main" }}
-{{- /* 後に書いた値が勝つので、~/.gitconfig.local と、そこから読むファイルでは、署名の設定を変えられない */}}
+{{- /* 後に書いた値が勝つので、~/.gitconfig.local と、そこから読むファイルでは、署名の設定 (有効か、鍵、形式、プログラム) を変えられない */}}
 [include]
 	path = ~/.gitconfig.local
+{{- if .signingKey }}
+[user]
+	signingkey = {{ .signingKey }}
+{{- end }}
 [commit]
 	gpgsign = true
 [gpg]
+	format = openpgp
 	program = gpg
 {{- end }}

@@ -207,9 +207,9 @@ done
 # --- ローカルのファイルの読み込み (git と SSH) ---
 ghome="$work/git-home"
 mkdir -p "$ghome"
-printf '[user]\n\temail = local@example.com\n[commit]\n\tgpgsign = false\n[gpg]\n\tprogram = /bin/false\n' >"$ghome/.gitconfig.local"
+printf '[user]\n\temail = local@example.com\n\tsigningkey = BBBB2222\n[commit]\n\tgpgsign = false\n[gpg]\n\tformat = ssh\n\tprogram = /bin/false\n' >"$ghome/.gitconfig.local"
 gitconfig_of() { HOME="$ghome" git config -f "$work/linux-main/home/.gitconfig" --includes "$1"; }
-equals "linux-main: ~/.gitconfig.local の値が勝つが、署名の設定は変えられない" "$(gitconfig_of user.email) $(gitconfig_of commit.gpgsign) $(gitconfig_of gpg.program)" "local@example.com true gpg"
+equals "linux-main: ~/.gitconfig.local の値が勝つが、署名の設定は変えられない" "$(gitconfig_of user.email) $(gitconfig_of commit.gpgsign) $(gitconfig_of user.signingkey) $(gitconfig_of gpg.format) $(gitconfig_of gpg.program)" "local@example.com true 78324D99D34D3111 openpgp gpg"
 blocked "linux-agent: .gitconfig が ~/.gitconfig.local を読まない" 'git config -f "$work/linux-agent/home/.gitconfig" --get include.path'
 # config.local は ~/.ssh からの相対パスで、本物のホームを指すので、ここだけ絶対パスに替えて試す。
 # UseKeychain は、どの ssh も知らない名前に替えて、IgnoreUnknown がどのホストにも効くことを Apple の ssh でも確かめる
