@@ -37,4 +37,4 @@ desktopと同じく、PCごとの鍵で署名し、WindowsとWSLの鍵は使わ�
 
 ## 確かめていること
 
-`tests/ci/render.sh`が`.chezmoi.os`を`darwin`に差し替えて、`darwin-main`と`darwin-work`を描画して適用する。hostと`work`の値、それらが残ること、置くファイルと実行するスクリプト、署名鍵、macに`agent`を作れないことを確かめる。macのhostが、`DOTFILES_HOST`や設定に残ったhostで変わらないことも確かめる。`work`は、LinuxのwslとdesktopとWindowsでも、同じように読んで残り、PR運用の指示を置くことを確かめる。`.chezmoi.os`を差し替えるだけなので、実際のmacでの動作までは分からない。
+`tests/ci/render.sh`が`.chezmoi.os`を`darwin`に差し替えて、`darwin-main`と`darwin-work`を描画して適用する。hostと`work`の値、それらが残ること、置くファイルと実行するスクリプト、署名鍵、macに`agent`を作れないことを確かめる。macのhostが、`DOTFILES_HOST`や設定に残ったhostで変わらないことも確かめる。`work`は、LinuxのwslとdesktopとWindowsでも、同じように読んで残ることを確かめる。`.chezmoi.os`を差し替えるだけなので、実際のmacでの動作までは分からない。

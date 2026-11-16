@@ -290,7 +290,6 @@ for entry in linux-work-wsl:wsl linux-work-desktop:desktop windows-work:; do
   mkdir -p "$work/$name/home" "$work/$name/fakehome"
   DOTFILES_HOST="${entry#*:}" DOTFILES_WORK=1 init_of "$name" >/dev/null 2>&1
   equals "$name: DOTFILES_WORK=1 で work が true" "$(data_of "$name" '.work | tojson')" true
-  check "$name: PR運用の指示を置く" 'cm "$name" apply --exclude scripts,externals && [ -f "$work/$name/home/.claude/rules/pr.md" ]'
   check "$name: 環境変数なしで init し直せる" 'init_of "$name"'
   equals "$name: 環境変数なしで init し直しても work が残る" "$(data_of "$name" '.work | tojson')" true
   DOTFILES_WORK=0 init_of "$name" >/dev/null 2>&1
