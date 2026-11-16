@@ -234,7 +234,7 @@ blocked "linux-desktop: 鍵を作る前は signingkey を書かない" 'grep -q 
 equals "linux-desktop: 鍵を作る前の signingKey は空" "$(data_of linux-desktop .signingKey)" ""
 DOTFILES_SIGNING_KEY=1111222233334444 init_of linux-desktop >/dev/null 2>&1 && cm linux-desktop apply --exclude scripts,externals >/dev/null 2>&1
 check "linux-desktop: 作った鍵が signingkey になる" 'grep -qx "	signingkey = 1111222233334444" "$work/linux-desktop/home/.gitconfig"'
-init_of linux-desktop >/dev/null 2>&1
+check "linux-desktop: 環境変数なしで init し直せる" 'init_of linux-desktop'
 equals "linux-desktop: 環境変数なしで init し直しても鍵と host が残る" "$(data_of linux-desktop '.signingKey + " " + .host')" "1111222233334444 desktop"
 DOTFILES_SIGNING_KEY=1111222233334444 init_of linux-main >/dev/null 2>&1
 equals "linux-main: DOTFILES_SIGNING_KEY があっても、Windows と同じ鍵のまま" "$(data_of linux-main .signingKey)" 78324D99D34D3111
@@ -259,7 +259,7 @@ equals "darwin-main: スキルは Claude のものだけ置く" "$(actual_skills
   "$(expected_skills darwin-main | tr ' ' '\n' | grep -v '^\.agents/' | paste -sd ' ' -)"
 equals "darwin-main: 鍵を渡す前の signingKey は空" "$(data_of darwin-main .signingKey)" ""
 DOTFILES_SIGNING_KEY=1111222233334444 init_of darwin-work >/dev/null 2>&1
-init_of darwin-work >/dev/null 2>&1
+check "darwin-work: 環境変数なしで init し直せる" 'init_of darwin-work'
 equals "darwin-work: 環境変数なしで init し直しても鍵、host、work が残る" "$(data_of darwin-work '.signingKey + " " + .host + " " + (.work | tojson)')" "1111222233334444 mac true"
 DOTFILES_WORK=0 init_of darwin-work >/dev/null 2>&1
 equals "darwin-work: DOTFILES_WORK=0 で work が false に戻る" "$(data_of darwin-work '.work | tojson')" false
@@ -272,7 +272,7 @@ equals "mac では DOTFILES_HOST を読まない" "$(data_of darwin-bad .host)" 
 # --- プロファイル ---
 profile_of() { sed -n 's/^ *profile = "\(.*\)"$/\1/p' "$work/$1/chezmoi.toml"; }
 unset DOTFILES_PROFILE
-init_of linux-agent >/dev/null 2>&1
+check "linux-agent: 環境変数なしで init し直せる" 'init_of linux-agent'
 equals "環境変数なしで init し直しても agent のまま" "$(profile_of linux-agent)" agent
 mkdir -p "$work/linux-default/home" "$work/linux-default/fakehome"
 init_of linux-default >/dev/null 2>&1
