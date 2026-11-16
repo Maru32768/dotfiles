@@ -96,7 +96,7 @@ desktopと同じく、PCごとの鍵で署名し、WindowsとWSLの鍵は使わ�
 |---|---|
 | `~/.zprofile`、`~/.zshrc` | `~/.zshrc.local` |
 | `~/.gitconfig` | `~/.gitconfig.local`(署名の設定は、移しても効かない) |
-| `~/.ssh/config` | `~/.ssh/config.local`。colimaを使うなら、colimaが書いた`Include ~/.colima/ssh_config`もここへ移し、`~/.colima/default/colima.yaml`の`sshConfig`を`false`にする。`true`のままだと、colimaが`~/.ssh/config`を書き換えるので、`doctor.sh`の「chezmoi の管理ファイルに差分がない」が失敗する |
+| `~/.ssh/config` | `~/.ssh/config.local`。colimaを使うなら、colimaが`~/.ssh/config`の先頭に書いた`.colima/ssh_config`の`Include`も、`config.local`の先頭(最初の`Host`や`Match`より前)へ移す。`Host`の後に置くと、その`Host`に合うときしか読まれず、`ssh colima`が黙ってつながらなくなる。あわせて、使うプロファイルの`colima.yaml`(`default`なら`~/.colima/default/colima.yaml`)の`sshConfig`を`false`にする。`true`のままだと、colimaが`~/.ssh/config`を書き換えるので、`doctor.sh`の「chezmoi の管理ファイルに差分がない」が失敗する |
 | `~/.claude/CLAUDE.md` | `~/.claude/rules/`の、dotfilesが置かない名前のファイル |
 | `~/.claude/settings.json` | 移さなくてよい。共通の設定にあるキーだけが書き換わり、ほかのキーは残る。配列(`hooks`の各イベント、`permissions.additionalDirectories`など)は丸ごと置き換わる(`docs/claude.md`) |
 | そのほか(`~/.claude/skills/`の同じ名前のスキル、`~/.vimrc`、`~/.config/mise/config.toml`など) | 移さない(dotfilesのものを使う)。第三者のスキルは、上流に無いファイルも消える |
