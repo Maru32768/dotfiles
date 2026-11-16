@@ -22,10 +22,11 @@
 [mergetool]
 	prompt = false
 {{- if eq .profile "main" }}
+{{- /* 後に書いた値が勝つので、~/.gitconfig.local と、そこから読むファイルでは、署名の設定を変えられない */}}
+[include]
+	path = ~/.gitconfig.local
 [commit]
 	gpgsign = true
 [gpg]
 	program = gpg
-[include]
-	path = ~/.gitconfig.local
 {{- end }}

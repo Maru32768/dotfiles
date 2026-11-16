@@ -207,8 +207,9 @@ done
 # --- ローカルのファイルの読み込み (git と SSH) ---
 ghome="$work/git-home"
 mkdir -p "$ghome"
-printf '[user]\n\temail = local@example.com\n' >"$ghome/.gitconfig.local"
-equals "linux-main: .gitconfig が ~/.gitconfig.local を読み、そちらを優先する" "$(HOME="$ghome" git config -f "$work/linux-main/home/.gitconfig" --includes user.email)" local@example.com
+printf '[user]\n\temail = local@example.com\n[commit]\n\tgpgsign = false\n[gpg]\n\tprogram = /bin/false\n' >"$ghome/.gitconfig.local"
+gitconfig_of() { HOME="$ghome" git config -f "$work/linux-main/home/.gitconfig" --includes "$1"; }
+equals "linux-main: ~/.gitconfig.local の値が勝つが、署名の設定は変えられない" "$(gitconfig_of user.email) $(gitconfig_of commit.gpgsign) $(gitconfig_of gpg.program)" "local@example.com true gpg"
 blocked "linux-agent: .gitconfig が ~/.gitconfig.local を読まない" 'git config -f "$work/linux-agent/home/.gitconfig" --get include.path'
 # mac の設定も Linux の ssh で読めること (IgnoreUnknown) を確かめるので、どちらの設定も動いている ssh で読む。
 # config.local は ~/.ssh からの相対パスで、本物のホームを指すので、ここだけ絶対パスに替えて試す

@@ -95,15 +95,15 @@ wsl -d dev -u root passwd maru
 
 ## ローカルの設定
 
-PCごとの設定や仕事の設定(社内のホスト、社内のCAなど)は、リポジトリの外のファイルに書く。dotfilesの設定がそれを最後に読む。
+PCごとの設定や仕事の設定(社内のホスト、社内のCAなど)は、リポジトリの外のファイルに書く。dotfilesの設定がそれを読む。
 
 | ファイル | 読むところ | 読む環境 |
 |---|---|---|
-| `~/.gitconfig.local` | `~/.gitconfig`の最後(`[include]`) | `agent`以外(隔離した環境のため) |
+| `~/.gitconfig.local` | `~/.gitconfig`の`[include]`(署名の設定の前) | `agent`以外(隔離した環境のため) |
 | `~/.ssh/config.local` | `~/.ssh/config`の最後(`Match all`の後の`Include`) | `~/.ssh/config`を置く環境(Windowsと`agent`以外) |
 | `~/.zshrc.local` | `~/.zshrc`の最後 | mac(`docs/mac.md`) |
 
-- `~/.gitconfig.local`は最後に読むので、dotfilesの値より優先される。
+- gitは後に書いた値を使う。`~/.gitconfig.local`の値は、署名の設定(`commit.gpgsign`、`gpg.program`)のほかは、dotfilesの値より優先される。署名の設定は`[include]`の後に書くので、`~/.gitconfig.local`や、そこから読むファイルでは変えられない。
 - `~/.ssh/config.local`を最後に読むのは、GitHubの設定を先に置くため。sshは最初に見つけた値を使い、`IdentityFile`は見つけた順に試す。そのため、`config.local`の`Host *`に鍵があっても、GitHubに接続するときはdotfilesの設定が指定する鍵(`~/.ssh/github`)を先に試す。
 - `Include`を`Match all`の後に置くのは、直前の`Host`の中に入って、GitHubに接続するときだけ読まれるのを避けるため。
 
