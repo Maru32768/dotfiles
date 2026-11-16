@@ -23,6 +23,7 @@
 | 確認 | `tests/doctor.sh`、CI (`docs/ci.md`) | 作り直せたことを機械的に確かめる |
 | 秘密情報 | リポジトリに入れない | 公開リポジトリのため |
 | API キー | 1Passwordと`op-run` | 使うコマンドにだけ渡す (`docs/secrets.md`) |
+| PC ごとの設定、仕事の設定 | リポジトリの外のファイル | 公開リポジトリに入れない。dotfiles の設定がそれを読む (「ローカルの設定」) |
 
 作業データは対象外。
 
@@ -91,6 +92,20 @@ wsl -d dev -u root passwd maru
 ```bash
 ~/dotfiles/provision/setup-credentials.sh
 ```
+
+## ローカルの設定
+
+PCごとの設定や仕事の設定(社内のホスト、社内のCAなど)は、リポジトリの外のファイルに書く。dotfilesの設定が、それを最後に読む。
+
+| ファイル | 読むところ | 読む環境 |
+|---|---|---|
+| `~/.gitconfig.local` | `~/.gitconfig`の最後の`[include]` | `agent`以外。後に読むので、dotfilesの値より優先される |
+| `~/.ssh/config.local` | `~/.ssh/config`の最後(`Match all`の後の`Include`) | `~/.ssh/config`を置く環境(Windowsと`agent`以外) |
+| `~/.zshrc.local` | `~/.zshrc`の最後 | mac(`docs/mac.md`) |
+
+- `~/.ssh/config.local`を最後に読むのは、GitHubの設定を先に置くため。sshは最初に見つけた値を使い、`IdentityFile`は見つけた順に試すので、`config.local`の`Host *`に鍵があっても、GitHubにはdotfilesの鍵(`~/.ssh/github`)を先に試す。
+- `Include`を`Match all`の後に置くのは、直前の`Host`の中に入って、GitHubに接続するときだけ読まれるのを避けるため。
+- `agent`は隔離した環境なので、`~/.gitconfig.local`を読まない。
 
 ## 資格情報
 

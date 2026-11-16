@@ -2,3 +2,7 @@ Host github github.com
     HostName github.com
     IdentityFile ~/.ssh/github
     IdentitiesOnly yes
+
+# 先頭に置くと、Host * の IdentityFile が GitHub の鍵より先に試される。Host の外で読むように Match all を挟む
+Match all
+Include config.local

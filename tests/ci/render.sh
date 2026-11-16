@@ -202,6 +202,23 @@ allowed-tools: Read(~/.local/state/usage/weekly-cap) mcp__ccd_session_mgmt__get_
   check "$name: usage-log cap が、usage-cap の読むファイルに書く" 'grep -qF "\".local/state/usage/usage.sqlite3\"" "$work/$name/home/.local/bin/usage-log" && grep -qF "\"weekly-cap\"" "$work/$name/home/.local/bin/usage-log"'
 done
 
+# --- ローカルのファイルの読み込み (git と SSH) ---
+ghome="$work/git-home"
+mkdir -p "$ghome"
+cp "$work/linux-main/home/.gitconfig" "$ghome/.gitconfig"
+printf '[user]\n\temail = local@example.com\n' >"$ghome/.gitconfig.local"
+equals "linux-main: .gitconfig が ~/.gitconfig.local を読み、そちらを優先する" "$(HOME="$ghome" GIT_CONFIG_NOSYSTEM=1 git config --global --includes user.email)" local@example.com
+blocked "linux-agent: .gitconfig が ~/.gitconfig.local を読まない" 'git config -f "$work/linux-agent/home/.gitconfig" --get include.path'
+# ssh は動いている OS の設定だけを読める (UseKeychain は macOS の ssh にしかない)
+case "$(uname -s)" in Darwin) ssh_env=darwin-main ;; *) ssh_env=linux-main ;; esac
+# config.local は ~/.ssh からの相対パスで、本物のホームを指すので、ここだけ絶対パスに替えて試す
+sdir="$work/ssh-local"
+mkdir -p "$sdir"
+sed "s|^Include config.local$|Include $sdir/config.local|" "$work/$ssh_env/home/.ssh/config" >"$sdir/config"
+printf 'Host *\n    IdentityFile ~/.ssh/other\nHost box\n    HostName box.example.org\n' >"$sdir/config.local"
+equals "$ssh_env: GitHub では、config.local の Host * の鍵より GitHub の鍵を先に試す" "$(ssh -G -F "$sdir/config" github.com </dev/null 2>/dev/null | sed -n 's|^identityfile ~/\.ssh/||p' | paste -sd ' ' -)" "github other"
+equals "$ssh_env: config.local のホストの設定が効く" "$(ssh -G -F "$sdir/config" box </dev/null 2>/dev/null | sed -n 's/^hostname //p')" box.example.org
+
 # --- Claude への指示 (CLAUDE.md と ~/.claude/rules、docs/claude.md) ---
 topics_of() { cat "$work/$1/home/.claude/CLAUDE.md" "$work/$1/home/.claude/rules/"*.md 2>/dev/null | grep -oF -e PLaMo -e op-run -e '--assignee @me' | LC_ALL=C sort -u | paste -sd, -; }
 equals "windows-main: Claude への指示に出る話題" "$(topics_of windows-main)" "PLaMo,op-run"
