@@ -310,6 +310,8 @@ if command -v zsh >/dev/null; then
   equals "darwin-main: .zshrc が最後まで読めて、最後に ~/.zshrc.local を読む (ローカルの値が勝つ)" "$(zsh_in -i -c 'print -r -- $DOTFILES_LOCAL_LOADED ${aliases[ls]}')" "1 local-ls"
   equals "darwin-main: .zprofile が ~/.local/bin と mise を PATH の先頭に置く" "$(zsh_in -l -c 'print -r -- ${path[1,3]}')" \
     "$zhome/.local/bin $zhome/go/bin $zhome/.local/share/mise/shims"
+elif [ -n "${CI:-}" ]; then
+  fail "CI に zsh が無い (tests/ci/setup.sh で入れる)"
 else
   printf 'SKIP zsh が無いので、mac の zsh の設定を動かす検査を飛ばす\n'
 fi
