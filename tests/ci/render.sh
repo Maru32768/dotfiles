@@ -1,7 +1,7 @@
 #!/bin/bash
 # chezmoi のソースを環境ごとに描画して、置かれるものを確かめる。スクリプトは実行しない。
-# Windows 向けも、テンプレートの .chezmoi.os を差し替えて描画する。差し替えるだけなので、
-# Windows での実際の動作までは分からない。
+# Windows と mac 向けも、テンプレートの .chezmoi.os を差し替えて描画する。差し替えるだけなので、
+# Windows と mac での実際の動作までは分からない。
 # shellcheck disable=SC2016
 set -uo pipefail
 
@@ -44,13 +44,14 @@ init_of() {
 
 # linux-main と linux-agent は WSL、linux-desktop は WSL ではない PC。CI はどちらのカーネルでも動くので、host を指定する
 prepare() {
-  local name="$1" profile="${1#*-}" host=wsl
+  local name="$1" profile="${1#*-}" host=wsl work_pc=""
   case "$name" in
-    windows-*) host="" ;;
+    windows-* | darwin-main) host="" ;;
+    darwin-work) profile=main host="" work_pc=1 ;;
     linux-desktop) profile=main host=desktop ;;
   esac
   mkdir -p "$work/$name/home" "$work/$name/fakehome"
-  if ! DOTFILES_PROFILE="$profile" DOTFILES_HOST="$host" init_of "$name"; then
+  if ! DOTFILES_PROFILE="$profile" DOTFILES_HOST="$host" DOTFILES_WORK="$work_pc" init_of "$name"; then
     fail "$name: chezmoi init"
     return 1
   fi
@@ -85,7 +86,7 @@ printf 'kept\n' >"$work/linux-main/home/.local/state/review-loop/repo/branch/led
 mkdir -p "$work/windows-main/home/.gnupg"
 printf 'default-cache-ttl 34560000\r\nmax-cache-ttl 34560000\r\npinentry-program C:\\pinentry.exe\r\n' >"$work/windows-main/home/.gnupg/gpg-agent.conf"
 
-for name in linux-main linux-agent linux-desktop windows-main; do
+for name in linux-main linux-agent linux-desktop windows-main darwin-main darwin-work; do
   prepare "$name"
 done
 
@@ -242,7 +243,32 @@ init_of linux-detect >/dev/null 2>&1
 equals "DOTFILES_HOST がなければ、カーネルから判定する ($detected)" "$(data_of linux-detect .host)" "$detected"
 mkdir -p "$work/linux-bad/home" "$work/linux-bad/fakehome"
 blocked "desktop に agent は作れない" 'DOTFILES_PROFILE=agent DOTFILES_HOST=desktop init_of linux-bad'
-blocked "知らない host は init で止まる" 'DOTFILES_HOST=mac init_of linux-bad'
+blocked "DOTFILES_HOST で mac は選べない (mac は OS で決まる)" 'DOTFILES_HOST=mac init_of linux-bad'
+
+# --- mac ---
+equals "darwin-main: host" "$(data_of darwin-main .host)" mac
+equals "darwin-main: work は false" "$(data_of darwin-main '.work | tojson')" false
+equals "darwin-work: work は true" "$(data_of darwin-work '.work | tojson')" true
+equals "darwin-main: 置かれるファイルは linux-desktop から bash の設定、op-run、.agents を除いたもの" "$(files_of darwin-main)" \
+  "$(files_of linux-desktop | tr ' ' '\n' | grep -vxE '\.bashrc|\.bash_profile|\.local/bin/op-run|\.agents/.*' | paste -sd ' ' -)"
+equals "darwin-main: 実行するスクリプトは linux-desktop と同じ" "$(scripts_of darwin-main)" "$(scripts_of linux-desktop)"
+# files_of は external を含まないので、Codex のスキルを置かないことはここで確かめる
+equals "darwin-main: スキルは Claude のものだけ置く" "$(actual_skills darwin-main)" \
+  "$(expected_skills darwin-main | tr ' ' '\n' | grep -v '^\.agents/' | paste -sd ' ' -)"
+equals "darwin-main: 鍵を渡す前の signingKey は空" "$(data_of darwin-main .signingKey)" ""
+DOTFILES_SIGNING_KEY=1111222233334444 init_of darwin-work >/dev/null 2>&1 && cm darwin-work apply --exclude scripts,externals >/dev/null 2>&1
+check "darwin-work: 渡した鍵が signingkey になる" 'grep -qx "	signingkey = 1111222233334444" "$work/darwin-work/home/.gitconfig"'
+init_of darwin-work >/dev/null 2>&1
+equals "darwin-work: 環境変数なしで init し直しても鍵、host、work が残る" "$(data_of darwin-work '.signingKey + " " + .host + " " + (.work | tojson)')" "1111222233334444 mac true"
+DOTFILES_WORK=0 init_of darwin-work >/dev/null 2>&1
+equals "darwin-work: DOTFILES_WORK=0 で work が false に戻る" "$(data_of darwin-work '.work | tojson')" false
+mkdir -p "$work/darwin-bad/home" "$work/darwin-bad/fakehome"
+for profile in agent research; do
+  blocked "mac に $profile は作れない" 'DOTFILES_PROFILE=$profile init_of darwin-bad'
+done
+blocked "DOTFILES_WORK が 1 か 0 でなければ init で止まる" 'DOTFILES_WORK=yes init_of darwin-bad'
+DOTFILES_HOST=desktop init_of darwin-bad >/dev/null 2>&1
+equals "mac では DOTFILES_HOST を読まない" "$(data_of darwin-bad .host)" mac
 
 # --- プロファイル ---
 profile_of() { sed -n 's/^ *profile = "\(.*\)"$/\1/p' "$work/$1/chezmoi.toml"; }

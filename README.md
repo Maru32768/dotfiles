@@ -87,4 +87,5 @@ CI で確かめられない WSL の挙動は、`lab.ps1 restore-test` で実物�
 | [docs/secrets.md](docs/secrets.md) | APIキーの扱い(1Passwordと`op-run`) |
 | [docs/gpg.md](docs/gpg.md) | GPG のコミット署名 |
 | [docs/desktop.md](docs/desktop.md) | WSL ではない Linux の PC (サブ PC) |
+| [docs/mac.md](docs/mac.md) | mac と、仕事の PC の印 (`work`) |
 | [docs/ci.md](docs/ci.md) | CI、復元テスト、`stable` タグ |

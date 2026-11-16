@@ -1,26 +1,36 @@
 {{- /* chezmoi init をやり直しても、環境変数がなければ今のプロファイルを保つ。agent が main に戻らないように */ -}}
 {{- $profile := env "DOTFILES_PROFILE" | default (get . "profile") | default "main" -}}
-{{- /* host: windows、wsl (WSL のインスタンス)、desktop (WSL ではない Linux の PC)。Linux では WSL のカーネルかどうかで決める。
+{{- /* host: windows、wsl (WSL のインスタンス)、desktop (WSL ではない Linux の PC)、mac。Linux では WSL のカーネルかどうかで決める。
        CI のコンテナはどちらのカーネルでも動くので、DOTFILES_HOST で指定する */ -}}
 {{- $host := "windows" -}}
-{{- if ne .chezmoi.os "windows" -}}
+{{- if eq .chezmoi.os "darwin" -}}
+{{-   $host = "mac" -}}
+{{- else if ne .chezmoi.os "windows" -}}
 {{-   $detected := "desktop" -}}
 {{-   if contains "microsoft" (lower (dig "kernel" "osrelease" "" .chezmoi)) -}}
 {{-     $detected = "wsl" -}}
 {{-   end -}}
 {{-   $host = env "DOTFILES_HOST" | default (get . "host") | default $detected -}}
+{{-   if not (has $host (list "wsl" "desktop")) -}}
+{{-     fail (printf "DOTFILES_HOST は wsl か desktop: %s" $host) -}}
+{{-   end -}}
 {{- end -}}
-{{- if not (has $host (list "windows" "wsl" "desktop")) -}}
-{{-   fail (printf "DOTFILES_HOST は wsl か desktop: %s" $host) -}}
+{{- if and (has $host (list "desktop" "mac")) (ne $profile "main") -}}
+{{-   fail (printf "agent と research は WSL のインスタンスにだけ作る (docs/%s.md)" $host) -}}
 {{- end -}}
-{{- if and (eq $host "desktop") (ne $profile "main") -}}
-{{-   fail "agent と research は WSL のインスタンスにだけ作る (docs/desktop.md)" -}}
-{{- end -}}
-{{- /* Windows と WSL は同じ鍵で署名する。desktop は PC ごとの鍵で、provision/setup-credentials.sh が作って DOTFILES_SIGNING_KEY で渡す */ -}}
+{{- /* Windows と WSL は同じ鍵で署名する。desktop と mac は PC ごとの鍵を DOTFILES_SIGNING_KEY で渡す。desktop では provision/setup-credentials.sh が作る */ -}}
 {{- $mainSigningKey := "78324D99D34D3111" -}}
 {{- $signingKey := $mainSigningKey -}}
-{{- if eq $host "desktop" -}}
+{{- if has $host (list "desktop" "mac") -}}
 {{-   $signingKey = env "DOTFILES_SIGNING_KEY" | default (get . "signingKey") | default "" -}}
+{{- end -}}
+{{- $work := get . "work" | default false -}}
+{{- if eq (env "DOTFILES_WORK") "1" -}}
+{{-   $work = true -}}
+{{- else if eq (env "DOTFILES_WORK") "0" -}}
+{{-   $work = false -}}
+{{- else if ne (env "DOTFILES_WORK") "" -}}
+{{-   fail (printf "DOTFILES_WORK は 1 か 0: %s" (env "DOTFILES_WORK")) -}}
 {{- end -}}
 sourceDir = "{{ .chezmoi.sourceDir | trimSuffix "/home" }}"
 
@@ -31,3 +41,5 @@ sourceDir = "{{ .chezmoi.sourceDir | trimSuffix "/home" }}"
     name = "Maru32768"
     email = "maru32768@gmail.com"
     signingKey = "{{ $signingKey }}"
+    # 仕事の PC だけ true にして、仕事用のファイルを置く。DOTFILES_WORK=1 か 0 を付けた chezmoi init で変える
+    work = {{ $work }}

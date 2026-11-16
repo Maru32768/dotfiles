@@ -32,6 +32,18 @@ OneDrive/**
 .config/environment.d
 .config/environment.d/**
 {{ end }}
+{{ if eq (get . "host" | default "") "mac" }}
+# mac のシェルは zsh
+.bashrc
+.bash_profile
+# WSLg のための設定
+.config/environment.d
+.config/environment.d/**
+# mac では Codex と 1Password を使わない
+.agents
+.agents/**
+.local/bin/op-run
+{{ end }}
 {{ if eq .profile "agent" }}
 .ssh
 .ssh/**

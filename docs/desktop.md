@@ -1,6 +1,6 @@
 # WSL ではない Linux の PC
 
-サブ PC のような、Ubuntu Desktop 26.04 を直接入れた PC も、WSL の `dev` と同じ `main` の環境にする。chezmoi のデータでは `host = "desktop"` になる (WSL は `wsl`、Windows は `windows`)。
+サブ PC のような、Ubuntu Desktop 26.04 を直接入れた PC も、WSL の `dev` と同じ `main` の環境にする。chezmoi のデータでは `host = "desktop"` になる (WSL は `wsl`、Windows は `windows`、mac は `mac`)。
 
 | 項目 | WSL (`dev`) | desktop |
 |---|---|---|

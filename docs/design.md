@@ -31,7 +31,7 @@
 ```text
 .chezmoiroot             chezmoi のソースが home/ だと示す
 home/                    chezmoi のソース
-  .chezmoi.toml.tmpl     プロファイル、host (windows、wsl、desktop)、共通の値
+  .chezmoi.toml.tmpl     プロファイル、host (windows、wsl、desktop、mac)、仕事の PC か (work)、共通の値
   .claude-settings.json  Claude Code の共通設定
   .codex-config.toml     Codex の共通設定
   .chezmoidata/          スキルの一覧
@@ -68,6 +68,10 @@ Gitが無ければ`winget`で入れ、リポジトリを`~\dotfiles`にcloneす�
 | `.tmux.conf`, `.ssh` など | 管理しない (`home/.chezmoiignore`) |
 
 Windows ではシステムの `PATH` がユーザーの `PATH` より先に来るので、`C:\Program Files\Go` などが mise より優先される。Git Bash と PowerShell では profile で mise を優先するが、IDE のように profile を読まないプロセスにはシステムのものが見える。
+
+## mac
+
+mac も `main` の環境にする。chezmoi のデータでは `host = "mac"` になり、WSL ではない Linux の PC (desktop) と同じものを置く。ただし、bash の設定、Codex のスキル、`op-run` は置かない。署名鍵は desktop と同じく PC ごとに分ける。仕事の PC かどうかは、どの host でも chezmoi のデータの `work` で表す (`docs/mac.md`)。
 
 ## インスタンスの作り方
 
