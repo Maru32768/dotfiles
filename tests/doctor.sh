@@ -34,9 +34,7 @@ mode_of() { stat -c %a "$1" 2>/dev/null || stat -f %Lp "$1"; }
 
 if [ "$host" = mac ]; then
   check "macOS (Apple Silicon)" '[ "$(uname -s)-$(uname -m)" = Darwin-arm64 ]'
-  while read -r pkg; do
-    check "brew: $pkg" "brew list --formula $pkg"
-  done < <(sed -n 's/^brew "\(.*\)"$/\1/p' "$HOME/dotfiles/packages/Brewfile")
+  check "Homebrew の一覧 (packages/Brewfile) がすべて入っている" 'brew bundle check --no-upgrade --file "$HOME/dotfiles/packages/Brewfile"'
 else
   check "Ubuntu 26.04" 'grep -q "VERSION_ID=\"26.04\"" /etc/os-release'
   if [ "$host" = desktop ]; then
