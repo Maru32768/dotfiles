@@ -12,7 +12,7 @@ WSLではないLinuxのPC(desktop)と同じものを置き、同じスクリプ�
 |---|---|
 | `~/.bashrc`、`~/.bash_profile` | macのシェルはzsh |
 | `~/.agents` | Codexのスキルの置き場(`docs/skills.md`)だが、Codexを使わない |
-| `~/.local/bin/op-run` | 1Passwordを使わない |
+| `~/.local/bin/op-run`、`~/.claude/rules/secrets.md` | 1Passwordを使わない |
 
 desktopと同じく、WSLgのための`~/.config/environment.d`も置かない。Linuxと同じく、Windows用のファイルも置かない。
 

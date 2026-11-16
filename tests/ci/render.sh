@@ -202,6 +202,21 @@ allowed-tools: Read(~/.local/state/usage/weekly-cap) mcp__ccd_session_mgmt__get_
   check "$name: usage-log cap が、usage-cap の読むファイルに書く" 'grep -qF "\".local/state/usage/usage.sqlite3\"" "$work/$name/home/.local/bin/usage-log" && grep -qF "\"weekly-cap\"" "$work/$name/home/.local/bin/usage-log"'
 done
 
+# --- Claude への指示 (CLAUDE.md と ~/.claude/rules、docs/claude.md) ---
+# 環境で変わる話題のうち、その環境の指示に出るもの
+topics_of() {
+  local text topic found=""
+  text="$(cat "$work/$1/home/.claude/CLAUDE.md" "$work/$1/home/.claude/rules/"*.md 2>/dev/null)"
+  for topic in PLaMo op-run; do
+    grep -qF -- "$topic" <<<"$text" && found="$found${found:+,}$topic"
+  done
+  printf '%s\n' "$found"
+}
+equals "windows-main: Claude への指示に出る話題" "$(topics_of windows-main)" "PLaMo,op-run"
+equals "linux-main: Claude への指示に出る話題" "$(topics_of linux-main)" "op-run"
+equals "linux-desktop: Claude への指示に出る話題" "$(topics_of linux-desktop)" "op-run"
+equals "darwin-main: Claude への指示に出る話題" "$(topics_of darwin-main)" ""
+
 # --- Windows ---
 for file in .wslconfig OneDrive/Documents/PowerShell/Microsoft.PowerShell_profile.ps1 .claude/settings.json .claude/CLAUDE.md .vimrc .local/bin/op-run.ps1 .local/bin/op-run.cmd .local/bin/split-pdf .local/bin/split-pdf.cmd .local/bin/usage-log .local/bin/usage-log.cmd; do
   check "windows-main: $file がある" '[ -f "$work/windows-main/home/$file" ]'
@@ -252,8 +267,8 @@ blocked "DOTFILES_HOST で mac は選べない (mac は OS で決まる)" 'DOTFI
 
 # --- mac ---
 equals "darwin-main: work は false" "$(data_of darwin-main '.work | tojson')" false
-equals "darwin-main: 置かれるファイルは linux-desktop から bash の設定と op-run を除いたもの" "$(files_of darwin-main)" \
-  "$(files_of linux-desktop | tr ' ' '\n' | grep -vxE '\.bashrc|\.bash_profile|\.local/bin/op-run' | paste -sd ' ' -)"
+equals "darwin-main: 置かれるファイルは linux-desktop から bash の設定と 1Password のものを除いたもの" "$(files_of darwin-main)" \
+  "$(files_of linux-desktop | tr ' ' '\n' | grep -vxE '\.bashrc|\.bash_profile|\.local/bin/op-run|\.claude/rules/secrets\.md' | paste -sd ' ' -)"
 equals "darwin-main: 実行するスクリプトは linux-desktop と同じ" "$(scripts_of darwin-main)" "$(scripts_of linux-desktop)"
 # files_of は external を含まないので、Codex のスキルを置かないことはここで確かめる
 equals "darwin-main: スキルは Claude のものだけ置く" "$(actual_skills darwin-main)" \

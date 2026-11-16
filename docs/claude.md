@@ -7,6 +7,7 @@ Windows と WSL で同じ設定を使うため、共通部分を chezmoi で管�
 | `home/.claude-settings.json` | 共通の設定 (プラグイン、マーケットプレイス、フックなど) |
 | `home/dot_claude/modify_settings.json` | 共通の設定を `settings.json` へマージする (chezmoi のテンプレートなので両 OS で動く)。review-loopが台帳を置くディレクトリへの許可も足す(「review-loopの台帳の置き場」) |
 | `home/dot_claude/CLAUDE.md` | ユーザー全体の指示。dotfilesで設定を管理していることのほか、日本語の表記、タスクの進め方、コードコメント、コミットとレビューの決まりと、技術的な知見の記録を提案する決まりを書く。指示として読まれるだけで、強制はしない。`agent`には置かない |
+| `home/dot_claude/rules/` | 環境で変わる指示(「環境で変わる指示」) |
 | `home/dot_claude/pstack-models.md` | pstack のロールごとのモデル。`/setup-pstack` が書き、`CLAUDE.md` の `@` 行で読み込む |
 | `home/dot_claude/skills/` | 自分で書いたスキル (`docs/skills.md`) |
 | `home/.hooks-src/block-signing-bypass/` | 署名の回避を止めるフック (Go) |
@@ -26,6 +27,17 @@ chezmoi apply   # 反映する
 - フックはソースが変わると自動でテストとビルドが走る。テストが落ちたら置き換えない。
 
 どちらかの環境で `/config` などから変えた設定を共通にしたいときは、`home/.claude-settings.json` に書き写して反映し直す。
+
+## 環境で変わる指示
+
+`CLAUDE.md`はどの環境でも同じ中身にし、環境で変わる指示は`home/dot_claude/rules/`に話題ごとのファイルで置く。Claude Codeは、`~/.claude/rules/`の`.md`も`CLAUDE.md`と同じく、ユーザー全体の指示として読む。どの環境に置くかは`home/.chezmoiignore`で決める。
+
+| ファイル | 内容 | 置く環境 |
+|---|---|---|
+| `plamo.md` | PLaMo 3 Translateの使い方(`docs/tools.md`) | Windowsだけ。WSLはNATのネットワークで動くので、Windowsの`127.0.0.1`で待ち受けるサーバーに届かない |
+| `secrets.md` | APIキーを`op-run`で渡す決まり(`docs/secrets.md`) | mac以外 |
+
+- `tests/ci/render.sh`が、環境ごとに、指示(`CLAUDE.md`と`rules/`)にPLaMoと`op-run`が出るかを確かめる。
 
 ## compact
 

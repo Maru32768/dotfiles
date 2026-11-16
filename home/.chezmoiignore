@@ -19,6 +19,7 @@ OneDrive/**
 .codex
 .codex/**
 .local/bin/plamo-server.cmd
+.claude/rules/plamo.md
 .local/bin/op-run.ps1
 .local/bin/op-run.cmd
 .local/bin/split-pdf.cmd
@@ -40,6 +41,7 @@ OneDrive/**
 .agents
 .agents/**
 .local/bin/op-run
+.claude/rules/secrets.md
 {{ end }}
 {{ if eq .profile "agent" }}
 .ssh
