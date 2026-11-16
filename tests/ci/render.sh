@@ -210,15 +210,16 @@ mkdir -p "$ghome"
 printf '[user]\n\temail = local@example.com\n' >"$ghome/.gitconfig.local"
 equals "linux-main: .gitconfig が ~/.gitconfig.local を読み、そちらを優先する" "$(HOME="$ghome" git config -f "$work/linux-main/home/.gitconfig" --includes user.email)" local@example.com
 blocked "linux-agent: .gitconfig が ~/.gitconfig.local を読まない" 'git config -f "$work/linux-agent/home/.gitconfig" --get include.path'
-# ssh は動いている OS の設定だけを読める (UseKeychain は macOS の ssh にしかない)
-case "$(uname -s)" in Darwin) ssh_env=darwin-main ;; *) ssh_env=linux-main ;; esac
+# mac の設定も Linux の ssh で読めること (IgnoreUnknown) を確かめるので、どちらの設定も動いている ssh で読む。
 # config.local は ~/.ssh からの相対パスで、本物のホームを指すので、ここだけ絶対パスに替えて試す
-sdir="$work/ssh-local"
-mkdir -p "$sdir"
-sed "s|^Include config.local$|Include $sdir/config.local|" "$work/$ssh_env/home/.ssh/config" >"$sdir/config"
-printf 'Host *\n    IdentityFile ~/.ssh/other\nHost box\n    HostName box.example.org\n' >"$sdir/config.local"
-equals "$ssh_env: GitHub では、config.local の Host * の鍵より GitHub の鍵を先に試す" "$(ssh -G -F "$sdir/config" github.com </dev/null 2>/dev/null | sed -n 's|^identityfile ~/\.ssh/||p' | paste -sd ' ' -)" "github other"
-equals "$ssh_env: config.local のホストの設定が効く" "$(ssh -G -F "$sdir/config" box </dev/null 2>/dev/null | sed -n 's/^hostname //p')" box.example.org
+for ssh_env in linux-main darwin-main; do
+  sdir="$work/ssh-$ssh_env"
+  mkdir -p "$sdir"
+  sed "s|^Include config.local$|Include $sdir/config.local|" "$work/$ssh_env/home/.ssh/config" >"$sdir/config"
+  printf 'Host *\n    IdentityFile ~/.ssh/other\nHost box\n    HostName box.example.org\n' >"$sdir/config.local"
+  equals "$ssh_env: GitHub では、config.local の Host * の鍵より GitHub の鍵を先に試す" "$(ssh -G -F "$sdir/config" github.com </dev/null 2>/dev/null | sed -n 's|^identityfile ~/\.ssh/||p' | paste -sd ' ' -)" "github other"
+  equals "$ssh_env: config.local のホストの設定が効く" "$(ssh -G -F "$sdir/config" box </dev/null 2>/dev/null | sed -n 's/^hostname //p')" box.example.org
+done
 
 # --- Claude への指示 (CLAUDE.md と ~/.claude/rules、docs/claude.md) ---
 topics_of() { cat "$work/$1/home/.claude/CLAUDE.md" "$work/$1/home/.claude/rules/"*.md 2>/dev/null | grep -oF -e PLaMo -e op-run -e '--assignee @me' | LC_ALL=C sort -u | paste -sd, -; }

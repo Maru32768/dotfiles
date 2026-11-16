@@ -1,3 +1,8 @@
+{{ if eq .chezmoi.os "darwin" -}}
+# Homebrew の openssh など、Apple 以外の ssh が UseKeychain で止まらないようにする
+IgnoreUnknown UseKeychain
+
+{{ end -}}
 Host github github.com
     HostName github.com
     IdentityFile ~/.ssh/github
