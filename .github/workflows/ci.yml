@@ -48,6 +48,26 @@ jobs:
           persist-credentials: false
       - run: bash tests/ci/container.sh ${{ matrix.profile }}
 
+  macos:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # docs/mac.md のセットアップと同じ手順で作り、doctor で確かめる
+      - name: Homebrew のパッケージ
+        run: brew bundle --file packages/Brewfile
+      - name: user.sh
+        run: bash provision/user.sh main "$GITHUB_WORKSPACE"
+        env:
+          GITHUB_TOKEN: ${{ github.token }} # mise が GitHub の API を呼ぶときの回数制限を避ける
+      - name: doctor.sh
+        run: bash "$HOME/dotfiles/tests/doctor.sh"
+      # mac でしか効かない検査 (Homebrew の PATH、Apple の ssh) がある
+      - name: render.sh
+        run: bash tests/ci/render.sh
+
   windows:
     runs-on: windows-latest
     timeout-minutes: 10
