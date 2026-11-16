@@ -299,7 +299,7 @@ default-cache-ttl-ssh 86400
 max-cache-ttl-ssh 259200
 disable-scdaemon'
 check "darwin-main: GitHub の SSH の鍵を ssh-agent に読み込み、パスフレーズを Keychain に保存する" 'grep -qx "    AddKeysToAgent yes" "$work/darwin-main/home/.ssh/config" && grep -qx "    UseKeychain yes" "$work/darwin-main/home/.ssh/config"'
-blocked "linux-main: SSH の設定に macOS だけのオプションがない" 'grep -q UseKeychain "$work/linux-main/home/.ssh/config"'
+blocked "linux-main: SSH の設定に mac だけの行がない" 'grep -qE "UseKeychain|AddKeysToAgent" "$work/linux-main/home/.ssh/config"'
 if command -v zsh >/dev/null; then
   zhome="$work/zsh-home"
   mkdir -p "$zhome"
