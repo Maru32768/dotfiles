@@ -20,10 +20,11 @@ blocked() { if eval "$2" >/dev/null 2>&1; then fail "$1"; else pass "$1"; fi; }
 # 使い方: equals <名前> <実際の値> <期待する値>
 equals() { if [ "$2" = "$3" ]; then pass "$1"; else fail "$1: $2"; fi; }
 
-# 使い方: cm <os>-<profile> <chezmoi の引数...>
+# 使い方: cm <os>-<profile> <chezmoi の引数...>。KERNEL があれば、カーネルの osrelease も差し替える
 cm() {
-  local name="$1" os="${1%%-*}"
+  local name="$1" os="${1%%-*}" kernel=""
   shift
+  [ -n "${KERNEL:-}" ] && kernel=",\"kernel\":{\"osrelease\":\"$KERNEL\"}"
   HOME="$work/$name/fakehome" "$chezmoi" "$@" \
     --source "$root" \
     --config "$work/$name/chezmoi.toml" \
@@ -31,11 +32,11 @@ cm() {
     --destination "$work/$name/home" \
     --cache "$work/cache" \
     --no-tty \
-    --override-data "{\"chezmoi\":{\"os\":\"$os\"}}"
+    --override-data "{\"chezmoi\":{\"os\":\"$os\"$kernel}}"
 }
 
-# chezmoi init は設定のテンプレートに --override-data を効かせず、動いている機械の OS を読む。
-# execute-template --init なら効くので、その結果を設定にする。カーネルは差し替えない
+# chezmoi init は設定のテンプレートに --override-data を効かせず、動いている機械の OS とカーネルを読む。
+# execute-template --init なら効くので、その結果を設定にする
 init_of() {
   local config
   config="$(cm "$1" execute-template --init <"$root/home/.chezmoi.toml.tmpl")" || return 1
@@ -235,12 +236,13 @@ init_of linux-desktop >/dev/null 2>&1
 equals "linux-desktop: 環境変数なしで init し直しても鍵と host が残る" "$(data_of linux-desktop '.signingKey + " " + .host')" "1111222233334444 desktop"
 DOTFILES_SIGNING_KEY=1111222233334444 init_of linux-main >/dev/null 2>&1
 equals "linux-main: DOTFILES_SIGNING_KEY があっても、Windows と同じ鍵のまま" "$(data_of linux-main .signingKey)" 78324D99D34D3111
-# カーネルは差し替えないので、動いている機械のものを読む。
-# 手元の WSL では wsl、CI の GitHub のランナーでは desktop になり、両方の場合を試せる
+# カーネルを差し替えて、WSL とそれ以外の両方を、どの機械でも試す。host は設定に残るので、毎回作り直す
 mkdir -p "$work/linux-detect/home" "$work/linux-detect/fakehome"
-if grep -qi microsoft /proc/sys/kernel/osrelease 2>/dev/null; then detected=wsl; else detected=desktop; fi
-init_of linux-detect >/dev/null 2>&1
-equals "DOTFILES_HOST がなければ、カーネルから判定する ($detected)" "$(data_of linux-detect .host)" "$detected"
+for kernel in 5.15.167.4-microsoft-standard-WSL2:wsl 6.8.0-49-generic:desktop; do
+  rm -f "$work/linux-detect/chezmoi.toml"
+  KERNEL="${kernel%%:*}" init_of linux-detect >/dev/null 2>&1
+  equals "DOTFILES_HOST がなければ、カーネルから判定する (${kernel%%:*})" "$(data_of linux-detect .host)" "${kernel#*:}"
+done
 mkdir -p "$work/linux-bad/home" "$work/linux-bad/fakehome"
 blocked "desktop に agent は作れない" 'DOTFILES_PROFILE=agent DOTFILES_HOST=desktop init_of linux-bad'
 blocked "DOTFILES_HOST で mac は選べない (mac は OS で決まる)" 'DOTFILES_HOST=mac init_of linux-bad'
