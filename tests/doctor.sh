@@ -58,8 +58,8 @@ platform=linux-x64; [ "$host" = mac ] && platform=macos-arm64
 lock_versions() {
   awk -v platform="$platform" '
     function flush() { if (name != "" && (!any_platform || this_platform)) print name, version }
-    /^\[\[tools\./ { flush(); name = $0; gsub(/^\[\[tools\.|\]\]$|"/, "", name); version = ""; any_platform = 0; this_platform = 0 }
-    /^version = / && version == "" { version = $3; gsub(/"/, "", version) }
+    /^\[\[tools\./ { flush(); name = $0; gsub(/^\[\[tools\.|\]\]$|"/, "", name); any_platform = 0; this_platform = 0 }
+    /^version = / { version = $3; gsub(/"/, "", version) }
     /"platforms\./ { any_platform = 1; if (index($0, "\"platforms." platform "\"")) this_platform = 1 }
     END { flush() }' "$HOME/.config/mise/mise.lock" | sort
 }
