@@ -22,12 +22,13 @@ Homebrewを`/opt/homebrew`に入れるApple Siliconのmacだけを考えてい�
 
 - `~/.zprofile`はHomebrewの環境を読み、`~/.local/bin`、`~/go/bin`、miseのshimsをPATHの先頭に足す。macOSの`/etc/zprofile`がpath_helperでシステムのパスを先頭に並べ直すので、`.zshenv`ではなくここで足す。
 - `~/.zshrc`は対話のシェルの設定、`mise activate`、`GPG_TTY`を持つ。`~/.zshrc.local`があれば最後に読む(`docs/design.md`の「ローカルの設定」)。
+- 既にある`~/.zprofile`と`~/.zshrc`は、適用すると置き換わる。残したい行は、適用する前に`~/.zshrc.local`に移す。
 
 ## SSHとGPG
 
 - SSHはmacOSのssh-agentを使う。GitHubの鍵は`~/.ssh/config`の`AddKeysToAgent`でssh-agentに読み込み、パスフレーズを`UseKeychain`でKeychainに保存する。仕事のホストの鍵もmacOSのssh-agentで使うので、Linuxと違って`SSH_AUTH_SOCK`をgpg-agentに向けず、gpg-agentのSSHの機能(`enable-ssh-support`)も使わない。
 - `~/.ssh/config`の先頭に`IgnoreUnknown UseKeychain`を置き、Apple以外のssh(Homebrewのopensshなど)が`UseKeychain`で止まらないようにする。`IgnoreUnknown`も最初に見つけた値が使われるので、`~/.ssh/config.local`に書いた`IgnoreUnknown`は効かない。ほかに無視させたいオプションがあれば、dotfilesのこの行に足す。
-- GPGのパスフレーズはpinentry-macの画面で入力する。`gpg-agent.conf`に`pinentry-program`が無いときだけ、chezmoiが`/opt/homebrew/bin/pinentry-mac`を足す(JetBrains IDEなどが書いたものは残る)。
+- GPGのパスフレーズはpinentry-macの画面で入力する。`gpg-agent.conf`に`pinentry-program`が無いときだけ、chezmoiが`/opt/homebrew/bin/pinentry-mac`を足す(JetBrains IDEなどが書いたものは残る)。pinentry-macはHomebrewで入れておく(`brew install pinentry-mac`)。
 
 ## 仕事のPC(`work`)
 
