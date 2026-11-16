@@ -293,7 +293,7 @@ default-cache-ttl-ssh 86400
 max-cache-ttl-ssh 259200
 disable-scdaemon'
 equals "darwin-work: gpg-agent.conf の既存の pinentry-program を残す" "$(grep '^pinentry-program' "$work/darwin-work/home/.gnupg/gpg-agent.conf")" 'pinentry-program /Applications/IDE.app/pinentry.sh'
-check "darwin-main: GitHub の SSH の鍵を Keychain に入れる" 'grep -qx "    UseKeychain yes" "$work/darwin-main/home/.ssh/config"'
+check "darwin-main: GitHub の SSH の鍵を ssh-agent に読み込み、パスフレーズを Keychain に保存する" 'grep -qx "    AddKeysToAgent yes" "$work/darwin-main/home/.ssh/config" && grep -qx "    UseKeychain yes" "$work/darwin-main/home/.ssh/config"'
 blocked "linux-main: SSH の設定に macOS だけのオプションがない" 'grep -q UseKeychain "$work/linux-main/home/.ssh/config"'
 if command -v zsh >/dev/null; then
   zhome="$work/zsh-home"
