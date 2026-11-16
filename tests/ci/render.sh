@@ -62,7 +62,7 @@ prepare() {
 }
 
 scripts_of() { cm "$1" managed --include scripts | sort | paste -sd ' ' -; }
-files_of() { (cd "$work/$1/home" && find . -type f | sed 's|^\./||' | sort | paste -sd ' ' -); }
+files_of() { (cd "$work/$1/home" && find . ! -type d | sed 's|^\./||' | sort | paste -sd ' ' -); }
 
 # Codex が書いた設定が、マージの後も残ることを確かめるための既存の内容
 mkdir -p "$work/windows-main/home/.codex"
