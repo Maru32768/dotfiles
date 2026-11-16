@@ -235,7 +235,7 @@ DOTFILES_SIGNING_KEY=1111222233334444 init_of linux-desktop >/dev/null 2>&1 && c
 check "linux-desktop: 作った鍵が signingkey になる" 'grep -qx "	signingkey = 1111222233334444" "$work/linux-desktop/home/.gitconfig"'
 check "linux-desktop: 環境変数なしで init し直せる" 'init_of linux-desktop'
 equals "linux-desktop: 環境変数なしで init し直しても鍵と host が残る" "$(data_of linux-desktop '.signingKey + " " + .host')" "1111222233334444 desktop"
-DOTFILES_SIGNING_KEY=1111222233334444 init_of linux-main >/dev/null 2>&1
+check "linux-main: DOTFILES_SIGNING_KEY を付けて init し直せる" 'DOTFILES_SIGNING_KEY=1111222233334444 init_of linux-main'
 equals "linux-main: DOTFILES_SIGNING_KEY があっても、Windows と同じ鍵のまま" "$(data_of linux-main .signingKey)" 78324D99D34D3111
 # カーネルを差し替えて、WSL とそれ以外の両方を、どの機械でも試す。host は設定に残るので、毎回作り直す
 mkdir -p "$work/linux-detect/home" "$work/linux-detect/fakehome"
