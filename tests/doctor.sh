@@ -67,6 +67,8 @@ lock_versions() {
     END { flush() }' "$HOME/.config/mise/mise.lock" | sort
 }
 check "ツールのバージョンが mise.lock と一致" 'diff <(lock_versions) <(mise ls --current | awk "{print \$1, \$2}" | sort)'
+# 上の比べ方は版だけを見るので、入っていないツール (mise ls の (missing)) でも一致する
+check "mise のツールがすべて入っている" 'missing="$(mise ls --current --missing)" && [ -z "$missing" ]'
 tools="chezmoi go node rustc deno bun uv python java terraform aws gh ghq rg fd shellcheck yt-dlp goimports"
 [ "$host" = mac ] || tools="$tools op codex"
 for tool in $tools; do
