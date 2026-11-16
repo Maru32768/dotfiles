@@ -95,7 +95,7 @@ Bash / Edit / Write の実行前に動き、コミット署名を回避する操
 |---|---|
 | 署名を外すフラグ | `--no-gpg-sign`, `git tag --no-sign` |
 | 一時的な設定の上書き | `git -c commit.gpgsign=false`, `git -c gpg.program=...` |
-| 署名設定の変更 | `git config commit.gpgsign false`, `--unset` |
+| 署名設定の変更 | `git config commit.gpgsign false`, `--unset`, 別のファイルを読ませる `include.path` と `includeIf.*.path` |
 | 環境変数での回避 | `GIT_CONFIG_GLOBAL=...`, `HOME=... git` |
 | `git commit` を通らないコミット | `git commit-tree`, `git fast-import` |
 | 設定ファイルの直接編集 | `.gitconfig`, `.gitconfig.local`, `.git/config` |

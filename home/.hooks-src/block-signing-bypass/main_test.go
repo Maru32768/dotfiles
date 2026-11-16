@@ -21,6 +21,9 @@ var deniedCommands = []string{
 	"git -c user.signingkey=ABC commit -m x",
 	"git config --global alias.ci '-c commit.gpgsign=false commit'",
 	`git config alias.ci "-c commit.gpgsign=false commit"`,
+	"git config --global includeIf.gitdir:/.path /tmp/x",
+	"git config --global include.path /tmp/x",
+	"git -c include.path=/tmp/x commit -m x",
 	"git --config-env=commit.gpgsign=X commit -m x",
 	"git config commit.gpgsign false",
 	"git config --global commit.gpgsign false",
@@ -49,6 +52,7 @@ var deniedCommands = []string{
 }
 
 var allowedCommands = []string{
+	"git config --get include.path",
 	"ls",
 	"git status",
 	"git add -A && git commit -m 'normal commit'",
