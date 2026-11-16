@@ -304,10 +304,10 @@ if command -v zsh >/dev/null; then
   zhome="$work/zsh-home"
   mkdir -p "$zhome"
   cp "$work/darwin-main/home/.zshrc" "$work/darwin-main/home/.zprofile" "$zhome/"
-  printf 'export DOTFILES_LOCAL_LOADED=1\n' >"$zhome/.zshrc.local"
+  printf 'export DOTFILES_LOCAL_LOADED=1\nalias ls=local-ls\n' >"$zhome/.zshrc.local"
   # 動かしている機械の mise やシェルの環境に左右されないように、環境を空にして動かす
   zsh_in() { env -i HOME="$zhome" PATH=/usr/bin:/bin "$(command -v zsh)" "$@" </dev/null 2>/dev/null; }
-  equals "darwin-main: .zshrc が最後まで読めて、~/.zshrc.local を読む" "$(zsh_in -i -c 'print -r -- $DOTFILES_LOCAL_LOADED')" 1
+  equals "darwin-main: .zshrc が最後まで読めて、最後に ~/.zshrc.local を読む (ローカルの値が勝つ)" "$(zsh_in -i -c 'print -r -- $DOTFILES_LOCAL_LOADED ${aliases[ls]}')" "1 local-ls"
   equals "darwin-main: .zprofile が ~/.local/bin と mise を PATH の先頭に置く" "$(zsh_in -l -c 'print -r -- ${path[1,3]}')" \
     "$zhome/.local/bin $zhome/go/bin $zhome/.local/share/mise/shims"
 else
