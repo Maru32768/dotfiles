@@ -1,0 +1,6 @@
+# mac で、mise で入らないものだけをここに書く (docs/mac.md)。macOS に入っている jq と git は使う
+brew "gnupg"
+brew "pinentry-mac"
+brew "tmux"
+# macOS の vim には python3 が無い。Linux の vim-nox に合わせる
+brew "vim"
