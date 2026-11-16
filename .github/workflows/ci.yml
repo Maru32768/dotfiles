@@ -65,6 +65,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }} # mise が GitHub の API を呼ぶときの回数制限を避ける
       - run: bash "$HOME/dotfiles/tests/doctor.sh"
+      # mac の /bin/bash (3.2) は、UTF-8 のロケールで変数の直後の日本語を読み違える。セットアップの手順で動かす bash で試す
+      - run: LANG=en_US.UTF-8 /bin/bash tests/ci/setup-credentials-test.sh
       # mac でしか効かない検査 (Homebrew の PATH、Apple の ssh) がある
       - run: bash tests/ci/render.sh
 

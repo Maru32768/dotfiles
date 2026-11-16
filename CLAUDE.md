@@ -7,10 +7,11 @@ Windows、WSL (Ubuntu 26.04)、WSL ではない Linux の PC、mac の設定と�
 ## コマンド
 
 ```bash
-bash tests/ci/static.sh                 # 環境を作らずにできる検査をすべて (shellcheck、フックのテスト、op-run のテスト、split-pdf のテスト、usage-logのテスト、split-pr-stackのテスト、review-loopの記録のテスト、docs-redesignのスクリプトのテスト、docs-overviewのスクリプトのテスト、不変条件、レンダリング、gitleaks、actionlint)
+bash tests/ci/static.sh                 # 環境を作らずにできる検査をすべて (shellcheck、フックのテスト、op-run のテスト、setup-credentials のテスト、split-pdf のテスト、usage-logのテスト、split-pr-stackのテスト、review-loopの記録のテスト、docs-redesignのスクリプトのテスト、docs-overviewのスクリプトのテスト、不変条件、レンダリング、gitleaks、actionlint)
 bash tests/ci/invariants.sh             # 不変条件だけ
 bash tests/ci/render.sh                 # linux、Windows、mac の 6 通りの環境を描画して置かれるものを確かめる (スキルの取得でネットワークを使う)
 bash tests/ci/op-run-test.sh            # op-run (bash 版) のテスト
+bash tests/ci/setup-credentials-test.sh # setup-credentials.sh のテスト(偽の gpg と ssh で、鍵の uid、副鍵、SSH の agent を確かめる)
 bash tests/ci/split-pdf-test.sh         # split-pdf のテスト (pypdf を PyPI から取得する)
 bash tests/ci/usage-log-test.sh         # usage-logのテスト(作ったClaude CodeとCodexのログで試す)
 bash tests/ci/split-pr-stack-test.sh    # split-pr-stackのスクリプトのテスト(偽のghで試す。jqをmiseで取得する)
