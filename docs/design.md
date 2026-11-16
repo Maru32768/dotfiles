@@ -99,13 +99,12 @@ PCごとの設定や仕事の設定(社内のホスト、社内のCAなど)は�
 
 | ファイル | 読むところ | 読む環境 |
 |---|---|---|
-| `~/.gitconfig.local` | `~/.gitconfig`の最後の`[include]` | `agent`以外。後に読むので、dotfilesの値より優先される |
+| `~/.gitconfig.local` | `~/.gitconfig`の最後の`[include]` | `agent`以外(隔離した環境のため)。後に読むので、dotfilesの値より優先される |
 | `~/.ssh/config.local` | `~/.ssh/config`の最後(`Match all`の後の`Include`) | `~/.ssh/config`を置く環境(Windowsと`agent`以外) |
 | `~/.zshrc.local` | `~/.zshrc`の最後 | mac(`docs/mac.md`) |
 
 - `~/.ssh/config.local`を最後に読むのは、GitHubの設定を先に置くため。sshは最初に見つけた値を使い、`IdentityFile`は見つけた順に試すので、`config.local`の`Host *`に鍵があっても、GitHubにはdotfilesの鍵(`~/.ssh/github`)を先に試す。
 - `Include`を`Match all`の後に置くのは、直前の`Host`の中に入って、GitHubに接続するときだけ読まれるのを避けるため。
-- `agent`は隔離した環境なので、`~/.gitconfig.local`を読まない。
 
 ## 資格情報
 
