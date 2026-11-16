@@ -147,9 +147,9 @@ fi
 
 if [ -f ~/.ssh/github ]; then
   # 接続するとパスフレーズのポップアップが出ることがあるので、公開鍵の登録だけを確認する
-  public_key="$(awk '{print $2}' ~/.ssh/github.pub)"
+  public_key="$(awk '{print $2}' ~/.ssh/github.pub 2>/dev/null)"
   registered_keys="$(curl -fsS --max-time 15 https://github.com/Maru32768.keys || true)"
-  if [[ "$registered_keys" == *"$public_key"* ]]; then
+  if [ -n "$public_key" ] && [[ "$registered_keys" == *"$public_key"* ]]; then
     pass "SSH キーが GitHub に登録されている"
   else
     todo "SSH キーの登録: ~/.ssh/github.pub を GitHub に登録"

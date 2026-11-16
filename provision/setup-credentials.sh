@@ -65,7 +65,9 @@ if [ ! -f "$SSH_KEY" ]; then
   ssh-keygen -t ed25519 -f "$SSH_KEY" -C "$ssh_comment"
 fi
 
-if ! ssh-add -l 2>/dev/null | grep -q "$(ssh-keygen -lf "$SSH_KEY.pub" | awk '{print $2}')"; then
+# 指紋を先に変数に入れ、読めないときに set -e で止める。空のまま grep に渡すと、agent にあるどの鍵にも一致する
+fingerprint="$(ssh-keygen -lf "$SSH_KEY.pub" | awk '{print $2}')"
+if ! ssh-add -l 2>/dev/null | grep -qF "$fingerprint"; then
   if [ "$host" = mac ]; then
     echo "==> SSH キーを ssh-agent に登録し、パスフレーズを Keychain に保存します"
     ssh-add --apple-use-keychain "$SSH_KEY"
