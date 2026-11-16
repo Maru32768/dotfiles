@@ -40,7 +40,7 @@ chezmoi apply   # 反映する
 
 - `work`が無い設定(`work`ができる前に`chezmoi init`した機械の設定)では、`false`として扱う。
 - `work`を`false`に戻しても、すでに置いた`pr.md`は消えない。chezmoiは無視するようになったファイルを消さないため。
-- `tests/ci/render.sh`は、指示(`CLAUDE.md`と`rules/`)にPLaMo、`op-run`、PR運用が出るかを環境ごとに確かめる。`work`が無い設定で適用できることも確かめる。
+- `tests/ci/render.sh`は、指示(`CLAUDE.md`と`rules/`)にPLaMo、`op-run`、PR運用が出るかを環境ごとに確かめる。`CLAUDE.md`がどの環境でも同じことと、`work`が無い設定で適用できることも確かめる。
 
 ## compact
 

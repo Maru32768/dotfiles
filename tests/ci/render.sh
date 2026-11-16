@@ -208,6 +208,8 @@ equals "windows-main: Claude への指示に出る話題" "$(topics_of windows-m
 equals "linux-main: Claude への指示に出る話題" "$(topics_of linux-main)" "op-run"
 equals "darwin-main: Claude への指示に出る話題" "$(topics_of darwin-main)" ""
 equals "darwin-work: Claude への指示に出る話題" "$(topics_of darwin-work)" "--assignee @me"
+# 話題の検査は CLAUDE.md と rules を区別しないので、環境で変わる文が CLAUDE.md に入ったことはここで捕まえる
+check "CLAUDE.md はどの環境でも同じ" 'c="$work/linux-main/home/.claude/CLAUDE.md"; cmp -s "$c" "$work/windows-main/home/.claude/CLAUDE.md" && cmp -s "$c" "$work/linux-desktop/home/.claude/CLAUDE.md" && cmp -s "$c" "$work/darwin-main/home/.claude/CLAUDE.md" && cmp -s "$c" "$work/darwin-work/home/.claude/CLAUDE.md"'
 
 # --- Windows ---
 for file in .wslconfig OneDrive/Documents/PowerShell/Microsoft.PowerShell_profile.ps1 .claude/settings.json .claude/CLAUDE.md .vimrc .local/bin/op-run.ps1 .local/bin/op-run.cmd .local/bin/split-pdf .local/bin/split-pdf.cmd .local/bin/usage-log .local/bin/usage-log.cmd; do
