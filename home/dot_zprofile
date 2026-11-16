@@ -1,3 +1,5 @@
+# tmux などでログインシェルを入れ子にしても、PATH の項目が重なって増えないようにする
+typeset -U path
 # macOS の /etc/zprofile の path_helper がシステムのパスを先頭に並べ直すので、PATH は .zshenv ではなくここで足す
 [ -x /opt/homebrew/bin/brew ] && eval "$(/opt/homebrew/bin/brew shellenv)"
 export PATH="$HOME/.local/bin:$HOME/go/bin:$HOME/.local/share/mise/shims:$PATH"
