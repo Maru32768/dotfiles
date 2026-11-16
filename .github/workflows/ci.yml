@@ -4,13 +4,14 @@ name: CI
 on:
   push:
     branches: ["**"] # stable タグの付け替えでは動かさない
-    # 文書だけの変更では動かさない。home の下の .md (CLAUDE.md、rules、スキル) は render.sh が中身を確かめるので動かす。
-    # 後に書いたパターンが勝つ
+    # 文書だけの変更では動かさない。home の下の .md (CLAUDE.md、rules、スキル) は render.sh が、docs/gpg.md の
+    # フィンガープリントは invariants.sh が確かめるので動かす。後に書いたパターンが勝つ
     paths:
       - "**"
       - "!docs/**"
       - "!**.md"
       - "home/**"
+      - "docs/gpg.md"
   schedule:
     # 固定していないもの (apt、インストーラー、Vim プラグイン) の破損に気づくため。日曜 6:00 JST
     - cron: "0 21 * * 6"
