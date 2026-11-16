@@ -4,6 +4,8 @@
 # Windows と mac での実際の動作までは分からない。
 # shellcheck disable=SC2016
 set -uo pipefail
+# 呼び出し元が export していると、「環境変数なしで init し直す」検査が何も試さずに通る
+unset DOTFILES_PROFILE DOTFILES_HOST DOTFILES_WORK DOTFILES_SIGNING_KEY
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$PATH"
@@ -270,7 +272,6 @@ equals "mac では DOTFILES_HOST を読まない" "$(data_of darwin-bad .host)" 
 
 # --- プロファイル ---
 profile_of() { sed -n 's/^ *profile = "\(.*\)"$/\1/p' "$work/$1/chezmoi.toml"; }
-unset DOTFILES_PROFILE
 check "linux-agent: 環境変数なしで init し直せる" 'init_of linux-agent'
 equals "環境変数なしで init し直しても agent のまま" "$(profile_of linux-agent)" agent
 mkdir -p "$work/linux-default/home" "$work/linux-default/fakehome"
