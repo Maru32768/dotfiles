@@ -55,6 +55,13 @@ check "mise" 'mise --version'
 # user.sh は mise が既にあれば入れ直さないので、前から入っていた mise が古いままのことがある
 mise_pinned="$(sed -n 's/^MISE_VERSION="v\(.*\)"$/\1/p' "$HOME/dotfiles/provision/user.sh")"
 check "mise 本体が provision/user.sh の MISE_VERSION ($mise_pinned)" '[ "$(mise --version 2>/dev/null | awk "NR == 1 {print \$1}")" = "$mise_pinned" ]'
+# ホームの .tool-versions や mise.toml は、グローバルの設定より優先され、lock に無い版を使わせる
+mise_configs="$(mise config ls --json 2>/dev/null | jq -r '.[].path' 2>/dev/null)"
+if [ "$mise_configs" = "$HOME/.config/mise/config.toml" ]; then
+  pass "mise がホームで読む設定は ~/.config/mise/config.toml だけ"
+else
+  fail "mise がホームで読む設定が ~/.config/mise/config.toml だけでない (ほかは移すか消す): $(tr '\n' ' ' <<<"$mise_configs")"
+fi
 platform=linux-x64; [ "$host" = mac ] && platform=macos-arm64
 # config.toml の os でほかの OS に絞ったツール (Windows の llama.cpp、mac の op と codex) は、
 # lock にこの platform の行が無く、mise ls --current にも出ない。platform の行が 1 つも無いもの (rust など) は入る
