@@ -23,18 +23,26 @@ else
 fi
 
 # mac の /bin/bash (3.2) は、UTF-8 のロケールで、変数の直後の日本語のバイトを名前の一部として読み、
-# set -u で止まる。${} で囲む。shellcheck は見つけない
-bash_scripts() {
+# set -u で止まる。zsh はどの OS でも日本語を名前の一部として読む。${} で囲む。shellcheck は見つけない
+shell_scripts() {
   git ls-files -co --exclude-standard | while IFS= read -r file; do
     [ -f "$file" ] || continue
-    case "$file" in *.sh | *.sh.tmpl) ;; *) head -n 1 "$file" | grep -q '^#!.*bash' || continue ;; esac
+    case "$file" in *.sh | *.sh.tmpl | */dot_zshrc* | */dot_zprofile*) ;; *) head -n 1 "$file" | grep -qE '^#!.*(bash|zsh)' || continue ;; esac
     printf '%s\n' "$file"
   done
 }
-bare_vars="$(bash_scripts | while IFS= read -r file; do
-  perl -ne 'print "$ARGV:$.\n" if /^[^#]*\$[A-Za-z_][A-Za-z0-9_]*[^\x00-\x7F]/' "$file"
-done)"
-if [ -z "$bare_vars" ]; then pass "bash のスクリプトで、変数の直後に ASCII でない文字が無い"; else fail "bash のスクリプトで、変数の直後に ASCII でない文字がある (\${} で囲む): $bare_vars"; fi
+bare_vars() { perl -ne 'next if /^\s*#/; print "$ARGV:$.\n" if /\$[A-Za-z_][A-Za-z0-9_]*[^\x00-\x7F]/' "$@"; }
+scripts="$(shell_scripts)"
+# perl が無いか式が壊れていると、何も見つけずに通るので、仕込んだ違反 (# の後ろ) と選ぶべきファイルで先に試す
+# shellcheck disable=SC2016
+if [ -z "$(printf 'echo "#$a\346\227\245"\n' | bare_vars)" ]; then
+  fail "変数の直後の日本語の検査が、仕込んだ違反を見つけられない"
+elif ! grep -qx home/dot_local/bin/executable_op-run <<<"$scripts" || ! grep -q '\.sh\.tmpl$' <<<"$scripts" || ! grep -qx home/dot_zshrc <<<"$scripts"; then
+  fail "変数の直後の日本語の検査が、拡張子の無い bash のスクリプト、.sh.tmpl、zsh の設定のどれかを選ばない"
+else
+  found="$(while IFS= read -r file; do bare_vars "$file"; done <<<"$scripts")"
+  if [ -z "$found" ]; then pass "シェルのスクリプトで、変数の直後に ASCII でない文字が無い"; else fail "シェルのスクリプトで、変数の直後に ASCII でない文字がある (\${} で囲む): $found"; fi
+fi
 
 # 表記は v の有無が違う (docs/tools.md)
 mise_linux="$(sed -n 's/^MISE_VERSION="v\(.*\)"$/\1/p' provision/user.sh)"
