@@ -26,7 +26,7 @@ Homebrewを`/opt/homebrew`に入れる、Apple Siliconのmacだけを考えて�
 ## SSHとGPG
 
 - SSHは、macOSのssh-agentを使う。GitHubの鍵は、`~/.ssh/config`の`UseKeychain`と`AddKeysToAgent`でKeychainに入れる。仕事のホストの鍵もKeychainのagentで使うので、Linuxと違い、`SSH_AUTH_SOCK`をgpg-agentに向けず、gpg-agentのSSHの機能(`enable-ssh-support`)も使わない。
-- GPGのパスフレーズは、pinentry-macの画面で入力する。`gpg-agent.conf`に`pinentry-program`が無ければ、chezmoiが`/opt/homebrew/bin/pinentry-mac`を足す。JetBrains IDEなどが書いた`pinentry-program`があれば、それを残す。
+- GPGのパスフレーズは、pinentry-macの画面で入力する。`gpg-agent.conf`に`pinentry-program`が無いときだけ、chezmoiが`/opt/homebrew/bin/pinentry-mac`を足す(JetBrains IDEなどが書いたものは残る)。
 
 ## 仕事のPC(`work`)
 
