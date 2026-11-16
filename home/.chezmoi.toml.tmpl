@@ -24,14 +24,8 @@
 {{- if has $host (list "desktop" "mac") -}}
 {{-   $signingKey = env "DOTFILES_SIGNING_KEY" | default (get . "signingKey") | default "" -}}
 {{- end -}}
-{{- $work := get . "work" | default false -}}
-{{- if eq (env "DOTFILES_WORK") "1" -}}
-{{-   $work = true -}}
-{{- else if eq (env "DOTFILES_WORK") "0" -}}
-{{-   $work = false -}}
-{{- else if ne (env "DOTFILES_WORK") "" -}}
-{{-   fail (printf "DOTFILES_WORK は 1 か 0: %s" (env "DOTFILES_WORK")) -}}
-{{- end -}}
+{{- $w := env "DOTFILES_WORK" | default (ternary "1" "0" (get . "work" | default false)) -}}
+{{- if not (has $w (list "1" "0")) }}{{ fail (printf "DOTFILES_WORK は 1 か 0: %s" $w) }}{{ end -}}
 sourceDir = "{{ .chezmoi.sourceDir | trimSuffix "/home" }}"
 
 [data]
@@ -42,4 +36,4 @@ sourceDir = "{{ .chezmoi.sourceDir | trimSuffix "/home" }}"
     email = "maru32768@gmail.com"
     signingKey = "{{ $signingKey }}"
     # 仕事の PC だけ true にして、仕事用のファイルを置く。DOTFILES_WORK=1 か 0 を付けた chezmoi init で変える
-    work = {{ $work }}
+    work = {{ eq $w "1" }}
