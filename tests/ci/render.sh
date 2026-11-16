@@ -275,12 +275,18 @@ init_of darwin-moved >/dev/null 2>&1
 equals "mac では、設定に残った host も読まない" "$(data_of darwin-moved .host)" mac
 
 # --- work ---
-# work は mac に限らず、どの host でも同じに読む
+# work は mac に限らず、どの host でも同じに読む。Windows と WSL は bootstrap.ps1 と user.sh が
+# DOTFILES_PROFILE だけを付けて init し直すので、設定に残ることが work を保つ唯一の経路になる
 equals "linux-main と windows-main: work の既定は false" "$(data_of linux-main '.work | tojson') $(data_of windows-main '.work | tojson')" "false false"
-for name in linux-work windows-work; do
+for entry in linux-work-wsl:wsl linux-work-desktop:desktop windows-work:; do
+  name="${entry%%:*}"
   mkdir -p "$work/$name/home" "$work/$name/fakehome"
-  DOTFILES_WORK=1 init_of "$name" >/dev/null 2>&1
+  DOTFILES_HOST="${entry#*:}" DOTFILES_WORK=1 init_of "$name" >/dev/null 2>&1
   equals "$name: DOTFILES_WORK=1 で work が true" "$(data_of "$name" '.work | tojson')" true
+  check "$name: 環境変数なしで init し直せる" 'init_of "$name"'
+  equals "$name: 環境変数なしで init し直しても work が残る" "$(data_of "$name" '.work | tojson')" true
+  DOTFILES_WORK=0 init_of "$name" >/dev/null 2>&1
+  equals "$name: DOTFILES_WORK=0 で work が false に戻る" "$(data_of "$name" '.work | tojson')" false
 done
 
 # --- プロファイル ---
