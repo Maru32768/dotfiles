@@ -26,8 +26,8 @@ zstyle ':zle:*' word-style unspecified
 autoload -Uz compinit && compinit
 zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'
 zstyle ':completion:*' ignore-parents parent pwd ..
-zstyle ':completion:*:sudo:*' command-path /usr/local/sbin /usr/local/bin /usr/sbin /usr/bin /sbin /bin
-zstyle ':completion:*:processes' command 'ps x -o pid,s,args'
+zstyle ':completion:*:sudo:*' command-path /opt/homebrew/sbin /opt/homebrew/bin /usr/local/sbin /usr/local/bin /usr/sbin /usr/bin /sbin /bin
+zstyle ':completion:*:processes' command 'ps x -o pid,stat,args'
 
 setopt print_eight_bit no_beep no_flow_control ignore_eof interactive_comments
 setopt auto_cd auto_pushd pushd_ignore_dups extended_glob
