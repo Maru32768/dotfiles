@@ -9,7 +9,7 @@ Windows と WSL (Ubuntu 26.04) の設定とツールを chezmoi と mise で管�
 ```bash
 bash tests/ci/static.sh                 # 環境を作らずにできる検査をすべて (shellcheck、フックのテスト、op-run のテスト、split-pdf のテスト、usage-logのテスト、split-pr-stackのテスト、review-loopの記録のテスト、docs-redesignのスクリプトのテスト、docs-overviewのスクリプトのテスト、不変条件、レンダリング、gitleaks、actionlint)
 bash tests/ci/invariants.sh             # 不変条件だけ
-bash tests/ci/render.sh                 # linux-main / linux-agent / windows-main を描画して置かれるものを確かめる (スキルの取得でネットワークを使う)
+bash tests/ci/render.sh                 # linux、Windows、mac の 6 通りの環境を描画して置かれるものを確かめる (スキルの取得でネットワークを使う)
 bash tests/ci/op-run-test.sh            # op-run (bash 版) のテスト
 bash tests/ci/split-pdf-test.sh         # split-pdf のテスト (pypdf を PyPI から取得する)
 bash tests/ci/usage-log-test.sh         # usage-logのテスト(作ったClaude CodeとCodexのログで試す)
