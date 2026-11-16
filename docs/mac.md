@@ -22,11 +22,12 @@ chezmoiのデータの`work`は仕事のPCかどうかを表す真偽値。仕�
 
 - `DOTFILES_WORK=1`を付けた`chezmoi init`で`true`、`DOTFILES_WORK=0`で`false`になる。ほかの値では`chezmoi init`が止まる。
 - `DOTFILES_WORK`がなければ、今の値を保つ。初めての`chezmoi init`では`false`。
-- 仕事のPCにだけ、PR運用の指示(`~/.claude/rules/pr.md`)を置く(`docs/claude.md`)。
 
 ```bash
 DOTFILES_WORK=1 chezmoi init && chezmoi apply
 ```
+
+仕事のPCにだけ、PR運用の指示(`~/.claude/rules/pr.md`)を置く(`docs/claude.md`)。
 
 ## 署名鍵
 

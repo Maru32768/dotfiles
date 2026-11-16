@@ -6,8 +6,8 @@ Windows と WSL で同じ設定を使うため、共通部分を chezmoi で管�
 |---|---|
 | `home/.claude-settings.json` | 共通の設定 (プラグイン、マーケットプレイス、フックなど) |
 | `home/dot_claude/modify_settings.json` | 共通の設定を `settings.json` へマージする (chezmoi のテンプレートなので両 OS で動く)。review-loopが台帳を置くディレクトリへの許可も足す(「review-loopの台帳の置き場」) |
-| `home/dot_claude/CLAUDE.md` | ユーザー全体の指示。dotfilesで設定を管理していることのほか、日本語の表記、タスクの進め方、コードコメント、コミットとレビューの決まりと、技術的な知見の記録を提案する決まりを書く。指示として読まれるだけで、強制はしない。`agent`には置かない |
-| `home/dot_claude/rules/` | 環境で変わる指示(「環境で変わる指示」) |
+| `home/dot_claude/CLAUDE.md` | ユーザー全体の指示。dotfilesで設定を管理していることのほか、日本語の表記、タスクの進め方、コードコメント、コミットとレビューの決まり、技術的な知見の記録を提案する決まりを書く。指示として読まれるだけで、強制はしない。`agent`には置かない |
+| `home/dot_claude/rules/` | 環境で変わる指示(「環境で変わる指示」)。`agent`には置かない |
 | `home/dot_claude/pstack-models.md` | pstack のロールごとのモデル。`/setup-pstack` が書き、`CLAUDE.md` の `@` 行で読み込む |
 | `home/dot_claude/skills/` | 自分で書いたスキル (`docs/skills.md`) |
 | `home/.hooks-src/block-signing-bypass/` | 署名の回避を止めるフック (Go) |
@@ -30,17 +30,17 @@ chezmoi apply   # 反映する
 
 ## 環境で変わる指示
 
-`CLAUDE.md`はどの環境でも同じ中身にし、環境で変わる指示は`home/dot_claude/rules/`に話題ごとのファイルで置く。Claude Codeは、`~/.claude/rules/`の`.md`も`CLAUDE.md`と同じく、ユーザー全体の指示として読む。どの環境に置くかは`home/.chezmoiignore`で決める。
+`CLAUDE.md`はどの環境でも同じ中身にし、環境で変わる指示は話題ごとのファイルにして`home/dot_claude/rules/`に置く。Claude Codeは`~/.claude/rules/`の`.md`も、`CLAUDE.md`と同じくユーザー全体の指示として読む。どのファイルをどの環境に置くかは`home/.chezmoiignore`で決める。
 
 | ファイル | 内容 | 置く環境 |
 |---|---|---|
 | `plamo.md` | PLaMo 3 Translateの使い方(`docs/tools.md`) | Windowsだけ。WSLはNATのネットワークで動くので、Windowsの`127.0.0.1`で待ち受けるサーバーに届かない |
 | `secrets.md` | APIキーを`op-run`で渡す決まり(`docs/secrets.md`) | mac以外 |
-| `pr.md` | PRの作り方と、レビューコメントへの返信の決まり | chezmoiのデータの`work`が`true`の機械(`docs/mac.md`) |
+| `pr.md` | PRの作り方と、レビューコメントへの返信の決まり | chezmoiのデータで`work`が`true`の機械(`docs/mac.md`) |
 
-- `work`が無い設定(`work`ができる前に`chezmoi init`した機械)では、`false`として扱う。
-- `work`を`false`に戻しても、置いた`pr.md`は消えない。chezmoiは、無視するようになったファイルを消さないため。
-- `tests/ci/render.sh`が、環境ごとに、指示(`CLAUDE.md`と`rules/`)にPLaMo、`op-run`、PR運用が出るかを確かめる。`work`が無い設定で適用できることも確かめる。
+- `work`が無い設定(`work`ができる前に`chezmoi init`した機械の設定)では、`false`として扱う。
+- `work`を`false`に戻しても、すでに置いた`pr.md`は消えない。chezmoiは無視するようになったファイルを消さないため。
+- `tests/ci/render.sh`は、指示(`CLAUDE.md`と`rules/`)にPLaMo、`op-run`、PR運用が出るかを環境ごとに確かめる。`work`が無い設定で適用できることも確かめる。
 
 ## compact
 
