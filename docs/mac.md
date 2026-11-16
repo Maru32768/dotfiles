@@ -89,7 +89,7 @@ desktopと同じく、PCごとの鍵で署名し、WindowsとWSLの鍵は使わ�
    DOTFILES_PREVIEW=1 bash ~/dotfiles/provision/user.sh main ~/dotfiles
    ```
 
-   - 適用すると書き換わる、今あるファイル(`M`の行)。残したい設定は、下の表の移し先へ移し、元のファイルも控えておく(`docs/design.md`の「ローカルの設定」)。
+   - 適用すると書き換わるか消える、今あるファイル(`M`と`D`の行)。残したい設定は、下の表の移し先へ移し、元のファイルも控えておく(`docs/design.md`の「ローカルの設定」)。
    - ホームにあるmiseの設定(`~/.tool-versions`、`~/.mise.toml`など)。dotfilesの設定より優先され、`mise.lock`に無い版が入るので、移すか消す。適用の後は`doctor.sh`が確かめる。
 
 | 書き換わるもの | 残したい設定の移し先 |

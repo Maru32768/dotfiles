@@ -2,7 +2,7 @@
 # 対象のユーザーで実行する: dotfiles の取得、mise と chezmoi の導入、設定の適用。
 # 使い方: user.sh <プロファイル> <取得元> [ブランチ]
 #   取得元は git の URL か、コピーするディレクトリ
-#   DOTFILES_PREVIEW=1 なら適用せずに、書き換わる今のファイルと、mise がホームで読む設定を出す (docs/mac.md)
+#   DOTFILES_PREVIEW=1 なら適用せずに、書き換わるか消える今のファイルと、ホームにある mise の設定を出す (docs/mac.md)
 set -euo pipefail
 
 # mise 本体のバージョン。更新の手順は docs/tools.md
@@ -28,21 +28,24 @@ if [ ! -x "$HOME/.local/bin/mise" ]; then
 fi
 mise="$HOME/.local/bin/mise"
 
-if [ -n "${DOTFILES_PREVIEW:-}" ]; then
-  # ~/.config/mise/ を書き換えず、mise install がリポジトリの mise.lock に書き込まないように、写しを読ませる
+if [ "${DOTFILES_PREVIEW:-}" = 1 ]; then
+  # ~/.config/mise/ とホームの chezmoi の設定を書き換えず、mise install がリポジトリの mise.lock に書き込まない
+  # ように、mise の設定の写しと、chezmoi の設定、状態、キャッシュを一時ディレクトリに置く
   preview_dir="$(mktemp -d)"
   trap 'rm -rf "$preview_dir"' EXIT
   cp "$repo/home/dot_config/mise/config.toml" "$repo/home/dot_config/mise/mise.lock" "$preview_dir/"
   export MISE_GLOBAL_CONFIG_FILE="$preview_dir/config.toml"
+  chezmoi=(chezmoi --config "$preview_dir/chezmoi.toml" --persistent-state "$preview_dir/chezmoistate.boltdb" --cache "$preview_dir/cache")
   cd "$HOME"
   "$mise" install --yes chezmoi
-  DOTFILES_PROFILE="$profile" "$mise" exec chezmoi -- chezmoi init --source "$repo" --no-tty
-  status="$("$mise" exec chezmoi -- chezmoi status --exclude=scripts)"
+  DOTFILES_PROFILE="$profile" "$mise" exec chezmoi -- "${chezmoi[@]}" init --source "$repo" --no-tty
+  status="$("$mise" exec chezmoi -- "${chezmoi[@]}" status --exclude=scripts)"
   configs="$("$mise" config ls --no-header)"
-  echo "==> 適用すると書き換わる、今あるファイル (M)"
-  grep '^.M' <<<"$status" || echo "(なし)"
+  echo "==> 適用すると書き換わる (M) か消える (D)、今あるファイル"
+  grep '^.[MD]' <<<"$status" || echo "(なし)"
   echo "==> ホームにある mise の設定 (dotfiles の設定より優先されるので、移すか消す)"
-  grep -vF "$MISE_GLOBAL_CONFIG_FILE" <<<"$configs" || echo "(なし)"
+  # ~/.config/mise/config.toml は、適用で dotfiles のものに置き換わる
+  grep -v -e "^$preview_dir/config.toml " -e '^~/\.config/mise/config\.toml ' <<<"$configs" || echo "(なし)"
   exit 0
 fi
 

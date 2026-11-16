@@ -60,11 +60,14 @@ docker exec -e "DOTFILES_HOST=$host" "$name" bash /tmp/src/provision/root.sh "$u
 failures=0
 if [ "$home" = main ]; then
   step "user.sh の予行 (DOTFILES_PREVIEW)"
-  # useradd が /etc/skel から置いた .bashrc を、dotfiles が書き換える
+  # useradd が /etc/skel から置いた .bashrc を、dotfiles が書き換える。第三者のスキルは exact なので、上流に無いファイルは消える
+  skill="$(sed -n 's/^\[skills\.\(.*\)\]$/\1/p' "$root/home/.chezmoidata/skills.toml" | head -n 1)"
+  as_user 'mkdir -p ~/.claude/skills/"$1" && echo extra >~/.claude/skills/"$1"/preview-extra.txt' "$skill" || exit 1
   preview="$(docker exec -u "$user" -w "/home/$user" -e "HOME=/home/$user" -e "DOTFILES_HOST=$host" -e DOTFILES_PREVIEW=1 "$name" bash /tmp/src/provision/user.sh "$home" /tmp/src 2>&1)" || { printf '%s\n' "$preview"; exit 1; }
   printf '%s\n' "$preview"
   if grep -qx ' M .bashrc' <<<"$preview"; then echo "PASS 予行が、書き換わる今のファイル (.bashrc) を出す"; else echo "FAIL 予行が、書き換わる今のファイル (.bashrc) を出さない"; failures=$((failures + 1)); fi
-  if as_user 'cmp -s /etc/skel/.bashrc ~/.bashrc && [ ! -e ~/.config/mise/config.toml ] && [ ! -e ~/.vimrc ]'; then echo "PASS 予行は適用しない"; else echo "FAIL 予行が適用した"; failures=$((failures + 1)); fi
+  if grep -qxF " D .claude/skills/$skill/preview-extra.txt" <<<"$preview"; then echo "PASS 予行が、消える今のファイルを出す"; else echo "FAIL 予行が、消える今のファイルを出さない"; failures=$((failures + 1)); fi
+  if as_user 'cmp -s /etc/skel/.bashrc ~/.bashrc && [ -e ~/.claude/skills/"$1"/preview-extra.txt ] && [ ! -e ~/.config/mise/config.toml ] && [ ! -e ~/.config/chezmoi ] && [ ! -e ~/.vimrc ]' "$skill"; then echo "PASS 予行は適用せず、ホームに chezmoi の設定も書かない"; else echo "FAIL 予行が適用したか、ホームに chezmoi の設定を書いた"; failures=$((failures + 1)); fi
 fi
 
 step "user.sh"
