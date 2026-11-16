@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	signingKey    = `(?:commit\.gpgsign|tag\.gpgsign|tag\.forcesignannotated|rebase\.gpgsign|gpg\.[a-z0-9.]+|user\.signingkey|include\.path|includeif\.\S+\.path)`
+	signingKey    = `(?:commit\.gpgsign|tag\.gpgsign|tag\.forcesignannotated|rebase\.gpgsign|gpg\.[a-z0-9.]+|user\.signingkey|include\.path|includeif\..+?\.path)`
 	gitConfigFile = `(?:\.gitconfig(?:\.local)?|\.git[/\\]config|\.config[/\\]git[/\\]config)`
 )
 

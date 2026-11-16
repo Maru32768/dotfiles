@@ -24,6 +24,9 @@ var deniedCommands = []string{
 	"git config --global includeIf.gitdir:/.path /tmp/x",
 	"git config --global include.path /tmp/x",
 	"git -c include.path=/tmp/x commit -m x",
+	"git -c includeif.onbranch:main.path=/tmp/x commit -m x",
+	`git -c "includeIf.onbranch:[ m]ain.path=/tmp/x" commit -m x`,
+	"git config --local includeIf.gitdir:~/src/.dotfiles/.path /tmp/x",
 	"git --config-env=commit.gpgsign=X commit -m x",
 	"git config commit.gpgsign false",
 	"git config --global commit.gpgsign false",
@@ -53,6 +56,7 @@ var deniedCommands = []string{
 
 var allowedCommands = []string{
 	"git config --get include.path",
+	"git config --get includeIf.gitdir:~/work/.path",
 	"ls",
 	"git status",
 	"git add -A && git commit -m 'normal commit'",
