@@ -60,14 +60,23 @@ docker exec -e "DOTFILES_HOST=$host" "$name" bash /tmp/src/provision/root.sh "$u
 failures=0
 if [ "$home" = main ]; then
   step "user.sh の予行 (DOTFILES_PREVIEW)"
-  # useradd が /etc/skel から置いた .bashrc を、dotfiles が書き換える。第三者のスキルは exact なので、上流に無いファイルは消える
+  # 予行が出すべきものを置く。.bashrc は useradd が /etc/skel から置いたもので、~/.config/mise/config.toml とともに書き換わる。
+  # 第三者のスキルは exact なので、上流に無いファイルは消える。~/.tool-versions はホームの mise の設定
   skill="$(sed -n 's/^\[skills\.\(.*\)\]$/\1/p' "$root/home/.chezmoidata/skills.toml" | head -n 1)"
-  as_user 'mkdir -p ~/.claude/skills/"$1" && echo extra >~/.claude/skills/"$1"/preview-extra.txt' "$skill" || exit 1
+  as_user 'mkdir -p ~/.claude/skills/"$1" ~/.config/mise && echo extra >~/.claude/skills/"$1"/preview-extra.txt &&
+    echo "[tools]" >~/.config/mise/config.toml && : >~/.tool-versions && touch ~/.preview-start' "$skill" || exit 1
   preview="$(docker exec -u "$user" -w "/home/$user" -e "HOME=/home/$user" -e "DOTFILES_HOST=$host" -e DOTFILES_PREVIEW=1 "$name" bash /tmp/src/provision/user.sh "$home" /tmp/src 2>&1)" || { printf '%s\n' "$preview"; exit 1; }
   printf '%s\n' "$preview"
-  if grep -qx ' M .bashrc' <<<"$preview"; then echo "PASS 予行が、書き換わる今のファイル (.bashrc) を出す"; else echo "FAIL 予行が、書き換わる今のファイル (.bashrc) を出さない"; failures=$((failures + 1)); fi
-  if grep -qxF " D .claude/skills/$skill/preview-extra.txt" <<<"$preview"; then echo "PASS 予行が、消える今のファイルを出す"; else echo "FAIL 予行が、消える今のファイルを出さない"; failures=$((failures + 1)); fi
-  if as_user 'cmp -s /etc/skel/.bashrc ~/.bashrc && [ -e ~/.claude/skills/"$1"/preview-extra.txt ] && [ ! -e ~/.config/mise/config.toml ] && [ ! -e ~/.config/chezmoi ] && [ ! -e ~/.vimrc ]' "$skill"; then echo "PASS 予行は適用せず、ホームに chezmoi の設定も書かない"; else echo "FAIL 予行が適用したか、ホームに chezmoi の設定を書いた"; failures=$((failures + 1)); fi
+  # 使い方: preview_section <見出しに含まれる文字列>
+  preview_section() { awk -v heading="$1" 'index($0, "==> ") == 1 { on = index($0, heading) > 0; next } on' <<<"$preview"; }
+  want_changes="$(printf ' M .bashrc\n D .claude/skills/%s/preview-extra.txt\n M .config/mise/config.toml' "$skill")"
+  if [ "$(preview_section 書き換わる)" = "$want_changes" ]; then echo "PASS 予行が、書き換わるか消える今のファイルだけを出す"; else echo "FAIL 予行が、書き換わるか消える今のファイルだけを出さない"; failures=$((failures + 1)); fi
+  if preview_section "mise の設定" | awk '{ n++ } $1 != "~/.tool-versions" { other = 1 } END { exit other || n != 1 }'; then echo "PASS 予行が、ホームの mise の設定として ~/.tool-versions だけを出す"; else echo "FAIL 予行が、ホームの mise の設定として ~/.tool-versions だけを出さない"; failures=$((failures + 1)); fi
+  # 予行が書いてよいのは、リポジトリの写し、mise とそのツール、キャッシュだけ
+  written="$(as_user 'cd ~ && find . \( -path ./dotfiles -o -path ./.local/share/mise -o -path ./.local/state/mise -o -path ./.local/bin/mise -o -path ./.cache \) -prune -o ! -type d -newer .preview-start -print')"
+  if [ -z "$written" ]; then echo "PASS 予行は、ホームのほかのファイルを書かない"; else echo "FAIL 予行が、ホームのほかのファイルを書いた: $(tr '\n' ' ' <<<"$written")"; failures=$((failures + 1)); fi
+  if as_user '[ -e ~/.claude/skills/"$1"/preview-extra.txt ]' "$skill"; then echo "PASS 予行は、消えるファイルを消さない"; else echo "FAIL 予行が、消えるファイルを消した"; failures=$((failures + 1)); fi
+  as_user 'rm ~/.tool-versions ~/.preview-start' || exit 1
 fi
 
 step "user.sh"
@@ -82,6 +91,7 @@ if [ "$home" = main ]; then
   step "doctor.sh"
   # TODO (資格情報の登録) は失敗に数えない
   as_user 'bash ~/dotfiles/tests/doctor.sh --container' || failures=$((failures + 1))
+  launcher_want "doctor が、ホームの ~/.tool-versions を見つける" 'as_user "touch ~/.tool-versions; bash ~/dotfiles/tests/doctor.sh --container | grep -q \"^FAIL mise がホームで読む設定が\"; found=\$?; rm ~/.tool-versions; exit \$found"'
 else
   step "$profile の確認"
   as_user '
