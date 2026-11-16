@@ -29,8 +29,6 @@ fail() { printf 'FAIL %s\n' "$1"; failures=$((failures + 1)); }
 todo() { printf 'TODO %s\n' "$1"; }
 skip() { printf 'SKIP %s\n' "$1"; }
 check() { if eval "$2" >/dev/null 2>&1; then pass "$1"; else fail "$1"; fi; }
-# GNU と BSD (mac) の stat は、権限の取り出し方が違う
-mode_of() { stat -c %a "$1" 2>/dev/null || stat -f %Lp "$1"; }
 
 if [ "$host" = mac ]; then
   check "macOS (Apple Silicon)" '[ "$(uname -s)-$(uname -m)" = Darwin-arm64 ]'
@@ -80,8 +78,8 @@ check "スキルにシンボリックリンクがない" '[ -z "$(find ~/.claude
 check "gh の拡張: gh-stack" 'gh stack --version'
 check ".gitconfig が実ファイル" '[ -f ~/.gitconfig ] && [ ! -L ~/.gitconfig ]'
 check ".ssh が実ディレクトリ" '[ -d ~/.ssh ] && [ ! -L ~/.ssh ]'
-check ".ssh の権限が 700" '[ "$(mode_of ~/.ssh)" = 700 ]'
-check ".gnupg の権限が 700" '[ "$(mode_of ~/.gnupg)" = 700 ]'
+check ".ssh の権限が 700" '[ -n "$(find ~/.ssh -maxdepth 0 -perm 700)" ]'
+check ".gnupg の権限が 700" '[ -n "$(find ~/.gnupg -maxdepth 0 -perm 700)" ]'
 check "コミット署名が有効" '[ "$(git config --global --includes commit.gpgsign)" = true ]'
 if [ "$host" = mac ]; then
   # JetBrains IDE が書いたものも含め、gpg-agent.conf が指す pinentry が実行できる
