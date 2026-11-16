@@ -65,7 +65,8 @@ if [ "$home" = main ]; then
   skill="$(sed -n 's/^\[skills\.\(.*\)\]$/\1/p' "$root/home/.chezmoidata/skills.toml" | head -n 1)"
   as_user 'mkdir -p ~/.claude/skills/"$1" ~/.config/mise && echo extra >~/.claude/skills/"$1"/preview-extra.txt &&
     echo "[tools]" >~/.config/mise/config.toml && : >~/.tool-versions && touch ~/.preview-start' "$skill" || exit 1
-  preview="$(docker exec -u "$user" -w "/home/$user" -e "HOME=/home/$user" -e "DOTFILES_HOST=$host" -e DOTFILES_PREVIEW=1 "$name" bash /tmp/src/provision/user.sh "$home" /tmp/src 2>&1)" || { printf '%s\n' "$preview"; exit 1; }
+  # ホームの外から動かしても、ホームの mise の設定を見ることも確かめる
+  preview="$(docker exec -u "$user" -w / -e "HOME=/home/$user" -e "DOTFILES_HOST=$host" -e DOTFILES_PREVIEW=1 "$name" bash /tmp/src/provision/user.sh "$home" /tmp/src 2>&1)" || { printf '%s\n' "$preview"; exit 1; }
   printf '%s\n' "$preview"
   # 使い方: preview_section <見出しに含まれる文字列>
   preview_section() { awk -v heading="$1" 'index($0, "==> ") == 1 { on = index($0, heading) > 0; next } on' <<<"$preview"; }
