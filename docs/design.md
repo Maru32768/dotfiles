@@ -114,7 +114,7 @@ PCごとの設定や仕事の設定(社内のホスト、社内のCAなど)は�
 | Windows | 既存の `~/.ssh/github` | 正式な鍵 |
 | `dev` | 環境ごとに新規作成して GitHub に登録 | 正式な鍵を取り込む |
 | WSL ではない PC (desktop) | PC ごとに新規作成して GitHub に登録 | PC ごとに新規作成して GitHub に登録 (`docs/desktop.md`) |
-| mac | PCごとに新規作成してGitHubに登録(パスフレーズはKeychain) | PCごとに新規作成してGitHubに登録(`docs/mac.md`) |
+| mac | PCごとに新規作成してGitHubに登録(パスフレーズはKeychainに保存) | PCごとに新規作成してGitHubに登録(`docs/mac.md`) |
 | `agent`、`research` | 持たない | 持たない |
 
 - `~/.ssh` と `~/.gitconfig` を Windows へのリンクにしない。WSL が単体で復元できなくなり、隔離とも両立しないため。

@@ -5,10 +5,10 @@
 | ファイル | 役割 |
 |---|---|
 | `home/dot_config/mise/config.toml` | どこまで自動で上げてよいか (例: `python = "3.14"`) |
-| `home/dot_config/mise/mise.lock` | 正確なバージョン、URL、チェックサム (Linux、Windows、mac) |
+| `home/dot_config/mise/mise.lock` | 正確なバージョン、URL、チェックサム(Linux、Windows、mac) |
 | `provision/user.sh` の `MISE_VERSION`、`bootstrap.ps1` の `$MiseVersion` | mise 本体のバージョン (揃える) |
 | `packages/apt.txt` | mise で入らないもの (バージョンは Ubuntu に任せる) |
-| `packages/Brewfile` | macで、miseで入らないもの(バージョンはHomebrewに任せる、`docs/mac.md`) |
+| `packages/Brewfile` | macで、miseで入らないもの(バージョンはHomebrewに任せる) |
 
 ## 更新する
 

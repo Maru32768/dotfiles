@@ -53,7 +53,7 @@ desktopと同じく、PCごとの鍵で署名し、WindowsとWSLの鍵は使わ�
 ## セットアップ
 
 1. Homebrewを入れる(<https://brew.sh>)。Xcodeのコマンドラインツールも一緒に入る。
-2. リポジトリを取ってきて、Homebrewの一覧と設定を入れる。仕事のPCなら、`user.sh`の前に`DOTFILES_WORK=1`を付ける。
+2. リポジトリを取ってきて、Homebrewの一覧にあるものと設定を入れる。仕事のPCなら、`user.sh`を実行するコマンドの先頭に`DOTFILES_WORK=1`を付ける。
 
    ```bash
    git clone https://github.com/Maru32768/dotfiles.git ~/dotfiles
@@ -68,16 +68,16 @@ desktopと同じく、PCごとの鍵で署名し、WindowsとWSLの鍵は使わ�
    ```
 
 3. 新しいターミナルを開いて、`~/.zprofile`のPATHを効かせる。
-4. 資格情報を作る。パスフレーズは、pinentry-macの画面とターミナルで入力する。
+4. 資格情報を作る。GPGのパスフレーズはpinentry-macの画面で、SSHキーのパスフレーズはターミナルで入力する。
 
    ```bash
    ~/dotfiles/provision/setup-credentials.sh
    ```
 
-   このPC専用のGPG署名鍵とSSHキーを作り、それぞれの公開鍵を表示する。GPGの公開鍵は<https://github.com/settings/gpg/new>に、SSHの公開鍵は<https://github.com/settings/ssh/new>に登録して、もう一度実行する。鍵のuidとSSHキーのコメントには、ホスト名ではなく`mac`か`work-mac`を入れる(uidはGitHubで公開される)。1Password(`op-run`)は使わないので、暗号化の副鍵は作らない。
+   スクリプトはこのPC専用のGPG署名鍵とSSHキーを作り、それぞれの公開鍵を表示する。GPGの公開鍵は<https://github.com/settings/gpg/new>に、SSHの公開鍵は<https://github.com/settings/ssh/new>に登録して、もう一度実行する。鍵のuidとSSHキーのコメントには、ホスト名ではなく`mac`か`work-mac`が入る(uidはGitHubで公開される)。1Password(`op-run`)は使わないので、暗号化の副鍵は作らない。
 
 5. `bash ~/dotfiles/tests/doctor.sh`で確かめる。
 
 ## 確かめていること
 
-`tests/ci/render.sh`が`.chezmoi.os`を`darwin`に差し替えて、`darwin-main`と`darwin-work`を描画して適用する。hostと`work`の値、それらが残ること、置くファイルと実行するスクリプト、署名鍵、macに`agent`を作れないことを確かめる。macのhostが`DOTFILES_HOST`や設定に残ったhostで変わらないことも確かめる。Linuxのwslとdesktop、Windowsでも、`work`が同じように読まれて残ることと、PR運用の指示を置くことを確かめる。zshがあれば、zshを動かして、`~/.zshrc`が最後まで読めて`~/.zshrc.local`を読むことと、`~/.zprofile`のPATHを確かめる(CIではランナーにzshを入れる)。`gpg-agent.conf`のpinentry-macと、`~/.ssh/config`の`AddKeysToAgent`と`UseKeychain`の行も確かめる。macの`~/.ssh/config`は、`UseKeychain`をどのsshも知らない名前に替えてから動いているsshで読み、`IgnoreUnknown`がどのホストにも効くことを確かめる。`.chezmoi.os`を差し替えるだけなので、実際のmacでの動作は、CIの`macos`のジョブで確かめる(`docs/ci.md`)。
+`tests/ci/render.sh`が`.chezmoi.os`を`darwin`に差し替えて、`darwin-main`と`darwin-work`を描画して適用する。hostと`work`の値、それらが残ること、置くファイルと実行するスクリプト、署名鍵、macに`agent`を作れないことを確かめる。macのhostが`DOTFILES_HOST`や設定に残ったhostで変わらないことも確かめる。Linuxのwslとdesktop、Windowsでも、`work`が同じように読まれて残ることと、PR運用の指示を置くことを確かめる。zshがあれば、zshを動かして、`~/.zshrc`が最後まで読めて`~/.zshrc.local`を読むことと、`~/.zprofile`のPATHを確かめる(CIではランナーにzshを入れる)。`gpg-agent.conf`のpinentry-macと、`~/.ssh/config`の`AddKeysToAgent`と`UseKeychain`の行も確かめる。macの`~/.ssh/config`は、`UseKeychain`をどのsshも知らない名前に替えてから実行環境のsshで読み、`IgnoreUnknown`がどのホストにも効くことを確かめる。`.chezmoi.os`を差し替えるだけなので、実際のmacでの動作はCIの`macos`のジョブで確かめる。ジョブで試さないもの(鍵の作成、pinentry-macの画面、Keychain)は`docs/ci.md`の「確かめられないこと」にある。
