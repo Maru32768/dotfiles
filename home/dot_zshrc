@@ -35,7 +35,7 @@ setopt auto_cd auto_pushd pushd_ignore_dups extended_glob
 bindkey '^R' history-incremental-pattern-search-backward
 
 export CLICOLOR=1
-alias ls='ls -G -F'
+alias ls='ls -F'
 alias la='ls -a'
 alias ll='ls -l'
 alias rm='rm -i'
