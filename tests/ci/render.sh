@@ -270,6 +270,15 @@ blocked "DOTFILES_WORK が 1 か 0 でなければ init で止まる" 'DOTFILES_
 DOTFILES_HOST=desktop init_of darwin-bad >/dev/null 2>&1
 equals "mac では DOTFILES_HOST を読まない" "$(data_of darwin-bad .host)" mac
 
+# --- work ---
+# work は mac に限らず、どの host でも同じに読む
+equals "linux-main と windows-main: work の既定は false" "$(data_of linux-main '.work | tojson') $(data_of windows-main '.work | tojson')" "false false"
+for name in linux-work windows-work; do
+  mkdir -p "$work/$name/home" "$work/$name/fakehome"
+  DOTFILES_WORK=1 init_of "$name" >/dev/null 2>&1
+  equals "$name: DOTFILES_WORK=1 で work が true" "$(data_of "$name" '.work | tojson')" true
+done
+
 # --- プロファイル ---
 profile_of() { sed -n 's/^ *profile = "\(.*\)"$/\1/p' "$work/$1/chezmoi.toml"; }
 check "linux-agent: 環境変数なしで init し直せる" 'init_of linux-agent'
