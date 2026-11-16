@@ -50,6 +50,34 @@ desktopと同じく、PCごとの鍵で署名し、WindowsとWSLの鍵は使わ�
 - 鍵のIDは、`DOTFILES_SIGNING_KEY`を付けた`chezmoi init`でchezmoiの`signingKey`に入る。その後の`chezmoi init`では、環境変数がなくても残る。
 - 鍵を渡す前の`.gitconfig`には`signingkey`を書かない。
 
+## セットアップ
+
+1. Homebrewを入れる(<https://brew.sh>)。Xcodeのコマンドラインツールも一緒に入る。
+2. リポジトリを取ってきて、Homebrewの一覧と設定を入れる。仕事のPCなら、`user.sh`の前に`DOTFILES_WORK=1`を付ける。
+
+   ```bash
+   git clone https://github.com/Maru32768/dotfiles.git ~/dotfiles
+   ```
+
+   ```bash
+   brew bundle --file ~/dotfiles/packages/Brewfile
+   ```
+
+   ```bash
+   bash ~/dotfiles/provision/user.sh main ~/dotfiles
+   ```
+
+3. 新しいターミナルを開いて、`~/.zprofile`のPATHを効かせる。
+4. 資格情報を作る。パスフレーズは、pinentry-macの画面とターミナルで入力する。
+
+   ```bash
+   ~/dotfiles/provision/setup-credentials.sh
+   ```
+
+   このPC専用のGPG署名鍵とSSHキーを作り、それぞれの公開鍵を表示する。GPGの公開鍵は<https://github.com/settings/gpg/new>に、SSHの公開鍵は<https://github.com/settings/ssh/new>に登録して、もう一度実行する。鍵のuidとSSHキーのコメントには、ホスト名ではなく`mac`か`work-mac`を入れる(uidはGitHubで公開される)。1Password(`op-run`)は使わないので、暗号化の副鍵は作らない。
+
+5. `bash ~/dotfiles/tests/doctor.sh`で確かめる。
+
 ## 確かめていること
 
-`tests/ci/render.sh`が`.chezmoi.os`を`darwin`に差し替えて、`darwin-main`と`darwin-work`を描画して適用する。hostと`work`の値、それらが残ること、置くファイルと実行するスクリプト、署名鍵、macに`agent`を作れないことを確かめる。macのhostが`DOTFILES_HOST`や設定に残ったhostで変わらないことも確かめる。Linuxのwslとdesktop、Windowsでも、`work`が同じように読まれて残ることと、PR運用の指示を置くことを確かめる。zshがあれば、zshを動かして、`~/.zshrc`が最後まで読めて`~/.zshrc.local`を読むことと、`~/.zprofile`のPATHを確かめる(CIではランナーにzshを入れる)。`gpg-agent.conf`のpinentry-macと、`~/.ssh/config`の`AddKeysToAgent`と`UseKeychain`の行も確かめる。macの`~/.ssh/config`は、`UseKeychain`をどのsshも知らない名前に替えてから動いているsshで読み、`IgnoreUnknown`がどのホストにも効くことを確かめる。`.chezmoi.os`を差し替えるだけなので、実際のmacでの動作までは分からない。
+`tests/ci/render.sh`が`.chezmoi.os`を`darwin`に差し替えて、`darwin-main`と`darwin-work`を描画して適用する。hostと`work`の値、それらが残ること、置くファイルと実行するスクリプト、署名鍵、macに`agent`を作れないことを確かめる。macのhostが`DOTFILES_HOST`や設定に残ったhostで変わらないことも確かめる。Linuxのwslとdesktop、Windowsでも、`work`が同じように読まれて残ることと、PR運用の指示を置くことを確かめる。zshがあれば、zshを動かして、`~/.zshrc`が最後まで読めて`~/.zshrc.local`を読むことと、`~/.zprofile`のPATHを確かめる(CIではランナーにzshを入れる)。`gpg-agent.conf`のpinentry-macと、`~/.ssh/config`の`AddKeysToAgent`と`UseKeychain`の行も確かめる。macの`~/.ssh/config`は、`UseKeychain`をどのsshも知らない名前に替えてから動いているsshで読み、`IgnoreUnknown`がどのホストにも効くことを確かめる。`.chezmoi.os`を差し替えるだけなので、実際のmacでの動作は、CIの`macos`のジョブで確かめる。`macos-latest`のランナーで、上のセットアップと同じくHomebrewの一覧と`user.sh`で環境を作り、`doctor.sh`と`render.sh`を回す。鍵を作ることと、pinentry-macの画面とKeychainは、ランナーでは試さない。

@@ -5,7 +5,7 @@
 - ホームの設定ファイルは直接編集しない。`chezmoi source-path <file>`でソースを調べて、そちらを編集する
 - Claude Codeの共通設定は`~/dotfiles/home/.claude-settings.json`に書く。`~/.claude/settings.json`はこれをマージして作られる
 - スキルは`npx skills`で入れず、`~/dotfiles/home/.chezmoidata/skills.toml`に足す(`~/dotfiles/docs/skills.md`)
-- 開発ツールはmiseで入れる。OSパッケージは、miseで入らないものだけ`packages/apt.txt`に足す
+- 開発ツールはmiseで入れる。OSパッケージは、miseで入らないものだけ、Linuxは`packages/apt.txt`、macは`packages/Brewfile`に足す
 - Windowsアプリは`packages/winget.json`に足す
 - 詳しくは`~/dotfiles/docs/design.md`を読む
 

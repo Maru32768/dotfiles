@@ -49,6 +49,8 @@ PowerShellからは`op-run.ps1`が、`cmd`からは`op-run.cmd`が呼ばれる�
 
 ## 端末ごとの準備
 
+macでは`op-run`と1PasswordのCLIを入れないので、この準備は要らない(`docs/mac.md`)。
+
 1. 1PasswordのWeb画面のDeveloperから、その端末用のサービスアカウント(`windows`、`dev`など)を作る。使うvaultに読み取りだけの権限を付ける。
 2. 表示されたトークンを、その端末で保存する。
 

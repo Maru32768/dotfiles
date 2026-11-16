@@ -1,6 +1,6 @@
 # GPG コミット署名
 
-コミットは GPG 署名する (`commit.gpgsign = true`)。GitHub に登録している鍵は次の 1 本だけ。
+コミットは GPG 署名する (`commit.gpgsign = true`)。WindowsとWSLが署名する鍵は次のもの。
 
 | 項目 | 値 |
 |---|---|

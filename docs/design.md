@@ -17,7 +17,7 @@
 | エージェントのスキル | chezmoi の external (`home/.chezmoidata/skills.toml`) | 出どころとコミットだけを書き、中身は取ってくる (`docs/skills.md`) |
 | エージェントの開発の流れ | 自作のスキル(`home/dot_claude/skills/`) | モデルとツールが変わり続けるので、決めた根拠と測り直す手順を残す(`docs/agentic-workflow.md`) |
 | Claude Code と Codex の設定 | chezmoi の `modify_` | アプリも書き換えるので、共通の部分だけをマージする (`docs/claude.md`、`docs/codex.md`) |
-| OS パッケージ | `packages/apt.txt` | mise で入らないものだけに絞り、OS 更新の影響を減らす |
+| OS パッケージ | `packages/apt.txt`、macは`packages/Brewfile` | mise で入らないものだけに絞り、OS 更新の影響を減らす |
 | Windows アプリ | `packages/winget.json` | `winget import` で入れる |
 | インスタンスの作成と削除 | `lab/lab.ps1` | Windows 側にあるので、WSL が壊れていても動く |
 | 確認 | `tests/doctor.sh`、CI (`docs/ci.md`) | 作り直せたことを機械的に確かめる |
@@ -39,7 +39,7 @@ home/                    chezmoi のソース
   .chezmoiexternals/     スキルを取ってくる external
   .hooks-src/            フックのソース
   run_*                  ツールの導入やフックのビルド
-packages/                apt.txt と winget.json
+packages/                apt.txt、Brewfile (mac)、winget.json
 bootstrap.ps1            Windows の入口
 provision/               インスタンスの初期設定
 lab/lab.ps1              インスタンスの作成と削除
@@ -114,6 +114,7 @@ PCごとの設定や仕事の設定(社内のホスト、社内のCAなど)は�
 | Windows | 既存の `~/.ssh/github` | 正式な鍵 |
 | `dev` | 環境ごとに新規作成して GitHub に登録 | 正式な鍵を取り込む |
 | WSL ではない PC (desktop) | PC ごとに新規作成して GitHub に登録 | PC ごとに新規作成して GitHub に登録 (`docs/desktop.md`) |
+| mac | PCごとに新規作成してGitHubに登録(パスフレーズはKeychain) | PCごとに新規作成してGitHubに登録(`docs/mac.md`) |
 | `agent`、`research` | 持たない | 持たない |
 
 - `~/.ssh` と `~/.gitconfig` を Windows へのリンクにしない。WSL が単体で復元できなくなり、隔離とも両立しないため。

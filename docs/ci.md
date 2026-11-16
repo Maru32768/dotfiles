@@ -6,9 +6,12 @@
 |---|---|---|
 | `static` | `tests/ci/static.sh` | shellcheck、フック･`op-run`･`split-pdf`･`split-pr-stack`･review-loopの`evidence.sh`･`usage-log`･docs-redesignのスクリプト･docs-overviewのスクリプトのテスト、不変条件、chezmoi のレンダリング、gitleaks、actionlint |
 | `container` | `tests/ci/container.sh <main\|agent\|research\|desktop>` | `ubuntu:26.04` で環境を作り、確認と再適用まで行う。`desktop` は WSL ではない PC (`docs/desktop.md`) |
+| `macos` | `packages/Brewfile`、`provision/user.sh`、`tests/doctor.sh`、`tests/ci/render.sh` | `macos-latest`のランナーで、Homebrewの一覧と`user.sh`でmacの環境を作り、`doctor.sh`で確かめる。`render.sh`の、macでしか効かない検査(HomebrewのPATH、Appleのssh)も回す(`docs/mac.md`) |
 | `windows` | `tests/ci/windows.ps1`、`tests/ci/op-run-test.ps1`、`tests/ci/lab-run-test.ps1` | Windows PowerShell 5.1 での構文、Windows 版の `op-run` のテスト、`lab.ps1 run`が偽の`wsl.exe`に渡す引数のテスト(Windows PowerShell 5.1とPowerShell 7の両方で動かす)、PSScriptAnalyzer |
 
 定期実行は、固定していないもの (apt、インストーラー、Vim プラグイン) の破損に気づくためにある。
+
+`docs/**`と`**.md`だけの変更では動かない。ただし、`home/`の下の`.md`(Claudeへの指示やスキル)は`render.sh`が中身を確かめるので、それだけの変更でも動く。
 
 `.github/workflows/update-skills.yml` は、固定したスキルを上げる PR を週 1 回作る (`docs/skills.md`)。書き込みの権限を持つので、CI のワークフローには混ぜない。
 
@@ -49,6 +52,7 @@ bash tests/ci/container.sh desktop
 | systemd と `wsl.conf` の効果 | コンテナにはない。`doctor.sh --container` は飛ばす | `lab.ps1 restore-test` |
 | agentとresearchの隔離 | WSLの設定に依存する。researchの通信の制限は、コンテナに`CAP_NET_ADMIN`を与えて試す(`docs/research.md`)。`verify-isolation.sh --e2e`は`claude`を偽物に替えて動かし、`~/work`がリポジトリなら止まることと、サンドボックスの外から書くものがサンドボックスから書ける場所を使わないことだけを見る | `lab.ps1 restore-test` |
 | desktop のセッション (pinentry、GNOME の SSH エージェント、AppArmor の下のサンドボックス) | コンテナにはデスクトップのセッションがない | サブ PC で `doctor.sh`。確かめた結果は `docs/desktop.md` |
+| macの画面と資格情報(pinentry-mac、KeychainへのSSHのパスフレーズ、鍵の作成) | ランナーでは画面を操作せず、鍵も作らない | 実物のMac(`docs/mac.md`) |
 | Windows での適用 | `render.sh` はテンプレートの `.chezmoi.os` を差し替えるだけ。`.ps1.tmpl` の構文も見ない | `bootstrap.ps1` |
 
 ## 復元テスト

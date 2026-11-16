@@ -38,7 +38,7 @@ wsl -d dev -u root passwd maru
 ~/dotfiles/provision/setup-credentials.sh
 ```
 
-WSL ではない Linux の PC (サブ PC など) の作り方は `docs/desktop.md` にある。
+WSL ではない Linux の PC (サブ PC など) の作り方は `docs/desktop.md` にある。macの作り方は`docs/mac.md`にある。
 
 名前が `agent-` で始まるインスタンスは、エージェント用の隔離した環境になる (`docs/agent.md`)。`research-` で始まると、同じ隔離で Web を読ませる調べもの用の環境になる (`docs/research.md`)。
 
