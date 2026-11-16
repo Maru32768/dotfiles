@@ -20,7 +20,7 @@ terraform = "1"
 
 # mise では Windows に入らないので、Windows は winget で入れる
 aws-cli = { version = "2", os = ["linux", "macos"] }
-# 1Password の CLI (op)。API キーは op-run で、使うコマンドにだけ渡す (docs/secrets.md)。mac では使わない
+# 1Password の CLI (op)。API キーは op-run で、使うコマンドにだけ渡す (docs/secrets.md)
 # 短い名前の 1password は vfox のプラグイン (GitHub の Lua) を動かすので、aqua で入れる。
 # aqua の定義からはバージョンの一覧を引けず、範囲では指定できないので、正確なバージョンで固定する
 "aqua:1password/cli" = { version = "2.42.0", os = ["linux", "windows"] }
