@@ -36,13 +36,4 @@ desktop と同じく、PC ごとの鍵で署名し、Windows と WSL の鍵は�
 
 ## 確かめていること
 
-`tests/ci/render.sh` が、`.chezmoi.os` を `darwin` に差し替えて、`darwin-main` と、`DOTFILES_WORK=1` を付けた `darwin-work` を描画して適用する。次のことを確かめる。
-
-- host が `mac` になる。`DOTFILES_HOST` を付けても変わらない。
-- `work` が `darwin-main` では `false`、`darwin-work` では `true` になる。環境変数なしで init し直しても残り、`DOTFILES_WORK=0` で `false` に戻る。
-- 置かれるファイルが、`linux-desktop` から上の表のものを除いたものと一致する。スキルは Claude のものだけを置く。
-- 実行するスクリプトが `linux-desktop` と同じ。
-- `signingKey` が、鍵を渡す前は空で、渡した後は init し直しても残る。
-- mac に `agent` と `research` を作れない。
-
-`.chezmoi.os` を差し替えるだけなので、実際の mac での動作までは分からない。
+`tests/ci/render.sh` が、`.chezmoi.os` を `darwin` に差し替えて `darwin-main` と `darwin-work` を描画して適用する。host、`work` とその値が残ること、置かれるファイルと実行するスクリプト、署名鍵、mac に `agent` を作れないことを確かめる。`.chezmoi.os` を差し替えるだけなので、実際の mac での動作までは分からない。
