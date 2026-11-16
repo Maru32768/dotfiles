@@ -2,7 +2,7 @@
 # 更新の手順は docs/tools.md。
 [settings]
 lockfile = true
-lockfile_platforms = ["linux-x64", "windows-x64"]
+lockfile_platforms = ["linux-x64", "windows-x64", "macos-arm64"]
 
 [tools]
 chezmoi = "2"
@@ -20,10 +20,10 @@ terraform = "1"
 
 # mise では Windows に入らないので、Windows は winget で入れる
 aws-cli = { version = "2", os = ["linux", "macos"] }
-# 1Password の CLI (op)。API キーは op-run で、使うコマンドにだけ渡す (docs/secrets.md)
+# 1Password の CLI (op)。API キーは op-run で、使うコマンドにだけ渡す (docs/secrets.md)。mac では使わない
 # 短い名前の 1password は vfox のプラグイン (GitHub の Lua) を動かすので、aqua で入れる。
 # aqua の定義からはバージョンの一覧を引けず、範囲では指定できないので、正確なバージョンで固定する
-"aqua:1password/cli" = "2.42.0"
+"aqua:1password/cli" = { version = "2.42.0", os = ["linux", "windows"] }
 # Windows は Codex のアプリが入れる。Linux は review-loop の codex review に使う (docs/codex.md)
 codex = { version = "latest", os = ["linux"] }
 gh = "latest"
