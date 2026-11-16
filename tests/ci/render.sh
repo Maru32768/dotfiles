@@ -226,6 +226,7 @@ equals "windows-main: host と、WSL と同じ鍵" "$(data_of windows-main '.hos
 # linux-main の review-loop の台帳は、上で置いたもの
 equals "linux-desktop: 置かれるファイルは linux-main から WSLg の設定を除いたもの" "$(files_of linux-desktop)" \
   "$(files_of linux-main | tr ' ' '\n' | grep -vxE '\.config/environment\.d/wslg\.conf|\.local/state/review-loop/repo/branch/ledger\.md' | paste -sd ' ' -)"
+equals "linux-desktop: 実行するスクリプトは linux-main と同じ" "$(scripts_of linux-desktop)" "$(scripts_of linux-main)"
 check "linux-main: Windows 側の mise の設定を読まない" 'grep -q MISE_IGNORED_CONFIG_PATHS "$work/linux-main/home/.bash_profile"'
 blocked "linux-desktop: /mnt/c を前提にしない" 'grep -q MISE_IGNORED_CONFIG_PATHS "$work/linux-desktop/home/.bash_profile"'
 check "linux-desktop: コミット署名が有効" 'grep -q "gpgsign = true" "$work/linux-desktop/home/.gitconfig"'
