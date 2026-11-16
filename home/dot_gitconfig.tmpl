@@ -19,7 +19,7 @@
 [mergetool]
 	prompt = false
 {{- if eq .profile "main" }}
-{{- /* 後に書いた値が勝つので、~/.gitconfig.local と、そこから読むファイルでは、署名の設定 (有効か、鍵、形式、プログラム) を変えられない */}}
+{{- /* 後に書いた値が勝つので、~/.gitconfig.local と、そこから読むファイルでは、署名の設定 (有効か、鍵、形式、プログラム) を変えられない。鍵は、signingKey があるときだけ */}}
 [include]
 	path = ~/.gitconfig.local
 {{- if .signingKey }}
