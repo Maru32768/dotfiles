@@ -207,9 +207,8 @@ done
 # --- ローカルのファイルの読み込み (git と SSH) ---
 ghome="$work/git-home"
 mkdir -p "$ghome"
-cp "$work/linux-main/home/.gitconfig" "$ghome/.gitconfig"
 printf '[user]\n\temail = local@example.com\n' >"$ghome/.gitconfig.local"
-equals "linux-main: .gitconfig が ~/.gitconfig.local を読み、そちらを優先する" "$(HOME="$ghome" git config --global --includes user.email)" local@example.com
+equals "linux-main: .gitconfig が ~/.gitconfig.local を読み、そちらを優先する" "$(HOME="$ghome" git config -f "$work/linux-main/home/.gitconfig" --includes user.email)" local@example.com
 blocked "linux-agent: .gitconfig が ~/.gitconfig.local を読まない" 'git config -f "$work/linux-agent/home/.gitconfig" --get include.path'
 # ssh は動いている OS の設定だけを読める (UseKeychain は macOS の ssh にしかない)
 case "$(uname -s)" in Darwin) ssh_env=darwin-main ;; *) ssh_env=linux-main ;; esac
