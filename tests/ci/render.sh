@@ -381,12 +381,12 @@ mkdir -p "$work/$fresh/home" "$work/$fresh/fakehome" "$work/$again/home" "$work/
 DOTFILES_PROFILE=$first_profile DOTFILES_HOST=wsl DOTFILES_WORK=1 DOTFILES_SIGNING_KEY=1111222233334444 cm "$fresh" init </dev/null >/dev/null 2>&1 &&
   mv "$work/$fresh/chezmoi.toml" "$work/$fresh/real.toml"
 DOTFILES_PROFILE=$first_profile DOTFILES_HOST=wsl DOTFILES_WORK=1 DOTFILES_SIGNING_KEY=1111222233334444 init_of "$fresh" >/dev/null 2>&1
-check "init_of は本物の chezmoi init と同じ設定を作る ($real_os、新しく作る)" 'cmp -s "$work/$fresh/real.toml" "$work/$fresh/chezmoi.toml"'
+check "init_of は本物の chezmoi init と同じ設定を作る (${real_os}、新しく作る)" 'cmp -s "$work/$fresh/real.toml" "$work/$fresh/chezmoi.toml"'
 cp "$work/$fresh/real.toml" "$work/$again/chezmoi.toml" && cm "$again" init </dev/null >/dev/null 2>&1 &&
   mv "$work/$again/chezmoi.toml" "$work/$again/real.toml" && cp "$work/$fresh/real.toml" "$work/$again/chezmoi.toml"
 # 失敗すると写した前の設定が残り、正しいやり直しと同じ中身になるので、成否も見る
 check "init_of で環境変数なしでやり直せる ($real_os)" 'init_of "$again"'
-check "init_of は本物の chezmoi init と同じ設定を作る ($real_os、環境変数なしでやり直す)" 'cmp -s "$work/$again/real.toml" "$work/$again/chezmoi.toml"'
+check "init_of は本物の chezmoi init と同じ設定を作る (${real_os}、環境変数なしでやり直す)" 'cmp -s "$work/$again/real.toml" "$work/$again/chezmoi.toml"'
 equals "本物の chezmoi init でも、やり直すと profile が残る ($real_os)" "$(sed -n 's/^ *profile = "\(.*\)"$/\1/p' "$work/$again/real.toml")" "$first_profile"
 
 # --- テンプレートから作られるシェルスクリプト ---

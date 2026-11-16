@@ -78,7 +78,7 @@ printf '%s\n' '名前が-で始まる' > '-n.md'
 printf '%s\n' '名前が-だけ' > ./-
 for name in x=1.md -n.md -; do
   out="$(bash "$view" "$name" </dev/null)"
-  equals "ファイルの名前「$name」も、ファイルとして読む" "$? $(title_of "$out") $(body_of "$out")" \
+  equals "ファイルの名前「${name}」も、ファイルとして読む" "$? $(title_of "$out") $(body_of "$out")" \
     "0 $name $(cat "./$name")"
 done
 mkdir -p 'k=v'

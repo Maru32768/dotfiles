@@ -99,7 +99,7 @@ for i in "${!layers[@]}"; do
     for d in "${deps[@]}"; do
       n=$(pr_of "$d")
       [ -n "$n" ] || { echo "$layer: prerequisite $d has no PR yet (must be below it)" >&2; exit 1; }
-      prereq_ref="${prereq_ref:+$prereq_ref、}#$n"
+      prereq_ref="${prereq_ref:+${prereq_ref}、}#$n"
     done
   fi
   render "$BODY_DIR/$layer.md" "$OUT/$layer.md" "BASE=#$base_pr" "BELOW=$below_ref" \
