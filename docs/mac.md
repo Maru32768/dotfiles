@@ -16,7 +16,7 @@ WSLではないLinuxのPC(desktop)と同じものを置き、同じスクリプ�
 
 desktopと同じく、WSLgのための`~/.config/environment.d`も置かない。Linuxと同じく、Windows用のファイルも置かない。zshの設定(`~/.zprofile`、`~/.zshrc`)はmacにだけ置く。
 
-Homebrewを`/opt/homebrew`に入れるApple Siliconのmacだけを考えている。
+Homebrewを`/opt/homebrew`に入れるApple Siliconのmacで、macOS 15以降だけを考えている。`jq`はmacOSに入っているものを使い、macOS 15より前には入っていない。
 
 ## シェル
 
@@ -52,7 +52,7 @@ desktopと同じく、PCごとの鍵で署名し、WindowsとWSLの鍵は使わ�
 
 ## セットアップ
 
-1. Homebrewを入れる(<https://brew.sh>)。Xcodeのコマンドラインツールも一緒に入る。
+1. Homebrewを入れる(<https://brew.sh>)。Xcodeのコマンドラインツールも一緒に入る。インストーラーと同じターミナルでは`brew`がPATHに無いので、新しいターミナルを開く。
 2. リポジトリを取ってきて、Homebrewの一覧にあるものと設定を入れる。仕事のPCなら、`user.sh`を実行するコマンドの先頭に`DOTFILES_WORK=1`を付ける。
 
    ```bash
@@ -77,6 +77,20 @@ desktopと同じく、PCごとの鍵で署名し、WindowsとWSLの鍵は使わ�
    スクリプトはこのPC専用のGPG署名鍵とSSHキーを作り、それぞれの公開鍵を表示する。GPGの公開鍵は<https://github.com/settings/gpg/new>に、SSHの公開鍵は<https://github.com/settings/ssh/new>に登録して、もう一度実行する。鍵のuidとSSHキーのコメントには、ホスト名ではなく`mac`か`work-mac`が入る(uidはGitHubで公開される)。1Password(`op-run`)は使わないので、暗号化の副鍵は作らない。
 
 5. `bash ~/dotfiles/tests/doctor.sh`で確かめる。
+
+### 使っているMacに入れるとき
+
+`user.sh`は、次のファイルを確かめずに置き換える。残したい設定は、先にリポジトリの外のファイルへ移し、元のファイルも控えておく(`docs/design.md`の「ローカルの設定」)。
+
+| 置き換わるもの | 残したい設定の移し先 |
+|---|---|
+| `~/.zprofile`、`~/.zshrc` | `~/.zshrc.local` |
+| `~/.gitconfig` | `~/.gitconfig.local`(署名の設定は、移しても効かない) |
+| `~/.ssh/config` | `~/.ssh/config.local` |
+| `~/.claude/CLAUDE.md` | `~/.claude/rules/`の、dotfilesが置かない名前のファイル |
+| `~/.vimrc`、`~/.tmux.conf`、`~/.ideavimrc`、`~/.config/mise/` | 移さない(dotfilesのものを使う) |
+
+miseが既に入っていれば、`user.sh`は入れ直さない。`doctor.sh`が`provision/user.sh`の`MISE_VERSION`と違うと知らせたら、`curl -fsSL https://mise.run | MISE_VERSION=<user.shのMISE_VERSIONの値(vで始まる)> sh`で入れ直す。
 
 ## 確かめていること
 
