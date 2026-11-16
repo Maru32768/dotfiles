@@ -18,7 +18,7 @@
 {{- if and (has $host (list "desktop" "mac")) (ne $profile "main") -}}
 {{-   fail (printf "agent と research は WSL のインスタンスにだけ作る (docs/%s.md)" $host) -}}
 {{- end -}}
-{{- /* Windows と WSL は同じ鍵で署名する。desktop と mac は PC ごとの鍵を DOTFILES_SIGNING_KEY で渡す。desktop では provision/setup-credentials.sh が作る */ -}}
+{{- /* Windows と WSL は同じ鍵で署名する。desktop と mac は PC ごとの鍵を DOTFILES_SIGNING_KEY で渡す。provision/setup-credentials.sh が作る */ -}}
 {{- $mainSigningKey := "78324D99D34D3111" -}}
 {{- $signingKey := $mainSigningKey -}}
 {{- if has $host (list "desktop" "mac") -}}
