@@ -315,7 +315,7 @@ if command -v zsh >/dev/null; then
   equals "darwin-main: ~/.zshrc.local が無くても、.zshrc がエラーを出さずに読める" "$(env -i HOME="$zhome/no-local" PATH=/usr/bin:/bin "$(command -v zsh)" -i -c true </dev/null 2>&1 >/dev/null)" ""
   equals "darwin-main: .zprofile が ~/.local/bin と mise を PATH の先頭に置く" "$(zsh_in -l -c 'print -r -- ${path[1,3]}')" \
     "$zhome/.local/bin $zhome/go/bin $zhome/.local/share/mise/shims"
-  equals "darwin-main: ログインシェルを入れ子にしても、PATH の項目が重ならない" "$(zsh_in -l -c 'zsh -l -c '\''u=(${(u)path}); print -r -- $(( ${#path} - ${#u} ))'\''')" 0
+  equals "darwin-main: ログインシェルを入れ子にしても、PATH と fpath の項目が重ならない" "$(zsh_in -l -c 'zsh -l -c '\''u=(${(u)path}); f=(${(u)fpath}); print -r -- $(( ${#path} - ${#u} )) $(( ${#fpath} - ${#f} ))'\''')" "0 0"
 elif [ -n "${CI:-}" ]; then
   fail "CI に zsh が無い (tests/ci/setup.sh で入れる)"
 else
