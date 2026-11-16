@@ -98,7 +98,7 @@ Bash / Edit / Write の実行前に動き、コミット署名を回避する操
 | 署名設定の変更 | `git config commit.gpgsign false`, `--unset` |
 | 環境変数での回避 | `GIT_CONFIG_GLOBAL=...`, `HOME=... git` |
 | `git commit` を通らないコミット | `git commit-tree`, `git fast-import` |
-| 設定ファイルの直接編集 | `.gitconfig`, `.git/config` |
+| 設定ファイルの直接編集 | `.gitconfig`, `.gitconfig.local`, `.git/config` |
 
 設定の読み取りと通常の `git commit` は通る。署名できないときは、Claude が失敗を報告して止まるので、自分のターミナルでコミットする。
 

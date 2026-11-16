@@ -17,7 +17,7 @@ import (
 
 const (
 	signingKey    = `(?:commit\.gpgsign|tag\.gpgsign|tag\.forcesignannotated|rebase\.gpgsign|gpg\.[a-z0-9.]+|user\.signingkey)`
-	gitConfigFile = `(?:\.gitconfig|\.git[/\\]config|\.config[/\\]git[/\\]config)`
+	gitConfigFile = `(?:\.gitconfig(?:\.local)?|\.git[/\\]config|\.config[/\\]git[/\\]config)`
 )
 
 var commandRules = []struct {
