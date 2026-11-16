@@ -52,6 +52,9 @@ else
 fi
 
 check "mise" 'mise --version'
+# user.sh は mise が既にあれば入れ直さないので、前から入っていた mise が古いままのことがある
+mise_pinned="$(sed -n 's/^MISE_VERSION="v\(.*\)"$/\1/p' "$HOME/dotfiles/provision/user.sh")"
+check "mise 本体が provision/user.sh の MISE_VERSION ($mise_pinned)" '[ "$(mise --version 2>/dev/null | awk "NR == 1 {print \$1}")" = "$mise_pinned" ]'
 platform=linux-x64; [ "$host" = mac ] && platform=macos-arm64
 # config.toml の os でほかの OS に絞ったツール (Windows の llama.cpp、mac の op と codex) は、
 # lock にこの platform の行が無く、mise ls --current にも出ない。platform の行が 1 つも無いもの (rust など) は入る
