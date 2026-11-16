@@ -37,7 +37,7 @@ scripts="$(shell_scripts)"
 # shellcheck disable=SC2016
 if [ -z "$(printf 'echo "#$a\346\227\245"\n' | bare_vars)" ]; then
   fail "変数の直後の日本語の検査が、仕込んだ違反を見つけられない"
-elif ! grep -qx home/dot_local/bin/executable_op-run <<<"$scripts" || ! grep -q '\.sh\.tmpl$' <<<"$scripts" || ! grep -qx home/dot_zshrc <<<"$scripts"; then
+elif ! grep -qx home/dot_local/bin/executable_op-run <<<"$scripts" || ! grep -q '\.sh\.tmpl$' <<<"$scripts" || ! grep -qx home/dot_zshrc <<<"$scripts" || ! grep -qx home/dot_zprofile <<<"$scripts"; then
   fail "変数の直後の日本語の検査が、拡張子の無い bash のスクリプト、.sh.tmpl、zsh の設定のどれかを選ばない"
 else
   found="$(while IFS= read -r file; do bare_vars "$file"; done <<<"$scripts")"
