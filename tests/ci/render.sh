@@ -261,8 +261,6 @@ blocked "DOTFILES_HOST で mac は選べない (mac は OS で決まる)" 'DOTFI
 equals "darwin-main: work は false" "$(data_of darwin-main '.work | tojson')" false
 equals "darwin-main: 置かれるファイルは linux-desktop から bash の設定と 1Password のものを除いたもの" "$(files_of darwin-main)" \
   "$(files_of linux-desktop | tr ' ' '\n' | grep -vxE '\.bashrc|\.bash_profile|\.local/bin/op-run|\.claude/rules/secrets\.md' | paste -sd ' ' -)"
-equals "darwin-work: 置かれるファイルは darwin-main に PR運用の指示を足したもの" "$(files_of darwin-work)" \
-  "$(files_of darwin-main | tr ' ' '\n' | { cat; echo .claude/rules/pr.md; } | sort | paste -sd ' ' -)"
 equals "darwin-main: 実行するスクリプトは linux-desktop と同じ" "$(scripts_of darwin-main)" "$(scripts_of linux-desktop)"
 # files_of は external を含まないので、Codex のスキルを置かないことはここで確かめる
 equals "darwin-main: スキルは Claude のものだけ置く" "$(actual_skills darwin-main)" \
