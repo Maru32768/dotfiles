@@ -26,7 +26,7 @@ var commandRules = []struct {
 }{
 	{regexp.MustCompile(`(?i)--no-gpg-sign\b`), "--no-gpg-sign"},
 	{regexp.MustCompile(`(?im)--no-sign(?:\s|$)`), "--no-sign"},
-	{regexp.MustCompile(`(?im)(?:^|\s)(?:-c|--config-env)[=\s]+['"]?` + signingKey),
+	{regexp.MustCompile(`(?im)(?:^|[\s'"])(?:-c|--config-env)[=\s]+['"]?` + signingKey),
 		"a signing setting overridden with -c or --config-env"},
 	{regexp.MustCompile(`(?i)\bGIT_CONFIG\w*=`), "a GIT_CONFIG_* environment override"},
 	{regexp.MustCompile(`(?i)\b(?:HOME|XDG_CONFIG_HOME)=\S*[^;&|\n]*\bgit\b`),

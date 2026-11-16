@@ -19,6 +19,8 @@ var deniedCommands = []string{
 	"git -C /tmp/r -c gpg.program=/bin/true commit -m x",
 	"git -c gpg.format=ssh commit -m x",
 	"git -c user.signingkey=ABC commit -m x",
+	"git config --global alias.ci '-c commit.gpgsign=false commit'",
+	`git config alias.ci "-c commit.gpgsign=false commit"`,
 	"git --config-env=commit.gpgsign=X commit -m x",
 	"git config commit.gpgsign false",
 	"git config --global commit.gpgsign false",
