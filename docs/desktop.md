@@ -59,7 +59,7 @@ desktop の署名鍵は、Windows と WSL の鍵とは別にする。PC を失�
 
 ## 確かめていること
 
-- `tests/ci/render.sh` が、`linux-desktop` を描画して適用する。置かれるファイルが `linux-main` から WSLg の設定を除いたものと一致すること、`.gitconfig` の署名の設定、`signingKey` が残ること、desktop に `agent` を作れないことを確かめる。
+- `tests/ci/render.sh`が、`linux-desktop`を描画して適用する。置かれるファイルが`linux-main`からWSLgの設定を除いたものと一致すること、実行するスクリプトが`linux-main`と同じこと、`.gitconfig`の署名の設定、`signingKey`が残ること、desktopに`agent`を作れないことを確かめる。カーネルを差し替えて、`DOTFILES_HOST`が無いときにWSLのカーネルを`wsl`、それ以外を`desktop`と判定することも、どの機械でも確かめる。
 - `tests/ci/container.sh desktop` が、ユーザーを先に作ったコンテナで `root.sh`、`user.sh`、`doctor.sh` を流す。
 
 ## 実物の PC で確かめたこと
