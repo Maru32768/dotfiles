@@ -20,8 +20,10 @@ host="$(jq -r '.host // "wsl"' <<<"$data")"
 if [ "$host" = mac ]; then
   # 鍵の uid は GitHub で公開され、仕事の PC のホスト名は社内の名前のことがあるので、ホスト名を入れない
   label="$(jq -r 'if .work then "work-mac" else "mac" end' <<<"$data")"
+  ssh_comment="$(jq -r .name <<<"$data") ($label)"
 else
   label="$(hostname)"
+  ssh_comment="$(id -un)@$(hostname)"
   SSH_AUTH_SOCK="$(gpgconf --list-dirs agent-ssh-socket)"
   export SSH_AUTH_SOCK
 fi
@@ -60,11 +62,7 @@ fi
 if [ ! -f "$SSH_KEY" ]; then
   echo "==> この環境専用の SSH キーを作ります"
   mkdir -p "$(dirname "$SSH_KEY")"
-  if [ "$host" = mac ]; then
-    ssh-keygen -t ed25519 -f "$SSH_KEY" -C "$(jq -r .name <<<"$data") ($label)"
-  else
-    ssh-keygen -t ed25519 -f "$SSH_KEY" -C "$(id -un)@$(hostname)"
-  fi
+  ssh-keygen -t ed25519 -f "$SSH_KEY" -C "$ssh_comment"
 fi
 
 if ! ssh-add -l 2>/dev/null | grep -q "$(ssh-keygen -lf "$SSH_KEY.pub" | awk '{print $2}')"; then
