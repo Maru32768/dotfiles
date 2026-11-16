@@ -281,7 +281,9 @@ equals "新しい環境の既定は main" "$(profile_of linux-default)" main
 # --- init_of と本物の init ---
 # 動いている機械の OS なら差し替えが要らないので、本物の chezmoi init と同じ設定になることを、
 # 新しく作るときと、設定がある状態で環境変数なしでやり直すときの両方で確かめる。
-# 設定が残ることの検査はどれも init_of を通るので、やり直しの比較がそれを本物の init につなぐ
+# 設定が残ることの検査はどれも init_of を通るので、やり直しの比較がそれを本物の init につなぐ。
+# つなぐのは、Linux (CI) では profile、host、work で、mac では signingKey と work。
+# Linux では host を wsl にするので、テンプレートは既存の設定の signingKey を読まない
 real_os="$(uname -s | tr '[:upper:]' '[:lower:]')"
 fresh="$real_os-fresh" again="$real_os-again" first_profile=main
 # mac には agent を作れない。Linux では、本物の init でも agent が残ることを確かめる
