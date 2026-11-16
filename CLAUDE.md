@@ -30,7 +30,7 @@ chezmoi diff && chezmoi apply           # ホームへの反映
 
 - **chezmoi のソースは `home/`** (`.chezmoiroot`)。`dot_`、`private_`、`executable_`、`modify_`、`run_onchange_after_NN-*`、`.tmpl` は chezmoi の命名規則。ホームのファイルを直接編集せず、ここを編集する。
 - **環境は OS、host、プロファイルの組み合わせ。** host は `windows`、`wsl`、`desktop` (WSL ではない Linux の PC)、`mac` で、Linux では `chezmoi init` のときにカーネルから決まり、`DOTFILES_HOST` で指定もできる。desktop と mac は `main` だけで、署名鍵は PC ごと (`docs/desktop.md`、`docs/mac.md`)。仕事の PC かどうかは、どの host でもデータの `work` (`DOTFILES_WORK`) で表す。 プロファイルは `main` (普段の開発) と `agent` (Claude を動かす使い捨ての WSL) で、`DOTFILES_PROFILE` で決まる (`home/.chezmoi.toml.tmpl`)。インスタンスの `research` (Web を読ませる使い捨ての WSL) は、ホームに `agent` のファイルを置く。どの環境に何を置かないかは `home/.chezmoiignore` で決める。
-- **agent に置くファイルの一覧は `tests/ci/render.sh` に書いてあり、完全一致で検査する。** `home/` にファイルを足すと必ず失敗するので、隔離への影響を考えてから一覧を直す。
+- **agent に置くファイルの一覧は `tests/ci/render.sh` に書いてあり、完全一致で検査する。** `home/` にファイルを足すと、agent で無視していない限り失敗するので、隔離への影響を考えてから一覧を直す。
 - **Claude Code と Codex の設定はマージする。** `home/.claude-settings.json` と `home/.codex-config.toml` が共通部分で、`home/dot_claude/modify_settings.json` と `home/dot_codex/modify_config.toml` が既存のファイルへマージする。配列は丸ごと置き換わる。モデルと effort は共通の設定に入れない (`docs/claude.md`)。
 - **`home/dot_claude/CLAUDE.md` はユーザー全体の指示** (`~/.claude/CLAUDE.md`) で、このファイルとは別物。どの環境でも同じ中身にし、環境で変わる指示は`home/dot_claude/rules/`に分けて`home/.chezmoiignore`で置き分ける(`docs/claude.md`)。
 - **スキル:** 第三者のものは `home/.chezmoidata/skills.toml` に出どころとコミットだけを書き、external で取ってくる。中身はリポジトリに入れない。自作のものは `home/dot_claude/skills/<名前>/` に中身ごと置く (`docs/skills.md`)。
