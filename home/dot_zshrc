@@ -1,14 +1,12 @@
 export LANG=ja_JP.UTF-8
 
-autoload -Uz colors && colors
-
 HISTFILE=~/.zsh_history
 HISTSIZE=1000000
 SAVEHIST=1000000
 setopt extended_history share_history hist_ignore_all_dups hist_ignore_space hist_reduce_blanks
 alias history='history -t "%F %T"'
 
-PROMPT="%{${fg[blue]}%}%n:%{${reset_color}%} %~/ %# "
+PROMPT='%F{blue}%n:%f %~/ %# '
 
 autoload -Uz vcs_info add-zsh-hook
 zstyle ':vcs_info:*' formats '%F{green}(%s)-[%b]%f'
