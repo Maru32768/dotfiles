@@ -140,6 +140,7 @@ has "mac (鍵を失くした): 作り直した鍵を .gitconfig に書く" "chez
 # GitHub に公開鍵をまだ登録していなければ、dotfiles の取得先を変えない
 scenario mac-unregistered mac ssh="git@github.com: Permission denied (publickey)."
 hasnt "mac (GitHub に未登録): dotfiles の取得先を変えない" "git|"
+if grep -qxF "ssh-ed25519 AAAA Maru32768 (mac)" "$work/mac-unregistered.out"; then pass "mac (GitHub に未登録): 登録する SSH の公開鍵を表示する"; else fail "mac (GitHub に未登録): SSH の公開鍵を表示しない"; fi
 
 scenario mac-work mac work=true
 has "mac (work): uid は名前 (work-mac) とメールアドレス" "gpg|--status-fd 1 --quick-generate-key Maru32768 (work-mac) <maru32768@gmail.com> ed25519 sign never|"
