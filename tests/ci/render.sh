@@ -88,7 +88,7 @@ printf 'kept\n' >"$work/linux-main/home/.local/state/review-loop/repo/branch/led
 mkdir -p "$work/windows-main/home/.gnupg"
 printf 'default-cache-ttl 34560000\r\nmax-cache-ttl 34560000\r\npinentry-program C:\\pinentry.exe\r\n' >"$work/windows-main/home/.gnupg/gpg-agent.conf"
 mkdir -p "$work/darwin-work/home/.gnupg"
-printf 'pinentry-program /Applications/IDE.app/pinentry.sh\n' >"$work/darwin-work/home/.gnupg/gpg-agent.conf"
+printf 'default-cache-ttl 600\npinentry-program /Applications/IDE.app/pinentry.sh\n' >"$work/darwin-work/home/.gnupg/gpg-agent.conf"
 
 for name in linux-main linux-agent linux-desktop windows-main darwin-main darwin-work; do
   prepare "$name"
@@ -292,7 +292,12 @@ max-cache-ttl 259200
 default-cache-ttl-ssh 86400
 max-cache-ttl-ssh 259200
 disable-scdaemon'
-equals "darwin-work: gpg-agent.conf の既存の pinentry-program を残す" "$(grep '^pinentry-program' "$work/darwin-work/home/.gnupg/gpg-agent.conf")" 'pinentry-program /Applications/IDE.app/pinentry.sh'
+equals "darwin-work: gpg-agent.conf は、2 行目以降にある既存の pinentry-program も残し、pinentry-mac を足さない" "$(cat "$work/darwin-work/home/.gnupg/gpg-agent.conf")" 'pinentry-program /Applications/IDE.app/pinentry.sh
+default-cache-ttl 86400
+max-cache-ttl 259200
+default-cache-ttl-ssh 86400
+max-cache-ttl-ssh 259200
+disable-scdaemon'
 check "darwin-main: GitHub の SSH の鍵を ssh-agent に読み込み、パスフレーズを Keychain に保存する" 'grep -qx "    AddKeysToAgent yes" "$work/darwin-main/home/.ssh/config" && grep -qx "    UseKeychain yes" "$work/darwin-main/home/.ssh/config"'
 blocked "linux-main: SSH の設定に macOS だけのオプションがない" 'grep -q UseKeychain "$work/linux-main/home/.ssh/config"'
 if command -v zsh >/dev/null; then
