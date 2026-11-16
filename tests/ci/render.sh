@@ -203,15 +203,7 @@ allowed-tools: Read(~/.local/state/usage/weekly-cap) mcp__ccd_session_mgmt__get_
 done
 
 # --- Claude への指示 (CLAUDE.md と ~/.claude/rules、docs/claude.md) ---
-# 環境で変わる話題のうち、その環境の指示に出るもの
-topics_of() {
-  local text topic found=""
-  text="$(cat "$work/$1/home/.claude/CLAUDE.md" "$work/$1/home/.claude/rules/"*.md 2>/dev/null)"
-  for topic in PLaMo op-run "--assignee @me"; do
-    grep -qF -- "$topic" <<<"$text" && found="$found${found:+,}$topic"
-  done
-  printf '%s\n' "$found"
-}
+topics_of() { cat "$work/$1/home/.claude/CLAUDE.md" "$work/$1/home/.claude/rules/"*.md 2>/dev/null | grep -oF -e PLaMo -e op-run -e '--assignee @me' | LC_ALL=C sort -u | paste -sd, -; }
 equals "windows-main: Claude への指示に出る話題" "$(topics_of windows-main)" "PLaMo,op-run"
 equals "linux-main: Claude への指示に出る話題" "$(topics_of linux-main)" "op-run"
 equals "linux-desktop: Claude への指示に出る話題" "$(topics_of linux-desktop)" "op-run"
