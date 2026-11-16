@@ -118,7 +118,7 @@ PCごとの設定や仕事の設定(社内のホスト、社内のCAなど)は�
 
 - `~/.ssh` と `~/.gitconfig` を Windows へのリンクにしない。WSL が単体で復元できなくなり、隔離とも両立しないため。
 - SSH キーは環境ごとに作り直せるので、バックアップしない。作り直したら古い鍵を GitHub から消す。
-- SSH キーのパスフレーズも gpg-agent で扱う。入力はポップアップで、キャッシュは GPG と同じ (最後に使ってから 24 時間、最長 72 時間)。
+- SSH キーのパスフレーズも gpg-agent で扱う。入力はポップアップで、キャッシュは GPG と同じ (最後に使ってから 24 時間、最長 72 時間)。mac は macOS の ssh-agent (Keychain) で扱う (`docs/mac.md`)。
 - 長く保管する秘密は、GPG 鍵と Lattice の更新の署名鍵。1Password の Personal vault に置く (`docs/secrets.md`)。
 - パスワードマネージャーは1Password。構築の前提にはしない。`agent`ではサインインしない。
 - APIキーは1Passwordのvaultに置き、`op-run`で渡す。`.env` や `mise.local.toml` に平文で書かない (`docs/secrets.md`)。

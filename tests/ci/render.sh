@@ -87,6 +87,8 @@ printf 'kept\n' >"$work/linux-main/home/.local/state/review-loop/repo/branch/led
 # gpg-agent.conf も、管理しない行は残る。Windows の Git の gpg は CRLF で書くこともある
 mkdir -p "$work/windows-main/home/.gnupg"
 printf 'default-cache-ttl 34560000\r\nmax-cache-ttl 34560000\r\npinentry-program C:\\pinentry.exe\r\n' >"$work/windows-main/home/.gnupg/gpg-agent.conf"
+mkdir -p "$work/darwin-work/home/.gnupg"
+printf 'pinentry-program /Applications/IDE.app/pinentry.sh\n' >"$work/darwin-work/home/.gnupg/gpg-agent.conf"
 
 for name in linux-main linux-agent linux-desktop windows-main darwin-main darwin-work; do
   prepare "$name"
@@ -285,6 +287,15 @@ equals "darwin-main: 実行するスクリプトは linux-desktop と同じ" "$(
 equals "darwin-main: スキルは Claude のものだけ置く" "$(actual_skills darwin-main)" \
   "$(expected_skills darwin-main | tr ' ' '\n' | grep -v '^\.agents/' | paste -sd ' ' -)"
 equals "darwin-main: 鍵を渡す前の signingKey は空" "$(data_of darwin-main .signingKey)" ""
+equals "darwin-main: gpg-agent.conf に pinentry-mac を足し、SSH の設定はしない" "$(cat "$work/darwin-main/home/.gnupg/gpg-agent.conf")" 'pinentry-program /opt/homebrew/bin/pinentry-mac
+default-cache-ttl 86400
+max-cache-ttl 259200
+default-cache-ttl-ssh 86400
+max-cache-ttl-ssh 259200
+disable-scdaemon'
+equals "darwin-work: gpg-agent.conf の既存の pinentry-program を残す" "$(grep '^pinentry-program' "$work/darwin-work/home/.gnupg/gpg-agent.conf")" 'pinentry-program /Applications/IDE.app/pinentry.sh'
+check "darwin-main: GitHub の SSH の鍵を Keychain に入れる" 'grep -qx "    UseKeychain yes" "$work/darwin-main/home/.ssh/config"'
+blocked "linux-main: SSH の設定に macOS だけのオプションがない" 'grep -q UseKeychain "$work/linux-main/home/.ssh/config"'
 if command -v zsh >/dev/null; then
   zhome="$work/zsh-home"
   mkdir -p "$zhome"

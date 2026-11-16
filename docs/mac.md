@@ -25,6 +25,11 @@ macのシェルはzsh。
 - `~/.zprofile`は、Homebrewの環境を読み、`~/.local/bin`、`~/go/bin`、miseのshimsをPATHの先頭に足す。macOSの`/etc/zprofile`(path_helper)がシステムのパスを先頭に並べ直すので、`.zshenv`ではなくここで足す。
 - `~/.zshrc`は、対話のシェルの設定(プロンプト、履歴、補完、エイリアス)、`mise activate`、`GPG_TTY`を持つ。最後に`~/.zshrc.local`があれば読む(`docs/design.md`の「ローカルの設定」)。
 
+## SSHとGPG
+
+- SSHは、macOSのssh-agentを使う。GitHubの鍵は、`~/.ssh/config`の`UseKeychain`と`AddKeysToAgent`でKeychainに入れる。仕事のホストの鍵もKeychainのagentで使うので、Linuxと違い、`SSH_AUTH_SOCK`をgpg-agentに向けず、gpg-agentのSSHの機能(`enable-ssh-support`)も使わない。
+- GPGのパスフレーズは、pinentry-macの画面で入力する。`gpg-agent.conf`に`pinentry-program`が無ければ、chezmoiが`/opt/homebrew/bin/pinentry-mac`を足す。JetBrains IDEなどが書いた`pinentry-program`があれば、それを残す。
+
 ## 仕事のPC(`work`)
 
 chezmoiのデータの`work`は仕事のPCかどうかを表す真偽値。仕事のPCにだけ置くファイルは、この値で分ける。macに限らず、どのhostでも使える。
@@ -47,4 +52,4 @@ desktopと同じく、PCごとの鍵で署名し、WindowsとWSLの鍵は使わ�
 
 ## 確かめていること
 
-`tests/ci/render.sh`が`.chezmoi.os`を`darwin`に差し替えて、`darwin-main`と`darwin-work`を描画して適用する。hostと`work`の値、それらが残ること、置くファイルと実行するスクリプト、署名鍵、macに`agent`を作れないことを確かめる。macのhostが、`DOTFILES_HOST`や設定に残ったhostで変わらないことも確かめる。`work`は、LinuxのwslとdesktopとWindowsでも、同じように読んで残り、PR運用の指示を置くことを確かめる。zshがあれば、`~/.zshrc`が最後まで読めて`~/.zshrc.local`を読むことと、`~/.zprofile`のPATHを、zshを動かして確かめる(CIではランナーにzshを入れる)。`.chezmoi.os`を差し替えるだけなので、実際のmacでの動作までは分からない。
+`tests/ci/render.sh`が`.chezmoi.os`を`darwin`に差し替えて、`darwin-main`と`darwin-work`を描画して適用する。hostと`work`の値、それらが残ること、置くファイルと実行するスクリプト、署名鍵、macに`agent`を作れないことを確かめる。macのhostが、`DOTFILES_HOST`や設定に残ったhostで変わらないことも確かめる。`work`は、LinuxのwslとdesktopとWindowsでも、同じように読んで残り、PR運用の指示を置くことを確かめる。zshがあれば、`~/.zshrc`が最後まで読めて`~/.zshrc.local`を読むことと、`~/.zprofile`のPATHを、zshを動かして確かめる(CIではランナーにzshを入れる)。`gpg-agent.conf`のpinentry-macと、`~/.ssh/config`のKeychainの行も確かめる。`.chezmoi.os`を差し替えるだけなので、実際のmacでの動作までは分からない。
