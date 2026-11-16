@@ -211,12 +211,12 @@ printf '[user]\n\temail = local@example.com\n[commit]\n\tgpgsign = false\n[gpg]\
 gitconfig_of() { HOME="$ghome" git config -f "$work/linux-main/home/.gitconfig" --includes "$1"; }
 equals "linux-main: ~/.gitconfig.local の値が勝つが、署名の設定は変えられない" "$(gitconfig_of user.email) $(gitconfig_of commit.gpgsign) $(gitconfig_of gpg.program)" "local@example.com true gpg"
 blocked "linux-agent: .gitconfig が ~/.gitconfig.local を読まない" 'git config -f "$work/linux-agent/home/.gitconfig" --get include.path'
-# mac の設定も Linux の ssh で読めること (IgnoreUnknown) を確かめるので、どちらの設定も動いている ssh で読む。
-# config.local は ~/.ssh からの相対パスで、本物のホームを指すので、ここだけ絶対パスに替えて試す
+# config.local は ~/.ssh からの相対パスで、本物のホームを指すので、ここだけ絶対パスに替えて試す。
+# UseKeychain は、どの ssh も知らない名前に替えて、IgnoreUnknown がどのホストにも効くことを Apple の ssh でも確かめる
 for ssh_env in linux-main darwin-main; do
   sdir="$work/ssh-$ssh_env"
   mkdir -p "$sdir"
-  sed "s|^Include config.local$|Include $sdir/config.local|" "$work/$ssh_env/home/.ssh/config" >"$sdir/config"
+  sed -e "s|^Include config.local$|Include $sdir/config.local|" -e 's/UseKeychain/DotfilesUnknownOption/g' "$work/$ssh_env/home/.ssh/config" >"$sdir/config"
   printf 'Host *\n    IdentityFile ~/.ssh/other\nHost box\n    HostName box.example.org\n' >"$sdir/config.local"
   equals "$ssh_env: GitHub では、config.local の Host * の鍵より GitHub の鍵を先に試す" "$(ssh -G -F "$sdir/config" github.com </dev/null 2>/dev/null | sed -n 's|^identityfile ~/\.ssh/||p' | paste -sd ' ' -)" "github other"
   equals "$ssh_env: config.local のホストの設定が効く" "$(ssh -G -F "$sdir/config" box </dev/null 2>/dev/null | sed -n 's/^hostname //p')" box.example.org
