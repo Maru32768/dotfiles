@@ -80,6 +80,8 @@ var deniedFiles = []string{
 	`C:\Users\maru3\.gitconfig.local`,
 	`C:\Users\maru3\work\r\.git\config`,
 	`C:\Users\maru3\.config\git\config`,
+	"/Users/maru/.GitConfig.local",
+	`C:\Users\maru3\.GITCONFIG`,
 }
 
 var allowedFiles = []string{
@@ -87,6 +89,8 @@ var allowedFiles = []string{
 	"/home/maru/work/r/.gitignore",
 	"/home/maru/work/r/.git-config-notes.md",
 	`C:\Users\maru3\work\r\README.md`,
+	"/home/maru/.gitconfig.local.example",
+	"/home/maru/.gitconfig.bak",
 }
 
 func decide(t *testing.T, toolName, field, value string) bool {

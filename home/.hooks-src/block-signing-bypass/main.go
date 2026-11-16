@@ -45,7 +45,7 @@ var (
 	configRead       = regexp.MustCompile(`(?i)\s(?:--get\S*|--list|-l|get|list)(?:\s|$)`)
 	configValue      = regexp.MustCompile(`(?i)` + signingKey + `['"]?\s+\S`)
 	configRemove     = regexp.MustCompile(`(?i)\s(?:--unset\S*|unset|--remove-section|remove-section|--rename-section|rename-section|--replace-all|--add|set)\s`)
-	configFilePath   = regexp.MustCompile(gitConfigFile + `$`)
+	configFilePath   = regexp.MustCompile(`(?i)` + gitConfigFile + `$`)
 )
 
 func commandProblem(command string) string {
