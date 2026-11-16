@@ -37,6 +37,19 @@ Windowsでは、翻訳専用のLLMであるPLaMo 3 Translate(日英を含む53�
 
 - 実装を伴うタスクは、ship-taskスキルの段階に沿って進める。質問への回答や、1ファイルで済む小さな修正には使わない
 - issueが無いときは、依頼の内容を起点にする。issueを作らずに進めるなら、issueへの書き戻し、子issueの起票、issueを閉じる手順は飛ばす
+- 既にある大きいブランチやPRを分けるだけなら、split-pr-stackスキルを使う
+
+# コードコメント
+
+コメントは、自然言語で説明しないと分からないコードを書いたことを泣いて詫びながら、しょうがなく書く。
+
+書くのは、コードから復元できない自明でない理由(WHY)だけ。隠れた制約、workaroundを入れた理由、読み手が驚く挙動がこれにあたる。次のものは書かない。
+
+- コードを読めば分かること(WHAT)。`// ユーザーIDを取得する`の類
+- 変更の経緯。「〜を足した」「前の実装では〜だった」など
+- タスクのID。`(PROJ-123)`など
+
+ドキュメントとREADMEも同じで、issueへの参照、経緯、マイグレーションの履歴を書かず、今の仕様だけを書く。
 
 # コミット
 
@@ -46,6 +59,7 @@ Windowsでは、翻訳専用のLLMであるPLaMo 3 Translate(日英を含む53�
 
 # レビュー
 
+- PR/MRの本文と、レビューコメントへの返信は、サブエージェントにprose-polishスキルで推敲させる
 - review-loopは、片づけの段でponytail-review、simplify、prose-polishを回す。review-loopが推敲した文書には、prose-polishを別にかけない
 - poteto-modeとreview-loopを一緒に使うときは、コードの片づけ(deslop、no-comments)と文書の推敲をreview-loopの片づけの段に任せる。poteto-modeのtechnical-writingとunslopは、返信とコミットメッセージにだけかける
 
