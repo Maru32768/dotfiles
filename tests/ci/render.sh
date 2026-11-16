@@ -222,6 +222,7 @@ equals "windows-main: 実行するスクリプト" "$(scripts_of windows-main)" 
 data_of() { cm "$1" data --format json | jq -r "$2"; }
 equals "linux-desktop: host" "$(data_of linux-desktop .host)" desktop
 equals "linux-main: host" "$(data_of linux-main .host)" wsl
+equals "windows-main: host と、WSL と同じ鍵" "$(data_of windows-main '.host + " " + .signingKey')" "windows 78324D99D34D3111"
 # linux-main の review-loop の台帳は、上で置いたもの
 equals "linux-desktop: 置かれるファイルは linux-main から WSLg の設定を除いたもの" "$(files_of linux-desktop)" \
   "$(files_of linux-main | tr ' ' '\n' | grep -vxE '\.config/environment\.d/wslg\.conf|\.local/state/review-loop/repo/branch/ledger\.md' | paste -sd ' ' -)"
