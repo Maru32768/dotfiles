@@ -1,6 +1,6 @@
 #!/bin/bash
 # provision/setup-credentials.sh を、偽の gpg、ssh-keygen、ssh-add、chezmoi などで試す。本物の鍵、
-# エージェント、Keychain には触れない。偽のコマンドは、引数と SSH_AUTH_SOCK と DOTFILES_SIGNING_KEY を記録する。
+# エージェント、Keychain には触れない。偽の gpg、ssh、chezmoi、git などは、引数と DOTFILES_SIGNING_KEY と SSH_AUTH_SOCK を記録する。
 # テストを動かしている bash で動かすので、mac の /bin/bash (3.2) で動かせば、その読み違いも見つかる
 # 偽のコマンドの本文は、そのコマンドが動くときに展開するので、SC2016 を抑える
 # shellcheck disable=SC2016
@@ -53,7 +53,9 @@ echo key >"$file"; echo "ssh-ed25519 AAAA $comment" >"$file.pub"'
 stub ssh-add "$record"'
 if [ "$1" = -l ]; then [ -n "$FAKE_AGENT" ] || exit 1; echo "$FAKE_AGENT"; fi
 exit 0'
-stub ssh 'echo "$FAKE_SSH"'
+# GitHub は返事を標準エラーに出す
+stub ssh "$record"'
+echo "$FAKE_SSH" >&2'
 stub git "$record"
 
 # 使い方: scenario <名前> <host> [キー=値...]。キーと既定値は次のとおり
@@ -107,6 +109,8 @@ has "mac: SSH キーのコメントは名前 (mac)" "ssh-keygen|-t ed25519 -f $w
 has "mac: SSH キーを launchd の agent に入れ、パスフレーズを Keychain に保存する" "ssh-add|--apple-use-keychain $work/mac-home/.ssh/github|KEY=unset|SOCK=/launchd/agent"
 hasnt "mac: gpg-agent を SSH に使わない" "gpg-connect-agent"
 hasnt "mac: SSH_AUTH_SOCK を gpg-agent に向けない" "SOCK=/fake/gpg-agent.ssh"
+has "mac: 作った鍵の公開鍵を表示する" "gpg|--armor --export 89ABCDEF89ABCDEF|"
+has "mac: GitHub への接続を確かめ、初めてのときはホストの鍵を受け入れる" "ssh|-o BatchMode=yes -o StrictHostKeyChecking=accept-new -T git@github.com|"
 has "mac: GitHub に接続できたら、dotfiles の取得先を SSH にする" "git|-C $work/mac-home/dotfiles remote set-url origin git@github.com:Maru32768/dotfiles.git|"
 
 # 公開鍵を GitHub に登録してから、もう一度動かす (docs/mac.md)。鍵も SSH キーも作り直さない
@@ -128,8 +132,10 @@ scenario mac-no-pub mac signing_key=89ABCDEF89ABCDEF gpg_list=0 agent="256 SHA25
 hasnt "mac (公開鍵が無い): GitHub への接続まで進まない" "git|"
 
 # signingKey の鍵を失くしたら、作り直す (docs/desktop.md)
-scenario mac-key-lost mac signing_key=89ABCDEF89ABCDEF gpg_list=1
+scenario mac-key-lost mac signing_key=DEADBEEFDEADBEEF gpg_list=1
 has "mac (鍵を失くした): 鍵を作り直す" "gpg|--status-fd 1 --quick-generate-key Maru32768 (mac) <maru32768@gmail.com> ed25519 sign never|"
+has "mac (鍵を失くした): 作り直した鍵を chezmoi の signingKey に渡す" "chezmoi|init --no-tty|KEY=89ABCDEF89ABCDEF|"
+has "mac (鍵を失くした): 作り直した鍵を .gitconfig に書く" "chezmoi|apply --no-tty $work/mac-key-lost-home/.gitconfig|"
 
 # GitHub に公開鍵をまだ登録していなければ、dotfiles の取得先を変えない
 scenario mac-unregistered mac ssh="git@github.com: Permission denied (publickey)."
