@@ -22,6 +22,20 @@ else
   fail "ASCII の検査が、ASCII でない文字を見つけられない"
 fi
 
+# mac の /bin/bash (3.2) は、UTF-8 のロケールで、変数の直後の日本語のバイトを名前の一部として読み、
+# set -u で止まる。${} で囲む。shellcheck は見つけない
+bash_scripts() {
+  git ls-files -co --exclude-standard | while IFS= read -r file; do
+    [ -f "$file" ] || continue
+    case "$file" in *.sh | *.sh.tmpl) ;; *) head -n 1 "$file" | grep -q '^#!.*bash' || continue ;; esac
+    printf '%s\n' "$file"
+  done
+}
+bare_vars="$(bash_scripts | while IFS= read -r file; do
+  perl -ne 'print "$ARGV:$.\n" if /^[^#]*\$[A-Za-z_][A-Za-z0-9_]*[^\x00-\x7F]/' "$file"
+done)"
+if [ -z "$bare_vars" ]; then pass "bash のスクリプトで、変数の直後に ASCII でない文字が無い"; else fail "bash のスクリプトで、変数の直後に ASCII でない文字がある (\${} で囲む): $bare_vars"; fi
+
 # 表記は v の有無が違う (docs/tools.md)
 mise_linux="$(sed -n 's/^MISE_VERSION="v\(.*\)"$/\1/p' provision/user.sh)"
 mise_windows="$(sed -n "s/^\$MiseVersion = '\(.*\)'.*$/\1/p" bootstrap.ps1 | tr -d '\r')"
