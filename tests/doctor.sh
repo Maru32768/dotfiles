@@ -19,42 +19,61 @@ export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$PATH"
 cd "$HOME" || exit 1
 GPG_FPR="7AF93B4735CF2AAC930EF5CD78324D99D34D3111"
 failures=0
-# wsl か desktop (WSL ではない PC)。desktop は PC ごとの署名鍵を使う (docs/desktop.md)
+# wsl、desktop (WSL ではない PC)、mac。desktop と mac は PC ごとの署名鍵を使う (docs/desktop.md、docs/mac.md)
 host="$(chezmoi data --format json 2>/dev/null | jq -r '.host // "wsl"')"
-signing_key="$(git config --global user.signingkey || true)"
+# --global だけでは ~/.gitconfig.local を読まないので、そこで変えた値も見る
+signing_key="$(git config --global --includes user.signingkey || true)"
 
 pass() { printf 'PASS %s\n' "$1"; }
 fail() { printf 'FAIL %s\n' "$1"; failures=$((failures + 1)); }
 todo() { printf 'TODO %s\n' "$1"; }
 skip() { printf 'SKIP %s\n' "$1"; }
 check() { if eval "$2" >/dev/null 2>&1; then pass "$1"; else fail "$1"; fi; }
+# GNU と BSD (mac) の stat は、権限の取り出し方が違う
+mode_of() { stat -c %a "$1" 2>/dev/null || stat -f %Lp "$1"; }
 
-check "Ubuntu 26.04" 'grep -q "VERSION_ID=\"26.04\"" /etc/os-release'
-if [ "$host" = desktop ]; then
-  check "wsl.conf がない" '[ ! -e /etc/wsl.conf ]'
-  check "WSLg の設定がない" '[ ! -e ~/.config/environment.d/wslg.conf ]'
+if [ "$host" = mac ]; then
+  check "macOS (Apple Silicon)" '[ "$(uname -s)-$(uname -m)" = Darwin-arm64 ]'
+  while read -r pkg; do
+    check "brew: $pkg" "brew list --formula $pkg"
+  done < <(sed -n 's/^brew "\(.*\)"$/\1/p' "$HOME/dotfiles/packages/Brewfile")
 else
-  check "既定ユーザーが wsl.conf にある" 'grep -q "^default=$(id -un)$" /etc/wsl.conf'
+  check "Ubuntu 26.04" 'grep -q "VERSION_ID=\"26.04\"" /etc/os-release'
+  if [ "$host" = desktop ]; then
+    check "wsl.conf がない" '[ ! -e /etc/wsl.conf ]'
+    check "WSLg の設定がない" '[ ! -e ~/.config/environment.d/wslg.conf ]'
+  else
+    check "既定ユーザーが wsl.conf にある" 'grep -q "^default=$(id -un)$" /etc/wsl.conf'
+  fi
+  if "$container"; then
+    skip "systemd が動いている"
+  else
+    check "systemd が動いている" '[ "$(cat /proc/1/comm)" = systemd ]'
+  fi
+  while read -r pkg; do
+    check "apt: $pkg" "dpkg -s $pkg"
+  done < <(grep -vE '^(#|$)' "$HOME/dotfiles/packages/apt.txt")
 fi
-if "$container"; then
-  skip "systemd が動いている"
-else
-  check "systemd が動いている" '[ "$(cat /proc/1/comm)" = systemd ]'
-fi
-
-while read -r pkg; do
-  check "apt: $pkg" "dpkg -s $pkg"
-done < <(grep -vE '^(#|$)' "$HOME/dotfiles/packages/apt.txt")
 
 check "mise" 'mise --version'
-# Windows だけのツール(config.toml の os)は、Linux の mise ls --current に出ない
+case "$(uname -s)-$(uname -m)" in
+  Darwin-arm64) platform=macos-arm64 ;;
+  *) platform=linux-x64 ;;
+esac
+# config.toml の os でほかの OS に絞ったツール (Windows の llama.cpp、mac の op と codex) は、
+# lock にこの platform の行が無く、mise ls --current にも出ない。platform の行が 1 つも無いもの (rust など) は入る
 lock_versions() {
-  awk '/^\[\[tools\./ { name = $0; gsub(/^\[\[tools\.|\]\]$|"/, "", name) }
-       /^version = / { version = $3; gsub(/"/, "", version); print name, version }' \
-    "$HOME/.config/mise/mise.lock" | grep -v '^github:ggml-org/llama.cpp ' | sort
+  awk -v platform="$platform" '
+    function flush() { if (name != "" && (!any_platform || this_platform)) print name, version }
+    /^\[\[tools\./ { flush(); name = $0; gsub(/^\[\[tools\.|\]\]$|"/, "", name); version = ""; any_platform = 0; this_platform = 0 }
+    /^version = / && version == "" { version = $3; gsub(/"/, "", version) }
+    /"platforms\./ { any_platform = 1; if (index($0, "\"platforms." platform "\"")) this_platform = 1 }
+    END { flush() }' "$HOME/.config/mise/mise.lock" | sort
 }
 check "ツールのバージョンが mise.lock と一致" 'diff <(lock_versions) <(mise ls --current | awk "{print \$1, \$2}" | sort)'
-for tool in chezmoi go node rustc deno bun uv python java terraform aws op codex gh ghq rg fd shellcheck yt-dlp goimports; do
+tools="chezmoi go node rustc deno bun uv python java terraform aws gh ghq rg fd shellcheck yt-dlp goimports"
+[ "$host" = mac ] || tools="$tools op codex"
+for tool in $tools; do
   check "ツール: $tool" "command -v $tool"
 done
 
@@ -66,16 +85,22 @@ check "スキルにシンボリックリンクがない" '[ -z "$(find ~/.claude
 check "gh の拡張: gh-stack" 'gh stack --version'
 check ".gitconfig が実ファイル" '[ -f ~/.gitconfig ] && [ ! -L ~/.gitconfig ]'
 check ".ssh が実ディレクトリ" '[ -d ~/.ssh ] && [ ! -L ~/.ssh ]'
-check ".ssh の権限が 700" '[ "$(stat -c %a ~/.ssh)" = 700 ]'
-check ".gnupg の権限が 700" '[ "$(stat -c %a ~/.gnupg)" = 700 ]'
-check "コミット署名が有効" '[ "$(git config --global commit.gpgsign)" = true ]'
-# デスクトップでは、Ubuntu が入れる pinentry-gnome3 が選ばれることもある
-check "pinentry が GUI" 'readlink -f /usr/bin/pinentry | grep -qE "gtk|gnome3"'
-check "gpg-agent の設定" 'grep -q "^enable-ssh-support$" ~/.gnupg/gpg-agent.conf'
-if "$container"; then
-  skip "systemd の環境に DISPLAY がある"
+check ".ssh の権限が 700" '[ "$(mode_of ~/.ssh)" = 700 ]'
+check ".gnupg の権限が 700" '[ "$(mode_of ~/.gnupg)" = 700 ]'
+check "コミット署名が有効" '[ "$(git config --global --includes commit.gpgsign)" = true ]'
+if [ "$host" = mac ]; then
+  # JetBrains IDE が書いたものも含め、gpg-agent.conf が指す pinentry が実行できる
+  check "pinentry が実行できる" 'pinentry="$(sed -n "s/^pinentry-program //p" ~/.gnupg/gpg-agent.conf | tail -1)" && [ -x "$pinentry" ]'
+  check "zsh のログインシェルで mise が使える" 'zsh -lic "command -v mise" </dev/null'
 else
-  check "systemd の環境に DISPLAY がある (反映には再起動が必要)" 'systemctl --user show-environment | grep -q "^DISPLAY="'
+  # デスクトップでは、Ubuntu が入れる pinentry-gnome3 が選ばれることもある
+  check "pinentry が GUI" 'readlink -f /usr/bin/pinentry | grep -qE "gtk|gnome3"'
+  check "gpg-agent の設定" 'grep -q "^enable-ssh-support$" ~/.gnupg/gpg-agent.conf'
+  if "$container"; then
+    skip "systemd の環境に DISPLAY がある"
+  else
+    check "systemd の環境に DISPLAY がある (反映には再起動が必要)" 'systemctl --user show-environment | grep -q "^DISPLAY="'
+  fi
 fi
 
 hook="$HOME/.claude/hooks/block-signing-bypass"
@@ -85,13 +110,17 @@ check "署名回避のフックが拒否する" "printf '%s' '$deny_input' | '$h
 check "署名回避のフックが通常のコマンドを通す" "[ -z \"\$(printf '%s' '$allow_input' | '$hook')\" ]"
 check "Claude の設定にフックがある" 'jq -e ".hooks.PreToolUse[0].hooks[0].command | test(\"block-signing-bypass\")" ~/.claude/settings.json'
 check "Claude Code" 'claude --version'
-check "サンドボックスの依存" 'command -v bwrap && command -v socat'
+if [ "$host" = mac ]; then
+  check "サンドボックス (Seatbelt)" 'command -v sandbox-exec'
+else
+  check "サンドボックスの依存" 'command -v bwrap && command -v socat'
+fi
 
 # 一覧にあるものがすべて入っていること。ビルドの失敗までは分からない
 plug_dir="$HOME/.vim/plugged"
 # en_US.UTF-8 などでは sort と comm の順序が食い違うので、C の順序で比べる
 declared_plugins() { sed -nE "s|^Plug '[^/']+/([^']+)'.*|\\1|p" "$HOME/.vimrc" | LC_ALL=C sort -u; }
-installed_plugins() { find "$plug_dir" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' 2>/dev/null | LC_ALL=C sort -u; }
+installed_plugins() { for dir in "$plug_dir"/*/; do [ -d "$dir" ] && basename "$dir"; done | LC_ALL=C sort -u; }
 declared_count="$(declared_plugins | wc -l)"
 missing_plugins="$(LC_ALL=C comm -23 <(declared_plugins) <(installed_plugins) | paste -sd ' ' -)"
 if [ "$declared_count" -eq 0 ]; then
@@ -104,7 +133,7 @@ fi
 # エラーの内容は vim -N -es -u ~/.vimrc -i NONE +qall で見られる
 check ".vimrc をエラーなしで読める" 'vim -N -es -u ~/.vimrc -i NONE +qall </dev/null'
 
-if [ "$host" = desktop ]; then
+if [ "$host" = desktop ] || [ "$host" = mac ]; then
   if [ -n "$signing_key" ] && gpg --list-secret-keys "$signing_key" >/dev/null 2>&1; then
     pass "GPG 署名鍵 (この PC 専用: $signing_key)"
     # 公開の API で、登録した鍵の ID を確かめる。主鍵の ID で署名するので、主鍵の key_id と比べる
@@ -132,12 +161,19 @@ if [ -f ~/.ssh/github ]; then
   else
     todo "SSH キーの登録: ~/.ssh/github.pub を GitHub に登録"
   fi
-  check "SSH キーが gpg-agent に登録されている" 'SSH_AUTH_SOCK="$(gpgconf --list-dirs agent-ssh-socket)" ssh-add -l'
+  if [ "$host" = mac ]; then
+    check "SSH キーが ssh-agent に登録されている" 'ssh-add -l | grep -qF "$(ssh-keygen -lf ~/.ssh/github.pub | awk "{print \$2}")"'
+  else
+    check "SSH キーが gpg-agent に登録されている" 'SSH_AUTH_SOCK="$(gpgconf --list-dirs agent-ssh-socket)" ssh-add -l'
+  fi
 else
   todo "SSH キー: provision/setup-credentials.sh を実行"
 fi
 
-if [ -s ~/.config/op-run/token.gpg ]; then
+# mac では 1Password を使わない (docs/mac.md)
+if [ "$host" = mac ]; then
+  :
+elif [ -s ~/.config/op-run/token.gpg ]; then
   pass "1Password のサービスアカウントのトークン"
 else
   todo "1Password のサービスアカウントのトークン: op-run --set-token を実行 (docs/secrets.md)"
