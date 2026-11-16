@@ -269,6 +269,10 @@ blocked "mac に agent は作れない" 'DOTFILES_PROFILE=agent init_of darwin-b
 blocked "DOTFILES_WORK が 1 か 0 でなければ init で止まる" 'DOTFILES_WORK=yes init_of darwin-bad'
 DOTFILES_HOST=desktop init_of darwin-bad >/dev/null 2>&1
 equals "mac では DOTFILES_HOST を読まない" "$(data_of darwin-bad .host)" mac
+mkdir -p "$work/darwin-moved/home" "$work/darwin-moved/fakehome"
+printf '[data]\n    profile = "main"\n    host = "desktop"\n' >"$work/darwin-moved/chezmoi.toml"
+init_of darwin-moved >/dev/null 2>&1
+equals "mac では、設定に残った host も読まない" "$(data_of darwin-moved .host)" mac
 
 # --- work ---
 # work は mac に限らず、どの host でも同じに読む
