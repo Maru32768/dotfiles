@@ -105,7 +105,7 @@ desktopと同じく、PCごとの鍵で署名し、WindowsとWSLの鍵は使わ�
 
 - `/setup-pstack`が、dotfilesの`~/.claude/pstack-models.md`と別の場所(`~/.claude/rules/pstack-models.md`など)に書いたモデルの指定。書き換わらずに残り、食い違う2つが両方読まれるので消す。
 - `~/.claude/skills/`にある、dotfilesのスキルと別の名前のシンボリックリンク(`npx skills`で入れたスキルなど)。書き換わらずに残り、`doctor.sh`が失敗にする。使い続けるスキルは`home/.chezmoidata/skills.toml`に足してから(`docs/skills.md`)、リンクを消す。同じ名前のリンクは置き換わり、予行に`M`で出る。
-- 適用の後に動くスクリプトがすること。`~/.local/bin/claude`が無ければClaude Codeを入れる。`~/.zprofile`は`~/.local/bin`をHomebrewより先に置くので、HomebrewやnpmのClaude Codeがあっても、こちらが使われる。ghの拡張のgh-stackは、固定した版で入れ直す。
+- 適用の後に動くスクリプトがすること。`~/.local/bin/claude`が無ければClaude Codeを入れる。`~/.zprofile`は`~/.local/bin`をHomebrewより先に置くので、HomebrewやnpmのClaude Codeがあっても、こちらが使われる。ただし、`~/.zshrc.local`でPATHの先頭に足したもの(asdfのshimなど)は、これより先になる。ghの拡張のgh-stackは、固定した版で入れ直す。
 
 ## 確かめていること
 
