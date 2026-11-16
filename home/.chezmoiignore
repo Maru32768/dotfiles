@@ -27,8 +27,8 @@ OneDrive/**
 20-build-hooks.ps1
 50-gh-extensions.ps1
 {{ end }}
-{{ if eq (get . "host" | default "") "desktop" }}
-# WSLg のための設定。デスクトップのセッションは、自分で DISPLAY を systemd に渡す
+{{ if has (get . "host" | default "") (list "desktop" "mac") }}
+# WSLg のための設定。desktop のセッションは自分で DISPLAY を systemd に渡し、mac は systemd を使わない
 .config/environment.d
 .config/environment.d/**
 {{ end }}
@@ -36,9 +36,6 @@ OneDrive/**
 # mac のシェルは zsh
 .bashrc
 .bash_profile
-# WSLg のための設定
-.config/environment.d
-.config/environment.d/**
 # mac では Codex と 1Password を使わない
 .agents
 .agents/**
