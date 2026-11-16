@@ -80,6 +80,10 @@ desktopと同じく、PCごとの鍵で署名し、WindowsとWSLの鍵は使わ�
 
 ### 使っているMacに入れるとき
 
+`user.sh`を実行する前に、miseの版と、置き換わるファイルを確かめる。
+
+miseが既に入っていれば、`user.sh`は入れ直さず、そのmiseでツールを入れて適用する。`mise --version`が`provision/user.sh`の`MISE_VERSION`と違えば、先に`curl -fsSL https://mise.run | MISE_VERSION=<user.shのMISE_VERSIONの値(vで始まる)> sh`で入れ直す。
+
 `user.sh`は、次のファイルを確かめずに置き換える。残したい設定は、先にリポジトリの外のファイルへ移し、元のファイルも控えておく(`docs/design.md`の「ローカルの設定」)。
 
 | 置き換わるもの | 残したい設定の移し先 |
@@ -88,9 +92,12 @@ desktopと同じく、PCごとの鍵で署名し、WindowsとWSLの鍵は使わ�
 | `~/.gitconfig` | `~/.gitconfig.local`(署名の設定は、移しても効かない) |
 | `~/.ssh/config` | `~/.ssh/config.local` |
 | `~/.claude/CLAUDE.md` | `~/.claude/rules/`の、dotfilesが置かない名前のファイル |
+| `~/.claude/settings.json`の、共通の設定と同じキー | 移せない。ほかのキーは残る。配列(`hooks`の各イベント、`permissions.additionalDirectories`など)は丸ごと置き換わる(`docs/claude.md`) |
+| `~/.claude/pstack-models.md` | 移さない(dotfilesのものを使う)。`/setup-pstack`が別の場所(`~/.claude/rules/pstack-models.md`など)に書いたファイルは消す。残すと、食い違う2つのモデルの指定が両方読まれる |
+| `~/.claude/skills/`の、dotfilesと同じ名前のスキル | 移さない(dotfilesのものを使う)。第三者のスキルは、上流に無いファイルも消える |
 | `~/.vimrc`、`~/.tmux.conf`、`~/.ideavimrc`、`~/.config/mise/` | 移さない(dotfilesのものを使う) |
 
-miseが既に入っていれば、`user.sh`は入れ直さない。`doctor.sh`が`provision/user.sh`の`MISE_VERSION`と違うと知らせたら、`curl -fsSL https://mise.run | MISE_VERSION=<user.shのMISE_VERSIONの値(vで始まる)> sh`で入れ直す。
+`~/.claude/skills/`にあるシンボリックリンク(`npx skills`で入れたスキルなど)は、置き換わらずに残る。`doctor.sh`が失敗にするので消す。
 
 ## 確かめていること
 
