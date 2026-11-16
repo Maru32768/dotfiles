@@ -268,14 +268,6 @@ blocked "DOTFILES_WORK が 1 か 0 でなければ init で止まる" 'DOTFILES_
 DOTFILES_HOST=desktop init_of darwin-bad >/dev/null 2>&1
 equals "mac では DOTFILES_HOST を読まない" "$(data_of darwin-bad .host)" mac
 
-# --- init_of と本物の init ---
-# 動いている機械の OS なら差し替えが要らないので、本物の chezmoi init と同じ設定になることを確かめる
-real="$(uname -s | tr '[:upper:]' '[:lower:]')-real"
-mkdir -p "$work/$real/home" "$work/$real/fakehome"
-DOTFILES_WORK=1 DOTFILES_HOST=wsl cm "$real" init >/dev/null 2>&1 && mv "$work/$real/chezmoi.toml" "$work/$real/real.toml"
-DOTFILES_WORK=1 DOTFILES_HOST=wsl init_of "$real" >/dev/null 2>&1
-check "init_of は本物の chezmoi init と同じ設定を作る ($real)" 'cmp -s "$work/$real/real.toml" "$work/$real/chezmoi.toml"'
-
 # --- プロファイル ---
 profile_of() { sed -n 's/^ *profile = "\(.*\)"$/\1/p' "$work/$1/chezmoi.toml"; }
 unset DOTFILES_PROFILE
@@ -284,6 +276,26 @@ equals "環境変数なしで init し直しても agent のまま" "$(profile_o
 mkdir -p "$work/linux-default/home" "$work/linux-default/fakehome"
 init_of linux-default >/dev/null 2>&1
 equals "新しい環境の既定は main" "$(profile_of linux-default)" main
+
+# --- init_of と本物の init ---
+# 動いている機械の OS なら差し替えが要らないので、本物の chezmoi init と同じ設定になることを、
+# 新しく作るときと、設定がある状態で環境変数なしでやり直すときの両方で確かめる。
+# 設定が残ることの検査はどれも init_of を通るので、やり直しの比較がそれを本物の init につなぐ
+real_os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+fresh="$real_os-fresh" again="$real_os-again" first_profile=main
+# mac には agent を作れない。Linux では、本物の init でも agent が残ることを確かめる
+[ "$real_os" = linux ] && first_profile=agent
+mkdir -p "$work/$fresh/home" "$work/$fresh/fakehome" "$work/$again/home" "$work/$again/fakehome"
+DOTFILES_PROFILE=$first_profile DOTFILES_HOST=wsl DOTFILES_WORK=1 DOTFILES_SIGNING_KEY=1111222233334444 cm "$fresh" init >/dev/null 2>&1 &&
+  mv "$work/$fresh/chezmoi.toml" "$work/$fresh/real.toml"
+DOTFILES_PROFILE=$first_profile DOTFILES_HOST=wsl DOTFILES_WORK=1 DOTFILES_SIGNING_KEY=1111222233334444 init_of "$fresh" >/dev/null 2>&1
+check "init_of は本物の chezmoi init と同じ設定を作る ($real_os、新しく作る)" 'cmp -s "$work/$fresh/real.toml" "$work/$fresh/chezmoi.toml"'
+cp "$work/$fresh/real.toml" "$work/$again/chezmoi.toml" && cm "$again" init >/dev/null 2>&1 &&
+  mv "$work/$again/chezmoi.toml" "$work/$again/real.toml" && cp "$work/$fresh/real.toml" "$work/$again/chezmoi.toml"
+# 失敗すると写した前の設定が残り、正しいやり直しと同じ中身になるので、成否も見る
+check "init_of で環境変数なしでやり直せる ($real_os)" 'init_of "$again"'
+check "init_of は本物の chezmoi init と同じ設定を作る ($real_os、環境変数なしでやり直す)" 'cmp -s "$work/$again/real.toml" "$work/$again/chezmoi.toml"'
+equals "本物の chezmoi init でも、やり直すと profile が残る ($real_os)" "$(sed -n 's/^ *profile = "\(.*\)"$/\1/p' "$work/$again/real.toml")" "$first_profile"
 
 # --- テンプレートから作られるシェルスクリプト ---
 for template in "$root"/home/*.sh.tmpl "$root"/home/dot_bashrc.tmpl "$root"/home/dot_bash_profile.tmpl; do
