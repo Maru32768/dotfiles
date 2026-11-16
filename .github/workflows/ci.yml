@@ -60,17 +60,13 @@ jobs:
         with:
           persist-credentials: false
       # docs/mac.md のセットアップと同じ手順で作り、doctor で確かめる
-      - name: Homebrew のパッケージ
-        run: brew bundle --file packages/Brewfile
-      - name: user.sh
-        run: bash provision/user.sh main "$GITHUB_WORKSPACE"
+      - run: brew bundle --file packages/Brewfile
+      - run: bash provision/user.sh main "$GITHUB_WORKSPACE"
         env:
           GITHUB_TOKEN: ${{ github.token }} # mise が GitHub の API を呼ぶときの回数制限を避ける
-      - name: doctor.sh
-        run: bash "$HOME/dotfiles/tests/doctor.sh"
+      - run: bash "$HOME/dotfiles/tests/doctor.sh"
       # mac でしか効かない検査 (Homebrew の PATH、Apple の ssh) がある
-      - name: render.sh
-        run: bash tests/ci/render.sh
+      - run: bash tests/ci/render.sh
 
   windows:
     runs-on: windows-latest
