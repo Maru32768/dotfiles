@@ -77,7 +77,7 @@ WSL では `pinentry-gtk2` を使い、WSLg のポップアップで入力する
 
 - キャッシュが有効な間は、Claude を含む同じユーザーのプロセスがパスフレーズなしで署名できる。
 - 再読み込みするとキャッシュは消える。WSL が停止したときも消える。
-- Windows で管理するのはキャッシュ時間の行だけ。`enable-ssh-support` と `disable-scdaemon` は WSL だけに書く。
+- Windows で管理するのはキャッシュ時間の行だけ。`enable-ssh-support`はLinux(WSLとdesktop)だけに、`disable-scdaemon`はWindows以外に書く。
 - Windows で新しい値を効かせるには、PowerShell で `& 'C:\Program Files\Git\usr\bin\gpgconf.exe' --kill gpg-agent` を実行する。次に署名するときにパスフレーズを求められる。
 
 ## トラブルシュート
