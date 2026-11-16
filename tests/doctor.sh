@@ -151,7 +151,13 @@ if [ -f ~/.ssh/github ]; then
     todo "SSH キーの登録: ~/.ssh/github.pub を GitHub に登録"
   fi
   if [ "$host" = mac ]; then
-    check "SSH キーが ssh-agent に登録されている" 'ssh-add -l | grep -qF "$(ssh-keygen -lf ~/.ssh/github.pub | awk "{print \$2}")"'
+    # 再起動やログインのし直しの後は、最初に接続するまで ssh-agent に鍵が無い (AddKeysToAgent で読み込む)
+    fingerprint="$(ssh-keygen -lf ~/.ssh/github.pub 2>/dev/null | awk '{print $2}')"
+    if [ -n "$fingerprint" ] && ssh-add -l 2>/dev/null | grep -qF "$fingerprint"; then
+      pass "SSH キーが ssh-agent に入っている"
+    else
+      todo "SSH キーが ssh-agent に無い: GitHub に接続するか、ssh-add --apple-load-keychain を実行"
+    fi
   else
     check "SSH キーが gpg-agent に登録されている" 'SSH_AUTH_SOCK="$(gpgconf --list-dirs agent-ssh-socket)" ssh-add -l'
   fi
