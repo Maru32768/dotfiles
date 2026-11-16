@@ -8,7 +8,7 @@
 | フィンガープリント | `7AF93B4735CF2AAC930EF5CD78324D99D34D3111` |
 | 種類 | rsa4096 (2026-04-14 作成) |
 
-Windows と WSL はこの鍵で署名する。WSL ではない Linux の PC (desktop) と mac は、PC ごとに作った鍵で署名し、この鍵を入れない (`docs/desktop.md`、`docs/mac.md`)。
+WindowsとWSLはこの鍵で署名する。WSLではないLinuxのPC(desktop)とmacは、PCごとに作った鍵で署名し、この鍵を入れない(`docs/desktop.md`、`docs/mac.md`)。
 
 WSL には GitHub に登録していない古い鍵 `87D535BB8566CC0A` も残っている。`user.signingkey` を設定しているので署名には使われない。
 

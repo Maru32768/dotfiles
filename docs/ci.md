@@ -39,7 +39,7 @@ bash tests/ci/container.sh desktop
 ## 確かめていること
 
 - **`tests/ci/invariants.sh`:** PowerShell と cmd のスクリプトが ASCII だけ、mise 本体のバージョンが `user.sh` と `bootstrap.ps1` で同じ、GPG の鍵の指定が同じ、など。コメントや手順でしか守られていない約束をここに移す。
-- **`tests/ci/render.sh`:** `linux-main`、`linux-agent`、`linux-desktop`、`windows-main`、`darwin-main`、`darwin-work` の 6 通りを描画して適用する。スクリプトは実行しない。スキルだけはアーカイブを実際に取ってきて、`SKILL.md` があることまで確かめるので、ネットワークを使う (`docs/skills.md`)。
+- **`tests/ci/render.sh`:** `linux-main`、`linux-agent`、`linux-desktop`、`windows-main`、`darwin-main`、`darwin-work`の6通りを描画して適用する。スクリプトは実行しない。スキルだけはアーカイブを実際に取ってきて、`SKILL.md`があることまで確かめるので、ネットワークを使う(`docs/skills.md`)。
 - **agent に置くファイルの一覧:** `render.sh` に書いた一覧と完全に一致しないと失敗する。新しいファイルを足すと必ず失敗するので、そのときに隔離への影響を考えて一覧を直す。
 
 ## 確かめられないこと
