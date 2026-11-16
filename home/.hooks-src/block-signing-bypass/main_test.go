@@ -45,6 +45,7 @@ var deniedCommands = []string{
 	"mv ~/.gitconfig ~/.gitconfig.bak",
 	"rm ~/.gitconfig",
 	"echo '[commit] gpgsign = false' >> ~/.gitconfig.local",
+	"echo '[commit] gpgsign = false' >> ~/.GitConfig.local",
 }
 
 var allowedCommands = []string{
@@ -83,6 +84,7 @@ var deniedFiles = []string{
 	`C:\Users\maru3\work\r\.git\config`,
 	`C:\Users\maru3\.config\git\config`,
 	"/Users/maru/.GitConfig.local",
+	"/Users/maru/work/r/.GIT/config",
 	`C:\Users\maru3\.GITCONFIG`,
 }
 
