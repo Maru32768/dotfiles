@@ -32,7 +32,7 @@ check() { if eval "$2" >/dev/null 2>&1; then pass "$1"; else fail "$1"; fi; }
 
 if [ "$host" = mac ]; then
   check "macOS (Apple Silicon)" '[ "$(uname -s)-$(uname -m)" = Darwin-arm64 ]'
-  check "Homebrew の一覧 (packages/Brewfile) がすべて入っている" 'brew bundle check --no-upgrade --file "$HOME/dotfiles/packages/Brewfile"'
+  check "Homebrew の一覧 (packages/Brewfile) がすべて入っている" 'HOMEBREW_NO_AUTO_UPDATE=1 brew bundle check --no-upgrade --file "$HOME/dotfiles/packages/Brewfile"'
 else
   check "Ubuntu 26.04" 'grep -q "VERSION_ID=\"26.04\"" /etc/os-release'
   if [ "$host" = desktop ]; then
