@@ -269,6 +269,14 @@ blocked "DOTFILES_WORK が 1 か 0 でなければ init で止まる" 'DOTFILES_
 DOTFILES_HOST=desktop init_of darwin-bad >/dev/null 2>&1
 equals "mac では DOTFILES_HOST を読まない" "$(data_of darwin-bad .host)" mac
 
+# --- init_of と本物の init ---
+# 動いている機械の OS なら差し替えが要らないので、本物の chezmoi init と同じ設定になることを確かめる
+real="$(uname -s | tr '[:upper:]' '[:lower:]')-real"
+mkdir -p "$work/$real/home" "$work/$real/fakehome"
+DOTFILES_WORK=1 DOTFILES_HOST=wsl cm "$real" init >/dev/null 2>&1 && mv "$work/$real/chezmoi.toml" "$work/$real/real.toml"
+DOTFILES_WORK=1 DOTFILES_HOST=wsl init_of "$real" >/dev/null 2>&1
+check "init_of は本物の chezmoi init と同じ設定を作る ($real)" 'cmp -s "$work/$real/real.toml" "$work/$real/chezmoi.toml"'
+
 # --- プロファイル ---
 profile_of() { sed -n 's/^ *profile = "\(.*\)"$/\1/p' "$work/$1/chezmoi.toml"; }
 unset DOTFILES_PROFILE
