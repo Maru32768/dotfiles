@@ -80,24 +80,31 @@ desktopと同じく、PCごとの鍵で署名し、WindowsとWSLの鍵は使わ�
 
 ### 使っているMacに入れるとき
 
-`user.sh`を実行する前に、miseの版と、置き換わるファイルを確かめる。
+`user.sh`を実行する前に、次の2つを済ませる。
 
-miseが既に入っていれば、`user.sh`は入れ直さず、そのmiseでツールを入れて適用する。`mise --version`が`provision/user.sh`の`MISE_VERSION`と違えば、先に`curl -fsSL https://mise.run | MISE_VERSION=<user.shのMISE_VERSIONの値(vで始まる)> sh`で入れ直す。
+1. miseの版を揃える。miseが既に入っていれば、`user.sh`は入れ直さず、そのmiseでツールを入れて適用する。`mise --version`が`provision/user.sh`の`MISE_VERSION`と違えば、先に`curl -fsSL https://mise.run | MISE_VERSION=<user.shのMISE_VERSIONの値(vで始まる)> sh`で入れ直す。
+2. `DOTFILES_PREVIEW=1`を付けて`user.sh`を実行する。仕事のPCなら`DOTFILES_WORK=1`も付ける。適用はせずに、次の2つを出す。
 
-`user.sh`は、次のファイルを確かめずに置き換える。残したい設定は、先にリポジトリの外のファイルへ移し、元のファイルも控えておく(`docs/design.md`の「ローカルの設定」)。
+   ```bash
+   DOTFILES_PREVIEW=1 bash ~/dotfiles/provision/user.sh main ~/dotfiles
+   ```
 
-| 置き換わるもの | 残したい設定の移し先 |
+   - 適用すると書き換わる、今あるファイル(`M`の行)。残したい設定は、下の表の移し先へ移し、元のファイルも控えておく(`docs/design.md`の「ローカルの設定」)。
+   - ホームにあるmiseの設定(`~/.tool-versions`、`~/.mise.toml`など)。dotfilesの設定より優先され、`mise.lock`に無い版が入るので、移すか消す。適用の後は`doctor.sh`が確かめる。
+
+| 書き換わるもの | 残したい設定の移し先 |
 |---|---|
 | `~/.zprofile`、`~/.zshrc` | `~/.zshrc.local` |
 | `~/.gitconfig` | `~/.gitconfig.local`(署名の設定は、移しても効かない) |
 | `~/.ssh/config` | `~/.ssh/config.local` |
 | `~/.claude/CLAUDE.md` | `~/.claude/rules/`の、dotfilesが置かない名前のファイル |
-| `~/.claude/settings.json`の、共通の設定と同じキー | 移せない。ほかのキーは残る。配列(`hooks`の各イベント、`permissions.additionalDirectories`など)は丸ごと置き換わる(`docs/claude.md`) |
-| `~/.claude/pstack-models.md` | 移さない(dotfilesのものを使う)。`/setup-pstack`が別の場所(`~/.claude/rules/pstack-models.md`など)に書いたファイルは消す。残すと、食い違う2つのモデルの指定が両方読まれる |
-| `~/.claude/skills/`の、dotfilesと同じ名前のスキル | 移さない(dotfilesのものを使う)。第三者のスキルは、上流に無いファイルも消える |
-| `~/.vimrc`、`~/.tmux.conf`、`~/.ideavimrc`、`~/.config/mise/` | 移さない(dotfilesのものを使う) |
+| `~/.claude/settings.json` | 移さなくてよい。共通の設定にあるキーだけが書き換わり、ほかのキーは残る。配列(`hooks`の各イベント、`permissions.additionalDirectories`など)は丸ごと置き換わる(`docs/claude.md`) |
+| そのほか(`~/.claude/skills/`の同じ名前のスキル、`~/.vimrc`、`~/.config/mise/config.toml`など) | 移さない(dotfilesのものを使う)。第三者のスキルは、上流に無いファイルも消える |
 
-`~/.claude/skills/`にあるシンボリックリンク(`npx skills`で入れたスキルなど)は、置き換わらずに残る。`doctor.sh`が失敗にするので消す。
+次の2つは書き換わらないので、予行に出ない。
+
+- `/setup-pstack`が、dotfilesの`~/.claude/pstack-models.md`と別の場所(`~/.claude/rules/pstack-models.md`など)に書いたモデルの指定。残すと、食い違う2つが両方読まれるので消す。
+- `~/.claude/skills/`にあるシンボリックリンク(`npx skills`で入れたスキルなど)。`doctor.sh`が失敗にする。使い続けるスキルは`home/.chezmoidata/skills.toml`に足してから(`docs/skills.md`)、リンクを消す。
 
 ## 確かめていること
 

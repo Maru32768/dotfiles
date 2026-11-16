@@ -57,10 +57,19 @@ step "root.sh"
 # root.sh のプロファイルは隔離の種類 (research は research)。desktop は main
 docker exec -e "DOTFILES_HOST=$host" "$name" bash /tmp/src/provision/root.sh "$user" /tmp/src/packages/apt.txt "${profile/desktop/main}" || exit 1
 
+failures=0
+if [ "$home" = main ]; then
+  step "user.sh の予行 (DOTFILES_PREVIEW)"
+  # useradd が /etc/skel から置いた .bashrc を、dotfiles が書き換える
+  preview="$(docker exec -u "$user" -w "/home/$user" -e "HOME=/home/$user" -e "DOTFILES_HOST=$host" -e DOTFILES_PREVIEW=1 "$name" bash /tmp/src/provision/user.sh "$home" /tmp/src 2>&1)" || { printf '%s\n' "$preview"; exit 1; }
+  printf '%s\n' "$preview"
+  if grep -qx ' M .bashrc' <<<"$preview"; then echo "PASS 予行が、書き換わる今のファイル (.bashrc) を出す"; else echo "FAIL 予行が、書き換わる今のファイル (.bashrc) を出さない"; failures=$((failures + 1)); fi
+  if as_user 'cmp -s /etc/skel/.bashrc ~/.bashrc && [ ! -e ~/.config/mise/config.toml ] && [ ! -e ~/.vimrc ]'; then echo "PASS 予行は適用しない"; else echo "FAIL 予行が適用した"; failures=$((failures + 1)); fi
+fi
+
 step "user.sh"
 docker exec -u "$user" -w "/home/$user" -e "HOME=/home/$user" -e "DOTFILES_HOST=$host" "$name" bash /tmp/src/provision/user.sh "$home" /tmp/src 2>&1 | tee "$user_log" || exit 1
 
-failures=0
 # 導入のスクリプトは構築を止めないので、ここで警告を拾う
 if grep -q "警告がありました" "$user_log"; then
   echo "FAIL user.sh が警告を出した"
