@@ -43,6 +43,9 @@ OneDrive/**
 .local/bin/op-run
 .claude/rules/secrets.md
 {{ end }}
+{{ if not (get . "work" | default false) }}
+.claude/rules/pr.md
+{{ end }}
 {{ if eq .profile "agent" }}
 .ssh
 .ssh/**

@@ -36,8 +36,11 @@ chezmoi apply   # 反映する
 |---|---|---|
 | `plamo.md` | PLaMo 3 Translateの使い方(`docs/tools.md`) | Windowsだけ。WSLはNATのネットワークで動くので、Windowsの`127.0.0.1`で待ち受けるサーバーに届かない |
 | `secrets.md` | APIキーを`op-run`で渡す決まり(`docs/secrets.md`) | mac以外 |
+| `pr.md` | PRの作り方と、レビューコメントへの返信の決まり | chezmoiのデータの`work`が`true`の機械(`docs/mac.md`) |
 
-- `tests/ci/render.sh`が、環境ごとに、指示(`CLAUDE.md`と`rules/`)にPLaMoと`op-run`が出るかを確かめる。
+- `work`が無い設定(`work`ができる前に`chezmoi init`した機械)では、`false`として扱う。
+- `work`を`false`に戻しても、置いた`pr.md`は消えない。chezmoiは、無視するようになったファイルを消さないため。
+- `tests/ci/render.sh`が、環境ごとに、指示(`CLAUDE.md`と`rules/`)にPLaMo、`op-run`、PR運用が出るかを確かめる。`work`が無い設定で適用できることも確かめる。
 
 ## compact
 

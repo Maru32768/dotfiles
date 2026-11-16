@@ -207,7 +207,7 @@ done
 topics_of() {
   local text topic found=""
   text="$(cat "$work/$1/home/.claude/CLAUDE.md" "$work/$1/home/.claude/rules/"*.md 2>/dev/null)"
-  for topic in PLaMo op-run; do
+  for topic in PLaMo op-run "--assignee @me"; do
     grep -qF -- "$topic" <<<"$text" && found="$found${found:+,}$topic"
   done
   printf '%s\n' "$found"
@@ -216,6 +216,7 @@ equals "windows-main: Claude への指示に出る話題" "$(topics_of windows-m
 equals "linux-main: Claude への指示に出る話題" "$(topics_of linux-main)" "op-run"
 equals "linux-desktop: Claude への指示に出る話題" "$(topics_of linux-desktop)" "op-run"
 equals "darwin-main: Claude への指示に出る話題" "$(topics_of darwin-main)" ""
+equals "darwin-work: Claude への指示に出る話題" "$(topics_of darwin-work)" "--assignee @me"
 
 # --- Windows ---
 for file in .wslconfig OneDrive/Documents/PowerShell/Microsoft.PowerShell_profile.ps1 .claude/settings.json .claude/CLAUDE.md .vimrc .local/bin/op-run.ps1 .local/bin/op-run.cmd .local/bin/split-pdf .local/bin/split-pdf.cmd .local/bin/usage-log .local/bin/usage-log.cmd; do
@@ -269,6 +270,8 @@ blocked "DOTFILES_HOST で mac は選べない (mac は OS で決まる)" 'DOTFI
 equals "darwin-main: work は false" "$(data_of darwin-main '.work | tojson')" false
 equals "darwin-main: 置かれるファイルは linux-desktop から bash の設定と 1Password のものを除いたもの" "$(files_of darwin-main)" \
   "$(files_of linux-desktop | tr ' ' '\n' | grep -vxE '\.bashrc|\.bash_profile|\.local/bin/op-run|\.claude/rules/secrets\.md' | paste -sd ' ' -)"
+equals "darwin-work: 置かれるファイルは darwin-main に PR運用の指示を足したもの" "$(files_of darwin-work)" \
+  "$(files_of darwin-main | tr ' ' '\n' | { cat; echo .claude/rules/pr.md; } | sort | paste -sd ' ' -)"
 equals "darwin-main: 実行するスクリプトは linux-desktop と同じ" "$(scripts_of darwin-main)" "$(scripts_of linux-desktop)"
 # files_of は external を含まないので、Codex のスキルを置かないことはここで確かめる
 equals "darwin-main: スキルは Claude のものだけ置く" "$(actual_skills darwin-main)" \
@@ -298,11 +301,17 @@ for entry in linux-work-wsl:wsl linux-work-desktop:desktop windows-work:; do
   mkdir -p "$work/$name/home" "$work/$name/fakehome"
   DOTFILES_HOST="${entry#*:}" DOTFILES_WORK=1 init_of "$name" >/dev/null 2>&1
   equals "$name: DOTFILES_WORK=1 で work が true" "$(data_of "$name" '.work | tojson')" true
+  check "$name: PR運用の指示を置く" 'cm "$name" apply --exclude scripts,externals && [ -f "$work/$name/home/.claude/rules/pr.md" ]'
   check "$name: 環境変数なしで init し直せる" 'init_of "$name"'
   equals "$name: 環境変数なしで init し直しても work が残る" "$(data_of "$name" '.work | tojson')" true
   DOTFILES_WORK=0 init_of "$name" >/dev/null 2>&1
   equals "$name: DOTFILES_WORK=0 で work が false に戻る" "$(data_of "$name" '.work | tojson')" false
 done
+# work ができる前の設定。init し直さずに apply する機械では、これがそのまま読まれる
+mkdir -p "$work/linux-legacy/home" "$work/linux-legacy/fakehome"
+printf '[data]\n    profile = "main"\n    host = "wsl"\n    name = "Maru32768"\n    email = "maru32768@gmail.com"\n    signingKey = "78324D99D34D3111"\n' >"$work/linux-legacy/chezmoi.toml"
+check "work がない設定でも適用できる" 'cm linux-legacy apply --exclude scripts,externals'
+blocked "work がない設定では PR運用の指示を置かない" '[ -e "$work/linux-legacy/home/.claude/rules/pr.md" ]'
 
 # --- プロファイル ---
 profile_of() { sed -n 's/^ *profile = "\(.*\)"$/\1/p' "$work/$1/chezmoi.toml"; }
