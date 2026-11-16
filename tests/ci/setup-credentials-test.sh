@@ -21,6 +21,8 @@ hasnt() { if grep -qF -- "$2" "$log"; then fail "$1 (ある: $2)"; else pass "$1
 
 bin="$work/bin"
 mkdir -p "$bin"
+# mise の shim は、偽の HOME と PATH の中ではどの版を使うか決められず、失敗するか自分を呼び続ける
+PATH="$(printf %s "$PATH" | tr : '\n' | grep -v '/mise/shims$' | paste -sd: -)"
 for tool in jq awk cat mkdir dirname grep sed rm mktemp basename tr head env; do
   path="$(command -v "$tool")" || { fail "$tool が無い"; exit 1; }
   ln -s "$path" "$bin/$tool"
