@@ -34,7 +34,7 @@ chezmoi apply   # 反映する
 
 | ファイル | 内容 | 置く環境 |
 |---|---|---|
-| `plamo.md` | PLaMo 3 Translateの使い方(`docs/tools.md`) | Windowsだけ。WSLはNATのネットワークで動くので、Windowsの`127.0.0.1`で待ち受けるサーバーに届かない |
+| `plamo.md` | PLaMo 3 Translateの使い方(`docs/tools.md`) | Windowsだけ。WSLのLinuxのプロセスはNATのネットワークで動くので、Windowsの`127.0.0.1`で待ち受けるサーバーに届かない |
 | `secrets.md` | APIキーを`op-run`で渡す決まり(`docs/secrets.md`) | mac以外 |
 | `pr.md` | PRの作り方と、レビューコメントへの返信の決まり | chezmoiのデータで`work`が`true`の機械(`docs/mac.md`) |
 
