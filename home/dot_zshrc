@@ -23,7 +23,8 @@ select-word-style default
 zstyle ':zle:*' word-chars " /=;@:{},|"
 zstyle ':zle:*' word-style unspecified
 
-autoload -Uz compinit && compinit
+# 安全でない (ほかのユーザーが書ける) 補完のディレクトリは、起動のたびに確かめを求めずに読まない
+autoload -Uz compinit && compinit -i
 zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'
 zstyle ':completion:*' ignore-parents parent pwd ..
 zstyle ':completion:*:sudo:*' command-path /opt/homebrew/sbin /opt/homebrew/bin /usr/local/sbin /usr/local/bin /usr/sbin /usr/bin /sbin /bin
