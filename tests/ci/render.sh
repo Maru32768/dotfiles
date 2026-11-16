@@ -38,9 +38,8 @@ cm() {
 # chezmoi init は設定のテンプレートに --override-data を効かせず、動いている機械の OS とカーネルを読む。
 # execute-template --init なら効くので、その結果を設定にする
 init_of() {
-  local config
-  config="$(cm "$1" execute-template --init <"$root/home/.chezmoi.toml.tmpl")" || return 1
-  printf '%s\n' "$config" >"$work/$1/chezmoi.toml"
+  cm "$1" execute-template --init <"$root/home/.chezmoi.toml.tmpl" >"$work/$1/chezmoi.toml.new" || { rm -f "$work/$1/chezmoi.toml.new"; return 1; }
+  mv "$work/$1/chezmoi.toml.new" "$work/$1/chezmoi.toml"
 }
 
 # linux-main と linux-agent は WSL、linux-desktop は WSL ではない PC。CI はどちらのカーネルでも動くので、host を指定する
