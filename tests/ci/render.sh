@@ -138,7 +138,7 @@ done
 for tool in op-run split-pdf usage-log; do
   check "linux-main: $tool が実行できる" '[ -x "$work/linux-main/home/.local/bin/$tool" ]'
 done
-for file in .local/bin/op-run.ps1 .local/bin/op-run.cmd .local/bin/split-pdf.cmd .local/bin/usage-log.cmd; do
+for file in .local/bin/op-run.ps1 .local/bin/op-run.cmd .local/bin/split-pdf.cmd .local/bin/usage-log.cmd .zshrc .zprofile; do
   blocked "linux-main: $file がない" '[ -e "$work/linux-main/home/$file" ]'
 done
 blocked "linux-main: plamo-server.cmd がない" '[ -e "$work/linux-main/home/.local/bin/plamo-server.cmd" ]'
@@ -217,7 +217,7 @@ for file in .wslconfig OneDrive/Documents/PowerShell/Microsoft.PowerShell_profil
 done
 check "windows-main: plamo-server.cmd がある" '[ -f "$work/windows-main/home/.local/bin/plamo-server.cmd" ]'
 check "windows-main: plamo-server は 127.0.0.1 だけで待ち受け、CORS を localhost に絞る" 'grep -qF -- "--host 127.0.0.1 --port 8077 --cors-origins localhost --no-cors-credentials" "$work/windows-main/home/.local/bin/plamo-server.cmd"'
-for file in .tmux.conf .ssh .config/environment.d .local/bin/op-run; do
+for file in .tmux.conf .ssh .config/environment.d .local/bin/op-run .zshrc .zprofile; do
   blocked "windows-main: $file がない" '[ -e "$work/windows-main/home/$file" ]'
 done
 equals "windows-main: gpg-agent.conf は既存の行を残し、キャッシュを WSL と同じにする" "$(cat "$work/windows-main/home/.gnupg/gpg-agent.conf")" 'pinentry-program C:\pinentry.exe
@@ -261,13 +261,26 @@ blocked "DOTFILES_HOST で mac は選べない (mac は OS で決まる)" 'DOTFI
 
 # --- mac ---
 equals "darwin-main: work は false" "$(data_of darwin-main '.work | tojson')" false
-equals "darwin-main: 置かれるファイルは linux-desktop から bash の設定と 1Password のものを除いたもの" "$(files_of darwin-main)" \
-  "$(files_of linux-desktop | tr ' ' '\n' | grep -vxE '\.bashrc|\.bash_profile|\.local/bin/op-run|\.claude/rules/secrets\.md' | paste -sd ' ' -)"
+equals "darwin-main: 置かれるファイルは linux-desktop から bash の設定と 1Password のものを除き、zsh の設定を足したもの" "$(files_of darwin-main)" \
+  "$({ files_of linux-desktop | tr ' ' '\n' | grep -vxE '\.bashrc|\.bash_profile|\.local/bin/op-run|\.claude/rules/secrets\.md'; printf '%s\n' .zprofile .zshrc; } | sort | paste -sd ' ' -)"
 equals "darwin-main: 実行するスクリプトは linux-desktop と同じ" "$(scripts_of darwin-main)" "$(scripts_of linux-desktop)"
 # files_of は external を含まないので、Codex のスキルを置かないことはここで確かめる
 equals "darwin-main: スキルは Claude のものだけ置く" "$(actual_skills darwin-main)" \
   "$(expected_skills darwin-main | tr ' ' '\n' | grep -v '^\.agents/' | paste -sd ' ' -)"
 equals "darwin-main: 鍵を渡す前の signingKey は空" "$(data_of darwin-main .signingKey)" ""
+if command -v zsh >/dev/null; then
+  zhome="$work/zsh-home"
+  mkdir -p "$zhome"
+  cp "$work/darwin-main/home/.zshrc" "$work/darwin-main/home/.zprofile" "$zhome/"
+  printf 'export DOTFILES_LOCAL_LOADED=1\n' >"$zhome/.zshrc.local"
+  # 動かしている機械の mise やシェルの環境に左右されないように、環境を空にして動かす
+  zsh_in() { env -i HOME="$zhome" ZDOTDIR="$zhome" PATH=/usr/bin:/bin TERM=dumb "$(command -v zsh)" "$@" </dev/null 2>/dev/null; }
+  equals "darwin-main: .zshrc が最後まで読めて、~/.zshrc.local を読む" "$(zsh_in -i -c 'print -r -- $DOTFILES_LOCAL_LOADED')" 1
+  equals "darwin-main: .zprofile が ~/.local/bin と mise を PATH の先頭に置く" "$(zsh_in -l -c 'print -r -- ${path[1,3]}')" \
+    "$zhome/.local/bin $zhome/go/bin $zhome/.local/share/mise/shims"
+else
+  printf 'SKIP zsh が無いので、mac の zsh の設定を動かす検査を飛ばす\n'
+fi
 DOTFILES_SIGNING_KEY=1111222233334444 init_of darwin-work >/dev/null 2>&1
 check "darwin-work: 環境変数なしで init し直せる" 'init_of darwin-work'
 equals "darwin-work: 環境変数なしで init し直しても鍵、host、work が残る" "$(data_of darwin-work '.signingKey + " " + .host + " " + (.work | tojson)')" "1111222233334444 mac true"

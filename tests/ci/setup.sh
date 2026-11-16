@@ -8,6 +8,11 @@ version="$(sed -n 's/^MISE_VERSION="\(.*\)"$/\1/p' "$root/provision/user.sh")"
 
 curl -fsSL https://mise.run | MISE_VERSION="$version" sh
 
+# render.sh が mac の zsh の設定を動かして確かめる。ランナーに無ければ入れる
+if ! command -v zsh >/dev/null; then
+  sudo apt-get update -qq && sudo apt-get install -y -qq zsh
+fi
+
 mkdir -p "$HOME/.config/mise"
 cp "$root/home/dot_config/mise/config.toml" "$root/home/dot_config/mise/mise.lock" "$HOME/.config/mise/"
 

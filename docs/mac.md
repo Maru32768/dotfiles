@@ -14,7 +14,16 @@ WSLではないLinuxのPC(desktop)と同じものを置き、同じスクリプ�
 | `~/.agents` | Codexのスキルの置き場(`docs/skills.md`)だが、Codexを使わない |
 | `~/.local/bin/op-run`、`~/.claude/rules/secrets.md` | 1Passwordを使わない |
 
-desktopと同じく、WSLgのための`~/.config/environment.d`も置かない。Linuxと同じく、Windows用のファイルも置かない。
+desktopと同じく、WSLgのための`~/.config/environment.d`も置かない。Linuxと同じく、Windows用のファイルも置かない。代わりに、zshの設定(`~/.zprofile`、`~/.zshrc`)をmacにだけ置く。
+
+Homebrewを`/opt/homebrew`に入れる、Apple Siliconのmacだけを考えている。
+
+## シェル
+
+macのシェルはzsh。
+
+- `~/.zprofile`は、Homebrewの環境を読み、`~/.local/bin`、`~/go/bin`、miseのshimsをPATHの先頭に足す。macOSの`/etc/zprofile`(path_helper)がシステムのパスを先頭に並べ直すので、`.zshenv`ではなくここで足す。
+- `~/.zshrc`は、対話のシェルの設定(プロンプト、履歴、補完、エイリアス)、`mise activate`、`GPG_TTY`を持つ。最後に`~/.zshrc.local`があれば読む。
 
 ## 仕事のPC(`work`)
 
@@ -38,4 +47,4 @@ desktopと同じく、PCごとの鍵で署名し、WindowsとWSLの鍵は使わ�
 
 ## 確かめていること
 
-`tests/ci/render.sh`が`.chezmoi.os`を`darwin`に差し替えて、`darwin-main`と`darwin-work`を描画して適用する。hostと`work`の値、それらが残ること、置くファイルと実行するスクリプト、署名鍵、macに`agent`を作れないことを確かめる。macのhostが、`DOTFILES_HOST`や設定に残ったhostで変わらないことも確かめる。`work`は、LinuxのwslとdesktopとWindowsでも、同じように読んで残り、PR運用の指示を置くことを確かめる。`.chezmoi.os`を差し替えるだけなので、実際のmacでの動作までは分からない。
+`tests/ci/render.sh`が`.chezmoi.os`を`darwin`に差し替えて、`darwin-main`と`darwin-work`を描画して適用する。hostと`work`の値、それらが残ること、置くファイルと実行するスクリプト、署名鍵、macに`agent`を作れないことを確かめる。macのhostが、`DOTFILES_HOST`や設定に残ったhostで変わらないことも確かめる。`work`は、LinuxのwslとdesktopとWindowsでも、同じように読んで残り、PR運用の指示を置くことを確かめる。zshがあれば、`~/.zshrc`が最後まで読めて`~/.zshrc.local`を読むことと、`~/.zprofile`のPATHを、zshを動かして確かめる(CIではランナーにzshを入れる)。`.chezmoi.os`を差し替えるだけなので、実際のmacでの動作までは分からない。

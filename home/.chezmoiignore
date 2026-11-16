@@ -33,6 +33,10 @@ OneDrive/**
 .config/environment.d
 .config/environment.d/**
 {{ end }}
+{{ if ne (get . "host" | default "") "mac" }}
+.zshrc
+.zprofile
+{{ end }}
 {{ if eq (get . "host" | default "") "mac" }}
 # mac のシェルは zsh
 .bashrc
