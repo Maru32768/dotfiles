@@ -3,6 +3,7 @@
 # 使い方: setup-credentials.sh [エクスポートした GPG 秘密鍵ファイル]
 #   WSL: ファイルを渡さなければ、Windows 側の gpg から取り込む。
 #   desktop (WSL ではない PC): この PC 専用の署名鍵を作り、chezmoi の signingKey にする (docs/desktop.md)。
+#   mac: desktop と同じく PC 専用の署名鍵を作る。SSH キーは macOS の ssh-agent と Keychain で扱う (docs/mac.md)。
 set -euo pipefail
 
 GPG_FPR="7AF93B4735CF2AAC930EF5CD78324D99D34D3111"
@@ -11,23 +12,32 @@ SSH_KEY="$HOME/.ssh/github"
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 GPG_TTY="$(tty)" && export GPG_TTY
-SSH_AUTH_SOCK="$(gpgconf --list-dirs agent-ssh-socket)"
-export SSH_AUTH_SOCK
 
 export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$PATH"
 data="$(cd "$HOME" && chezmoi data --format json)"
 host="$(jq -r '.host // "wsl"' <<<"$data")"
 
-if [ "$host" = desktop ]; then
+if [ "$host" = mac ]; then
+  # 鍵の uid は GitHub で公開され、仕事の PC のホスト名は社内の名前のことがあるので、ホスト名を入れない
+  label="$(jq -r 'if .work then "work-mac" else "mac" end' <<<"$data")"
+else
+  label="$(hostname)"
+  SSH_AUTH_SOCK="$(gpgconf --list-dirs agent-ssh-socket)"
+  export SSH_AUTH_SOCK
+fi
+
+if [ "$host" = desktop ] || [ "$host" = mac ]; then
   key="$(jq -r '.signingKey // ""' <<<"$data")"
   if [ -z "$key" ] || ! gpg --list-secret-keys "$key" >/dev/null 2>&1; then
     echo "==> この PC 専用の GPG 署名鍵を作ります (ポップアップでパスフレーズを聞かれます)"
     # GitHub はメールアドレスで鍵とコミットを結びつける。PC の名前はコメントに入れて、ほかの PC の鍵と見分ける
-    uid="$(jq -r --arg host "$(hostname)" '"\(.name) (\($host)) <\(.email)>"' <<<"$data")"
+    uid="$(jq -r --arg label "$label" '"\(.name) (\($label)) <\(.email)>"' <<<"$data")"
     fpr="$(gpg --status-fd 1 --quick-generate-key "$uid" ed25519 sign never | awk '$2 == "KEY_CREATED" { print $4 }')"
     [ -n "$fpr" ] || { echo "鍵を作れませんでした" >&2; exit 1; }
-    # op-run はトークンを署名の鍵あてに暗号化するので、暗号化の副鍵も要る
-    gpg --quick-add-key "$fpr" cv25519 encr never
+    # op-run はトークンを署名の鍵あてに暗号化するので、暗号化の副鍵も要る。mac では op-run を使わない
+    if [ "$host" = desktop ]; then
+      gpg --quick-add-key "$fpr" cv25519 encr never
+    fi
     key="${fpr: -16}"
     (cd "$HOME" && DOTFILES_SIGNING_KEY="$key" chezmoi init --no-tty && chezmoi apply --no-tty "$HOME/.gitconfig")
     echo "==> 次の公開鍵を https://github.com/settings/gpg/new に登録してください"
@@ -50,14 +60,23 @@ fi
 if [ ! -f "$SSH_KEY" ]; then
   echo "==> この環境専用の SSH キーを作ります"
   mkdir -p "$(dirname "$SSH_KEY")"
-  ssh-keygen -t ed25519 -f "$SSH_KEY" -C "$(id -un)@$(hostname)"
+  if [ "$host" = mac ]; then
+    ssh-keygen -t ed25519 -f "$SSH_KEY" -C "$(jq -r .name <<<"$data") ($label)"
+  else
+    ssh-keygen -t ed25519 -f "$SSH_KEY" -C "$(id -un)@$(hostname)"
+  fi
 fi
 
 if ! ssh-add -l 2>/dev/null | grep -q "$(ssh-keygen -lf "$SSH_KEY.pub" | awk '{print $2}')"; then
-  echo "==> SSH キーを gpg-agent に登録します (ポップアップでパスフレーズを聞かれます)"
-  # SSH の要求には表示先の情報が付かないので、今の表示先を gpg-agent に伝える
-  gpg-connect-agent updatestartuptty /bye >/dev/null
-  ssh-add "$SSH_KEY"
+  if [ "$host" = mac ]; then
+    echo "==> SSH キーを ssh-agent に登録し、パスフレーズを Keychain に保存します"
+    ssh-add --apple-use-keychain "$SSH_KEY"
+  else
+    echo "==> SSH キーを gpg-agent に登録します (ポップアップでパスフレーズを聞かれます)"
+    # SSH の要求には表示先の情報が付かないので、今の表示先を gpg-agent に伝える
+    gpg-connect-agent updatestartuptty /bye >/dev/null
+    ssh-add "$SSH_KEY"
+  fi
 fi
 
 # GitHub は認証に成功しても終了コード 1 を返すので、出力で判定する
