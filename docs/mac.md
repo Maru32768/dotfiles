@@ -21,7 +21,7 @@ Homebrewを`/opt/homebrew`に入れる、Apple Siliconのmacだけを考えて�
 ## シェル
 
 - `~/.zprofile`は、Homebrewの環境を読み、`~/.local/bin`、`~/go/bin`、miseのshimsをPATHの先頭に足す。macOSの`/etc/zprofile`(path_helper)がシステムのパスを先頭に並べ直すので、`.zshenv`ではなくここで足す。
-- `~/.zshrc`は、対話のシェルの設定(プロンプト、履歴、補完、エイリアス)、`mise activate`、`GPG_TTY`を持つ。最後に`~/.zshrc.local`があれば読む(`docs/design.md`の「ローカルの設定」)。
+- `~/.zshrc`は、対話のシェルの設定、`mise activate`、`GPG_TTY`を持つ。最後に`~/.zshrc.local`があれば読む(`docs/design.md`の「ローカルの設定」)。
 
 ## SSHとGPG
 
