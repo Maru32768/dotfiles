@@ -312,8 +312,9 @@ if command -v zsh >/dev/null; then
   equals "darwin-main: .zshrc が最後まで読めて、最後に ~/.zshrc.local を読む (ローカルの値が勝つ)" "$(zsh_in -i -c 'print -r -- $DOTFILES_LOCAL_LOADED ${aliases[ls]} $GPG_TTY')" "1 local-ls local-tty"
   mkdir -p "$zhome/no-local"
   cp "$work/darwin-main/home/.zshrc" "$zhome/no-local/"
-  # 端末が無いので、.zshrc が決める GPG_TTY は tty の出力の not a tty になる
-  equals "darwin-main: ~/.zshrc.local が無くても、.zshrc がエラーを出さずに最後まで読め、GPG_TTY を決める" "$(env -i HOME="$zhome/no-local" PATH=/usr/bin:/bin "$(command -v zsh)" -i -c 'print -r -- $GPG_TTY' </dev/null 2>&1)" "not a tty"
+  # 端末が無いので、.zshrc が決める GPG_TTY は tty の出力の not a tty になる。
+  # システムの rc (Ubuntu の /etc/zsh/zshrc の compinit など) の出力を混ぜないように、それは読まない
+  equals "darwin-main: ~/.zshrc.local が無くても、.zshrc がエラーを出さずに最後まで読め、GPG_TTY を決める" "$(env -i HOME="$zhome/no-local" PATH=/usr/bin:/bin "$(command -v zsh)" -o no_global_rcs -i -c 'print -r -- $GPG_TTY' </dev/null 2>&1)" "not a tty"
   equals "darwin-main: .zprofile が ~/.local/bin と mise を PATH の先頭に置く" "$(zsh_in -l -c 'print -r -- ${path[1,3]}')" \
     "$zhome/.local/bin $zhome/go/bin $zhome/.local/share/mise/shims"
   equals "darwin-main: ログインシェルを入れ子にしても、PATH と fpath の項目が重ならない" "$(zsh_in -l -c 'zsh -l -c '\''u=(${(u)path}); f=(${(u)fpath}); print -r -- $(( ${#path} - ${#u} )) $(( ${#fpath} - ${#f} ))'\''')" "0 0"
