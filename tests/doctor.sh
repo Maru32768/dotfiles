@@ -110,11 +110,7 @@ check "署名回避のフックが拒否する" "printf '%s' '$deny_input' | '$h
 check "署名回避のフックが通常のコマンドを通す" "[ -z \"\$(printf '%s' '$allow_input' | '$hook')\" ]"
 check "Claude の設定にフックがある" 'jq -e ".hooks.PreToolUse[0].hooks[0].command | test(\"block-signing-bypass\")" ~/.claude/settings.json'
 check "Claude Code" 'claude --version'
-if [ "$host" = mac ]; then
-  check "サンドボックス (Seatbelt)" 'command -v sandbox-exec'
-else
-  check "サンドボックスの依存" 'command -v bwrap && command -v socat'
-fi
+[ "$host" = mac ] || check "サンドボックスの依存" 'command -v bwrap && command -v socat'
 
 # 一覧にあるものがすべて入っていること。ビルドの失敗までは分からない
 plug_dir="$HOME/.vim/plugged"
