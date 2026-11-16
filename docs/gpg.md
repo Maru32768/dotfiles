@@ -67,9 +67,9 @@ WSL では `pinentry-gtk2` を使い、WSLg のポップアップで入力する
 
 - `/usr/bin/pinentry` は `update-alternatives` の自動選択で `pinentry-gtk-2` を指す (優先度が `pinentry-curses` より高い)。
 - JetBrains IDE が `gpg-agent.conf` に `pinentry-program` を書き込むことがある。chezmoi は必要な行だけを管理するので、この行は残る。
-- mac では pinentry-mac を使う (`docs/mac.md`)。
 - SSH キーのパスフレーズも gpg-agent が扱うので、同じポップアップが出る。SSH の要求には表示先の情報が付かないので、`home/dot_config/environment.d/wslg.conf` で gpg-agent の環境に `DISPLAY` を入れている。
 - 端末を持たないプロセス (Claude のコミットなど) でも `DISPLAY` があればポップアップが出るはず。キャッシュが切れた状態では未確認。
+- macではpinentry-macを使う(`docs/mac.md`)。
 
 ## キャッシュ時間
 

@@ -95,15 +95,16 @@ wsl -d dev -u root passwd maru
 
 ## ローカルの設定
 
-PCごとの設定や仕事の設定(社内のホスト、社内のCAなど)は、リポジトリの外のファイルに書く。dotfilesの設定が、それを最後に読む。
+PCごとの設定や仕事の設定(社内のホスト、社内のCAなど)は、リポジトリの外のファイルに書く。dotfilesの設定がそれを最後に読む。
 
 | ファイル | 読むところ | 読む環境 |
 |---|---|---|
-| `~/.gitconfig.local` | `~/.gitconfig`の最後の`[include]` | `agent`以外(隔離した環境のため)。後に読むので、dotfilesの値より優先される |
+| `~/.gitconfig.local` | `~/.gitconfig`の最後(`[include]`) | `agent`以外(隔離した環境のため) |
 | `~/.ssh/config.local` | `~/.ssh/config`の最後(`Match all`の後の`Include`) | `~/.ssh/config`を置く環境(Windowsと`agent`以外) |
 | `~/.zshrc.local` | `~/.zshrc`の最後 | mac(`docs/mac.md`) |
 
-- `~/.ssh/config.local`を最後に読むのは、GitHubの設定を先に置くため。sshは最初に見つけた値を使い、`IdentityFile`は見つけた順に試すので、`config.local`の`Host *`に鍵があっても、GitHubにはdotfilesの鍵(`~/.ssh/github`)を先に試す。
+- `~/.gitconfig.local`は最後に読むので、dotfilesの値より優先される。
+- `~/.ssh/config.local`を最後に読むのは、GitHubの設定を先に置くため。sshは最初に見つけた値を使い、`IdentityFile`は見つけた順に試す。そのため、`config.local`の`Host *`に鍵があっても、GitHubに接続するときはdotfilesの設定が指定する鍵(`~/.ssh/github`)を先に試す。
 - `Include`を`Match all`の後に置くのは、直前の`Host`の中に入って、GitHubに接続するときだけ読まれるのを避けるため。
 
 ## 資格情報
@@ -117,7 +118,7 @@ PCごとの設定や仕事の設定(社内のホスト、社内のCAなど)は�
 
 - `~/.ssh` と `~/.gitconfig` を Windows へのリンクにしない。WSL が単体で復元できなくなり、隔離とも両立しないため。
 - SSH キーは環境ごとに作り直せるので、バックアップしない。作り直したら古い鍵を GitHub から消す。
-- SSH キーのパスフレーズも gpg-agent で扱う。入力はポップアップで、キャッシュは GPG と同じ (最後に使ってから 24 時間、最長 72 時間)。mac は macOS の ssh-agent (Keychain) で扱う (`docs/mac.md`)。
+- WSL と desktop では、SSH キーのパスフレーズも gpg-agent で扱う。入力はポップアップで、キャッシュは GPG と同じ (最後に使ってから 24 時間、最長 72 時間)。mac は macOS の ssh-agent (Keychain) で扱う (`docs/mac.md`)。
 - 長く保管する秘密は、GPG 鍵と Lattice の更新の署名鍵。1Password の Personal vault に置く (`docs/secrets.md`)。
 - パスワードマネージャーは1Password。構築の前提にはしない。`agent`ではサインインしない。
 - APIキーは1Passwordのvaultに置き、`op-run`で渡す。`.env` や `mise.local.toml` に平文で書かない (`docs/secrets.md`)。
