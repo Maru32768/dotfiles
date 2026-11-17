@@ -34,7 +34,7 @@ Homebrewを`/opt/homebrew`に入れるApple Siliconのmacで、macOS 15以降だ
 
 どちらも`packages/Brewfile`に書かず、手で入れる。
 
-- Karabiner-Elementsの設定(`~/.config/karabiner/karabiner.json`)は、chezmoiがmacにだけ置く。画面で設定を変えると、このファイルが書き換わり、`doctor.sh`の「chezmoi の管理ファイルに差分がない」が失敗する。変えた設定を残すなら`chezmoi re-add ~/.config/karabiner/karabiner.json`でdotfilesに取り込み、捨てるなら`chezmoi apply`で戻す。
+- Karabiner-Elementsの設定(`~/.config/karabiner/karabiner.json`)は、chezmoiがmacにだけ置く。画面で設定を変えると、このファイルが書き換わり、`doctor.sh`の「chezmoi の管理ファイルに差分がない」が失敗する。`user.sh`の適用も、上書きしてよいかを尋ねられずに止まる。変えた設定を残すなら`chezmoi re-add ~/.config/karabiner/karabiner.json`でdotfilesに取り込み、捨てるなら`chezmoi apply`で上書きを選んで戻す。
 - SteerMouseの設定ファイルにはライセンスが入っているので、dotfilesでは扱わない。代わりに、SteerMouseの「Export...」で書き出した、アプリごとの設定のうちDefaultのものを`provision/mac/Default.smsetting_app`に置く。書き出したファイルは暗号化されていて中身を読めないので、ライセンスが入っていないことも、差分で何が変わったかも確かめられない。新しいMacでは、ライセンスを入力してから「Import...」でこのファイルを読み込む。設定を変えたら、書き出し直してこのファイルを置き換える。
 
 ## 仕事のPC(`work`)
