@@ -277,7 +277,7 @@ out="$(bash "$lost" before-crlf.md -- after.md)"
 equals "改行がCRLFの行も、LFの行と同じとみなす" "$? $out" "0 "
 
 : > empty.md
-out="$(bash "$lost" empty.md before.md -- after.md | wc -l)"
+out="$(bash "$lost" empty.md before.md -- after.md | wc -l | tr -d ' ')"
 equals "前のファイルに空のファイルがあっても、次のファイルを読む" "$out" "4"
 
 bash "$lost" before.md >/dev/null 2>&1
