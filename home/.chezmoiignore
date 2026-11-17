@@ -45,6 +45,8 @@ OneDrive/**
 {{ else }}
 .zshrc
 .zprofile
+.config/karabiner
+.config/karabiner/**
 {{ end }}
 {{ if not (get . "work" | default false) }}
 .claude/rules/pr.md

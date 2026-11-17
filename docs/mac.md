@@ -14,7 +14,7 @@ WSLではないLinuxのPC(desktop)と同じものを置き、同じスクリプ�
 | `~/.agents` | Codexのスキルの置き場(`docs/skills.md`)だが、Codexを使わない |
 | `~/.local/bin/op-run`、`~/.claude/rules/secrets.md` | 1Passwordを使わない |
 
-desktopと同じく、WSLgのための`~/.config/environment.d`も置かない。Linuxと同じく、Windows用のファイルも置かない。zshの設定(`~/.zprofile`、`~/.zshrc`)はmacにだけ置く。
+desktopと同じく、WSLgのための`~/.config/environment.d`も置かない。Linuxと同じく、Windows用のファイルも置かない。zshの設定(`~/.zprofile`、`~/.zshrc`)はmacにだけ置く。Karabiner-Elementsの設定(`~/.config/karabiner/karabiner.json`)もmacにだけ置く。
 
 Homebrewを`/opt/homebrew`に入れるApple Siliconのmacで、macOS 15以降だけを考えている。`jq`はmacOSに入っているものを使い、macOS 15より前には入っていない。
 
@@ -29,6 +29,13 @@ Homebrewを`/opt/homebrew`に入れるApple Siliconのmacで、macOS 15以降だ
 - SSHはmacOSのssh-agentを使う。GitHubの鍵は`~/.ssh/config`の`AddKeysToAgent`でssh-agentに読み込み、パスフレーズを`UseKeychain`でKeychainに保存する。仕事のホストの鍵もmacOSのssh-agentで使うので、Linuxと違って`SSH_AUTH_SOCK`をgpg-agentに向けず、gpg-agentのSSHの機能(`enable-ssh-support`)も使わない。
 - `~/.ssh/config`の先頭に`IgnoreUnknown UseKeychain`を置き、Apple以外のssh(Homebrewのopensshなど)が`UseKeychain`で止まらないようにする。`IgnoreUnknown`も最初に見つけた値が使われるので、`~/.ssh/config.local`に書いた`IgnoreUnknown`は効かない。ほかに無視させたいオプションがあれば、dotfilesのこの行に足す。
 - GPGのパスフレーズはpinentry-macの画面で入力する。`gpg-agent.conf`に`pinentry-program`が無いときだけ、chezmoiが`/opt/homebrew/bin/pinentry-mac`を足す(JetBrains IDEなどが書いたものは残る)。pinentry-macは`packages/Brewfile`で入る。
+
+## Karabiner-ElementsとSteerMouse
+
+どちらも`packages/Brewfile`に書かず、手で入れる。
+
+- Karabiner-Elementsの設定(`~/.config/karabiner/karabiner.json`)は、chezmoiがmacにだけ置く。画面で設定を変えると、このファイルが書き換わり、`doctor.sh`の「chezmoi の管理ファイルに差分がない」が失敗する。`user.sh`の適用も、上書きしてよいかを尋ねられずに止まる。変えた設定を残すなら`chezmoi re-add ~/.config/karabiner/karabiner.json`でdotfilesに取り込み、捨てるなら`chezmoi apply`で上書きを選んで戻す。
+- SteerMouseの設定ファイルにはライセンスが入っているので、dotfilesでは扱わない。代わりに、SteerMouseの「Export...」で書き出した、アプリごとの設定のうちDefaultのものを`provision/mac/Default.smsetting_app`に置く。書き出したファイルは暗号化されていて中身を読めないので、ライセンスが入っていないことも、差分で何が変わったかも確かめられない。新しいMacでは、ライセンスを入力してから「Import...」でこのファイルを読み込む。設定を変えたら、書き出し直してこのファイルを置き換える。
 
 ## 仕事のPC(`work`)
 
@@ -77,6 +84,7 @@ desktopと同じく、PCごとの鍵で署名し、WindowsとWSLの鍵は使わ�
    スクリプトはこのPC専用のGPG署名鍵とSSHキーを作り、それぞれの公開鍵を表示する。GPGの公開鍵は<https://github.com/settings/gpg/new>に、SSHの公開鍵は<https://github.com/settings/ssh/new>に登録して、もう一度実行する。鍵のuidとSSHキーのコメントには、ホスト名ではなく`mac`か`work-mac`が入る(uidはGitHubで公開される)。1Password(`op-run`)は使わないので、暗号化の副鍵は作らない。
 
 5. `bash ~/dotfiles/tests/doctor.sh`で確かめる。
+6. Karabiner-ElementsとSteerMouseを使うなら、手で入れる。SteerMouseの設定は「Karabiner-ElementsとSteerMouse」の手順で読み込む。
 
 ### 使っているMacに入れるとき
 
@@ -99,7 +107,7 @@ desktopと同じく、PCごとの鍵で署名し、WindowsとWSLの鍵は使わ�
 | `~/.ssh/config` | `~/.ssh/config.local`。colimaを使うなら、colimaが`~/.ssh/config`の先頭に書いた`.colima/ssh_config`の`Include`も、`config.local`の先頭(最初の`Host`や`Match`より前)へ移す。`Host`の後に置くと、その`Host`に合うときしか読まれず、`ssh colima`が黙ってつながらなくなる。あわせて、使うプロファイルの`colima.yaml`(`default`なら`~/.colima/default/colima.yaml`)の`sshConfig`を`false`にする。`true`のままだと、colimaが`~/.ssh/config`を書き換えるので、`doctor.sh`の「chezmoi の管理ファイルに差分がない」が失敗する |
 | `~/.claude/CLAUDE.md` | `~/.claude/rules/`の、dotfilesが置かない名前のファイル |
 | `~/.claude/settings.json` | 移さなくてよい。共通の設定にあるキーだけが書き換わり、ほかのキーは残る。配列(`hooks`の各イベント、`permissions.additionalDirectories`など)は丸ごと置き換わる(`docs/claude.md`) |
-| そのほか(`~/.claude/skills/`の同じ名前のスキル、`~/.vimrc`、`~/.config/mise/config.toml`など) | 移さない(dotfilesのものを使う)。第三者のスキルは、上流に無いファイルも消える |
+| そのほか(`~/.claude/skills/`の同じ名前のスキル、`~/.vimrc`、`~/.config/mise/config.toml`、`~/.config/karabiner/karabiner.json`など) | 移さない(dotfilesのものを使う)。第三者のスキルは、上流に無いファイルも消える |
 
 次のものは予行に出ない。
 
@@ -109,4 +117,4 @@ desktopと同じく、PCごとの鍵で署名し、WindowsとWSLの鍵は使わ�
 
 ## 確かめていること
 
-`tests/ci/render.sh`が`.chezmoi.os`を`darwin`に差し替えて、`darwin-main`と`darwin-work`を描画して適用する。hostと`work`の値、それらが残ること、置くファイルと実行するスクリプト、署名鍵、macに`agent`を作れないことを確かめる。macのhostが`DOTFILES_HOST`や設定に残ったhostで変わらないことも確かめる。Linuxのwslとdesktop、Windowsでも、`work`が同じように読まれて残ることと、PR運用の指示を置くことを確かめる。zshがあれば、zshを動かして、`~/.zshrc`が最後まで読めて`~/.zshrc.local`を読むことと、`~/.zprofile`のPATHを確かめる(CIではランナーにzshを入れる)。`gpg-agent.conf`のpinentry-macと、`~/.ssh/config`の`AddKeysToAgent`と`UseKeychain`の行も確かめる。macの`~/.ssh/config`は、`UseKeychain`をどのsshも知らない名前に替えてから実行環境のsshで読み、`IgnoreUnknown`がどのホストにも効くことを確かめる。`.chezmoi.os`を差し替えるだけなので、実際のmacでの動作はCIの`macos`のジョブで確かめる。ジョブで試さないもの(鍵の作成、pinentry-macの画面、Keychain)は`docs/ci.md`の「確かめられないこと」にある。
+`tests/ci/render.sh`が`.chezmoi.os`を`darwin`に差し替えて、`darwin-main`と`darwin-work`を描画して適用する。hostと`work`の値、それらが残ること、置くファイルと実行するスクリプト、署名鍵、macに`agent`を作れないことを確かめる。macのhostが`DOTFILES_HOST`や設定に残ったhostで変わらないことも確かめる。Linuxのwslとdesktop、Windowsでも、`work`が同じように読まれて残ることと、PR運用の指示を置くことを確かめる。zshがあれば、zshを動かして、`~/.zshrc`が最後まで読めて`~/.zshrc.local`を読むことと、`~/.zprofile`のPATHを確かめる(CIではランナーにzshを入れる)。Karabiner-Elementsの設定がJSONとして読めることとその権限と、`gpg-agent.conf`のpinentry-macと、`~/.ssh/config`の`AddKeysToAgent`と`UseKeychain`の行も確かめる。macの`~/.ssh/config`は、`UseKeychain`をどのsshも知らない名前に替えてから実行環境のsshで読み、`IgnoreUnknown`がどのホストにも効くことを確かめる。`.chezmoi.os`を差し替えるだけなので、実際のmacでの動作はCIの`macos`のジョブで確かめる。ジョブで試さないもの(鍵の作成、pinentry-macの画面、Keychain)は`docs/ci.md`の「確かめられないこと」にある。
