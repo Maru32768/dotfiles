@@ -35,7 +35,7 @@ Homebrewを`/opt/homebrew`に入れるApple Siliconのmacで、macOS 15以降だ
 どちらも`packages/Brewfile`に書かず、手で入れる。
 
 - Karabiner-Elementsの設定(`~/.config/karabiner/karabiner.json`)は、chezmoiがmacにだけ置く。画面で設定を変えると、このファイルが書き換わり、`doctor.sh`の「chezmoi の管理ファイルに差分がない」が失敗する。変えた設定を残すなら`chezmoi re-add ~/.config/karabiner/karabiner.json`でdotfilesに取り込み、捨てるなら`chezmoi apply`で戻す。
-- SteerMouseの設定ファイルにはライセンスが入っているので、dotfilesでは扱わない。代わりに、SteerMouseの「Export...」で書き出したアプリケーションの設定を`provision/mac/Default.smsetting_app`に置く。書き出したファイルは暗号化されていて、中身を確かめられない。新しいMacでは、ライセンスを入力してから「Import...」でこのファイルを読み込む。設定を変えたら、書き出し直してこのファイルを置き換える。
+- SteerMouseの設定ファイルにはライセンスが入っているので、dotfilesでは扱わない。代わりに、SteerMouseの「Export...」で書き出した、アプリごとの設定のうちDefaultのものを`provision/mac/Default.smsetting_app`に置く。書き出したファイルは暗号化されていて中身を読めないので、ライセンスが入っていないことも、差分で何が変わったかも確かめられない。新しいMacでは、ライセンスを入力してから「Import...」でこのファイルを読み込む。設定を変えたら、書き出し直してこのファイルを置き換える。
 
 ## 仕事のPC(`work`)
 
@@ -84,6 +84,7 @@ desktopと同じく、PCごとの鍵で署名し、WindowsとWSLの鍵は使わ�
    スクリプトはこのPC専用のGPG署名鍵とSSHキーを作り、それぞれの公開鍵を表示する。GPGの公開鍵は<https://github.com/settings/gpg/new>に、SSHの公開鍵は<https://github.com/settings/ssh/new>に登録して、もう一度実行する。鍵のuidとSSHキーのコメントには、ホスト名ではなく`mac`か`work-mac`が入る(uidはGitHubで公開される)。1Password(`op-run`)は使わないので、暗号化の副鍵は作らない。
 
 5. `bash ~/dotfiles/tests/doctor.sh`で確かめる。
+6. Karabiner-ElementsとSteerMouseを使うなら、手で入れる。SteerMouseの設定は「Karabiner-ElementsとSteerMouse」の手順で読み込む。
 
 ### 使っているMacに入れるとき
 
