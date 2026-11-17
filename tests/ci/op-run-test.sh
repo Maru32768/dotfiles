@@ -132,11 +132,12 @@ if [ "$(uname -s)" = Darwin ]; then
 else
   pty=(script -qec "bash '$script' --set-token" /dev/null)
 fi
-# macOS の script は、標準入力の終わりを、直前に読んだ入力より先に端末へ渡す。script が終わるまで標準入力を閉じない
+# macOS の script は、標準入力の終わりを、直前に読んだ入力より先に端末へ渡す。script が終わるまで標準入力を閉じない。
+# op-run が読み続けても止まるよう、10 秒で閉じる
 set_token() {
   local done="$work/set-token.done"
   rm -f "$done"
-  { printf '%s\n' "$1"; until [ -e "$done" ]; do sleep 0.1; done; } |
+  { printf '%s\n' "$1"; for _ in $(seq 100); do [ -e "$done" ] && break; sleep 0.1; done; } |
     { env PATH="$work/bin:$PATH" OP_RUN_GPG_RECIPIENT=TESTKEY OP_RUN_TOKEN_FILE="$work/new/token.gpg" "${pty[@]}"; rc=$?; : >"$done"; exit "$rc"; }
 }
 blocked "--set-token は 2 回貼り付けたトークンを保存しない" 'set_token "$token$token" && [ -e "$work/new/token.gpg" ]'
