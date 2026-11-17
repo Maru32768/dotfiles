@@ -135,10 +135,10 @@ fi
 # macOS の script は、標準入力の終わりを、直前に読んだ入力より先に端末へ渡す。script が終わるまで標準入力を閉じない。
 # op-run が読み続けても止まるよう、10 秒で閉じる
 set_token() {
-  local done="$work/set-token.done"
-  rm -f "$done"
-  { printf '%s\n' "$1"; for _ in $(seq 100); do [ -e "$done" ] && break; sleep 0.1; done; } |
-    { env PATH="$work/bin:$PATH" OP_RUN_GPG_RECIPIENT=TESTKEY OP_RUN_TOKEN_FILE="$work/new/token.gpg" "${pty[@]}"; rc=$?; : >"$done"; exit "$rc"; }
+  local exited="$work/set-token.exited"
+  rm -f "$exited"
+  { printf '%s\n' "$1"; for _ in $(seq 100); do [ -e "$exited" ] && break; sleep 0.1; done; } |
+    { env PATH="$work/bin:$PATH" OP_RUN_GPG_RECIPIENT=TESTKEY OP_RUN_TOKEN_FILE="$work/new/token.gpg" "${pty[@]}"; rc=$?; : >"$exited"; exit "$rc"; }
 }
 blocked "--set-token は 2 回貼り付けたトークンを保存しない" 'set_token "$token$token" && [ -e "$work/new/token.gpg" ]'
 blocked "--set-token は ops_ で始まらないトークンを保存しない" 'set_token "0.11111111-2222-3333-4444-555555555555.secret:a2V5==" && [ -e "$work/new/token.gpg" ]'
