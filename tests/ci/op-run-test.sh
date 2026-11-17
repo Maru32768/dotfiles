@@ -125,8 +125,20 @@ blocked "コマンドがなければ失敗する" 'run bash "$script" noodlemap 
 check "保存したトークンの形式が違えば、そう伝えて失敗する" '! FAKE_TOKEN="$token$token" run bash "$script" noodlemap -- touch "$marker" 2>"$work/err" && grep -q "トークンの形式が違う" "$work/err"'
 blocked "そのときコマンドは実行しない" '[ -e "$marker" ]'
 
-# --set-token は端末から読むので、script で疑似端末を用意する
-set_token() { printf '%s\n' "$1" | env PATH="$work/bin:$PATH" OP_RUN_GPG_RECIPIENT=TESTKEY OP_RUN_TOKEN_FILE="$work/new/token.gpg" script -qec "bash '$script' --set-token" /dev/null; }
+# --set-token は端末から読むので、script で疑似端末を用意する。util-linux の script は -c でコマンドを受け取り、
+# macOS の script は引数で受け取る
+if [ "$(uname -s)" = Darwin ]; then
+  pty=(script -q /dev/null bash "$script" --set-token)
+else
+  pty=(script -qec "bash '$script' --set-token" /dev/null)
+fi
+# macOS の script は、標準入力の終わりを、直前に読んだ入力より先に端末へ渡す。script が終わるまで標準入力を閉じない
+set_token() {
+  local done="$work/set-token.done"
+  rm -f "$done"
+  { printf '%s\n' "$1"; until [ -e "$done" ]; do sleep 0.1; done; } |
+    { env PATH="$work/bin:$PATH" OP_RUN_GPG_RECIPIENT=TESTKEY OP_RUN_TOKEN_FILE="$work/new/token.gpg" "${pty[@]}"; rc=$?; : >"$done"; exit "$rc"; }
+}
 blocked "--set-token は 2 回貼り付けたトークンを保存しない" 'set_token "$token$token" && [ -e "$work/new/token.gpg" ]'
 blocked "--set-token は ops_ で始まらないトークンを保存しない" 'set_token "0.11111111-2222-3333-4444-555555555555.secret:a2V5==" && [ -e "$work/new/token.gpg" ]'
 check "--set-token は前後の空白を除き、署名の鍵に暗号化して保存する" 'set_token " $token " && [ "$(cat "$work/new/token.gpg")" = "enc:$token" ]'
