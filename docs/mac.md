@@ -14,7 +14,7 @@ WSLではないLinuxのPC(desktop)と同じものを置き、同じスクリプ�
 | `~/.agents` | Codexのスキルの置き場(`docs/skills.md`)だが、Codexを使わない |
 | `~/.local/bin/op-run`、`~/.claude/rules/secrets.md` | 1Passwordを使わない |
 
-desktopと同じく、WSLgのための`~/.config/environment.d`も置かない。Linuxと同じく、Windows用のファイルも置かない。zshの設定(`~/.zprofile`、`~/.zshrc`)はmacにだけ置く。Karabiner-Elementsの設定(`~/.config/karabiner/karabiner.json`)も、macにだけ置く。
+desktopと同じく、WSLgのための`~/.config/environment.d`も置かない。Linuxと同じく、Windows用のファイルも置かない。zshの設定(`~/.zprofile`、`~/.zshrc`)はmacにだけ置く。Karabiner-Elementsの設定(`~/.config/karabiner/karabiner.json`)もmacにだけ置く。
 
 Homebrewを`/opt/homebrew`に入れるApple Siliconのmacで、macOS 15以降だけを考えている。`jq`はmacOSに入っているものを使い、macOS 15より前には入っていない。
 
@@ -32,10 +32,10 @@ Homebrewを`/opt/homebrew`に入れるApple Siliconのmacで、macOS 15以降だ
 
 ## Karabiner-ElementsとSteerMouse
 
-どちらも`packages/Brewfile`に入れず、手で入れる。
+どちらも`packages/Brewfile`に書かず、手で入れる。
 
-- Karabiner-Elementsの設定`~/.config/karabiner/karabiner.json`は、chezmoiがmacにだけ置く。画面で設定を変えるとこのファイルが書き換わり、`doctor.sh`の「chezmoi の管理ファイルに差分がない」が失敗する。変えた設定を残すなら`chezmoi re-add ~/.config/karabiner/karabiner.json`でdotfilesに取り込み、捨てるなら`chezmoi apply`で戻す。
-- SteerMouseの設定ファイルにはライセンスが入っているので、dotfilesでは扱わない。代わりに、SteerMouseの「Export...」で書き出したアプリケーションの設定を`provision/mac/Default.smsetting_app`に置く。新しいMacでは、ライセンスを入力してから、「Import...」でこのファイルを読み込む。設定を変えたら、書き出し直してこのファイルを置き換える。書き出したファイルは暗号化されていて、中身を確かめられない。
+- Karabiner-Elementsの設定(`~/.config/karabiner/karabiner.json`)は、chezmoiがmacにだけ置く。画面で設定を変えると、このファイルが書き換わり、`doctor.sh`の「chezmoi の管理ファイルに差分がない」が失敗する。変えた設定を残すなら`chezmoi re-add ~/.config/karabiner/karabiner.json`でdotfilesに取り込み、捨てるなら`chezmoi apply`で戻す。
+- SteerMouseの設定ファイルにはライセンスが入っているので、dotfilesでは扱わない。代わりに、SteerMouseの「Export...」で書き出したアプリケーションの設定を`provision/mac/Default.smsetting_app`に置く。書き出したファイルは暗号化されていて、中身を確かめられない。新しいMacでは、ライセンスを入力してから「Import...」でこのファイルを読み込む。設定を変えたら、書き出し直してこのファイルを置き換える。
 
 ## 仕事のPC(`work`)
 
