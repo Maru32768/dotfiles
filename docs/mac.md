@@ -30,11 +30,12 @@ Homebrewを`/opt/homebrew`に入れるApple Siliconのmacで、macOS 15以降だ
 - `~/.ssh/config`の先頭に`IgnoreUnknown UseKeychain`を置き、Apple以外のssh(Homebrewのopensshなど)が`UseKeychain`で止まらないようにする。`IgnoreUnknown`も最初に見つけた値が使われるので、`~/.ssh/config.local`に書いた`IgnoreUnknown`は効かない。ほかに無視させたいオプションがあれば、dotfilesのこの行に足す。
 - GPGのパスフレーズはpinentry-macの画面で入力する。`gpg-agent.conf`に`pinentry-program`が無いときだけ、chezmoiが`/opt/homebrew/bin/pinentry-mac`を足す(JetBrains IDEなどが書いたものは残る)。pinentry-macは`packages/Brewfile`で入る。
 
-## Karabiner-Elements
+## Karabiner-ElementsとSteerMouse
 
-Karabiner-Elementsは`packages/Brewfile`に入れず、手で入れる。
+どちらも`packages/Brewfile`に入れず、手で入れる。
 
 - Karabiner-Elementsの設定`~/.config/karabiner/karabiner.json`は、chezmoiがmacにだけ置く。画面で設定を変えるとこのファイルが書き換わり、`doctor.sh`の「chezmoi の管理ファイルに差分がない」が失敗する。変えた設定を残すなら`chezmoi re-add ~/.config/karabiner/karabiner.json`でdotfilesに取り込み、捨てるなら`chezmoi apply`で戻す。
+- SteerMouseの設定ファイルにはライセンスが入っているので、dotfilesでは扱わない。代わりに、SteerMouseの「Export...」で書き出したアプリケーションの設定を`provision/mac/Default.smsetting_app`に置く。新しいMacでは、ライセンスを入力してから、「Import...」でこのファイルを読み込む。設定を変えたら、書き出し直してこのファイルを置き換える。書き出したファイルは暗号化されていて、中身を確かめられない。
 
 ## 仕事のPC(`work`)
 
