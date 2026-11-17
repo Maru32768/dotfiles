@@ -285,6 +285,7 @@ equals "darwin-main: 置かれるファイルは linux-desktop から bash の�
   "$({ files_of linux-desktop | tr ' ' '\n' | grep -vxE '\.bashrc|\.bash_profile|\.local/bin/op-run|\.claude/rules/secrets\.md'; printf '%s\n' .config/karabiner/karabiner.json .zprofile .zshrc; } | sort | paste -sd ' ' -)"
 blocked "linux-main と windows-main: Karabiner-Elements の設定がない" '[ -e "$work/linux-main/home/.config/karabiner" ] || [ -e "$work/windows-main/home/.config/karabiner" ]'
 check "darwin-main: karabiner.json が JSON として読める" 'jq -e .profiles "$work/darwin-main/home/.config/karabiner/karabiner.json"'
+check "darwin-main: Karabiner-Elements の設定を、Karabiner-Elements が書くのと同じ 700 と 600 で置く" '[ -n "$(find "$work/darwin-main/home/.config/karabiner" -maxdepth 0 -perm 700)" ] && [ -n "$(find "$work/darwin-main/home/.config/karabiner/karabiner.json" -perm 600)" ]'
 equals "darwin-main: 実行するスクリプトは linux-desktop と同じ" "$(scripts_of darwin-main)" "$(scripts_of linux-desktop)"
 # files_of は external を含まないので、Codex のスキルを置かないことはここで確かめる
 equals "darwin-main: スキルは Claude のものだけ置く" "$(actual_skills darwin-main)" \
