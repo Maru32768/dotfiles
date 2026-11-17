@@ -175,6 +175,7 @@ mutate noapply > /dev/null 2>&1
 rc=$?
 equals "当たらないパッチはInvalidで4" "$rc $(last 2-4 "$mlog")" "4 mutate	noapply.patch	Invalid"
 check "Invalidの後、作業ツリーがきれいで指紋も同じ" same
+equals "当たらないパッチは、コマンドを回さない" "$(count_lines "$count")" "6"
 # macOSにはtimeoutが無い。そのときevidence.shがMUTATE_TIMEOUTを拒むことは、後のnobinの検査が確かめる
 if command -v timeout > /dev/null; then
   runs=$(count_lines "$count")
