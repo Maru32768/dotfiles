@@ -88,7 +88,8 @@ cat >"$settings.orig" <<EOF
 EOF
 
 reset() { cp "$skills.orig" "$skills" && cp "$settings.orig" "$settings"; }
-run() { PATH="$work/bin:$PATH" HEADS="$work/heads" bash "$work/tree/provision/update-skills.sh" "$@" 2>&1; }
+update_skills() { PATH="$work/bin:$PATH" HEADS="$work/heads" bash "$work/tree/provision/update-skills.sh" "$@"; }
+run() { update_skills "$@" 2>&1; }
 unchanged() { for f; do cmp -s "$f" "$f.orig" || return 1; done; }
 check() { if "${@:2}"; then pass "$1"; else fail "$1"; fi; }
 # 元のファイルから消えた行と足された行を、字下げも含めて"- 行"と"+ 行"で出す
@@ -102,6 +103,7 @@ out="$(run --dry-run)"
 equals "--dry-runは、古いスキルとマーケットプレイスのcompareのURLだけを出す" "$(grep ': https://' <<<"$out")" "$urls"
 check "--dry-runはファイルを変えない" unchanged "$skills" "$settings"
 equals "--dry-runは、プラグインの入れ替えを案内しない" "$(grep -cxF "$reminder" <<<"$out")" 0
+equals "compareのURLは標準出力に出る" "$(update_skills --dry-run 2>/dev/null | grep ': https://')" "$urls"
 
 reset
 out="$(run market)"
