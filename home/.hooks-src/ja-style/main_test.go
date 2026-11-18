@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -111,6 +112,8 @@ func TestAddedLines(t *testing.T) {
 func TestNativePath(t *testing.T) {
 	cases := []struct{ path, goos, want string }{
 		{"/c/Users/a.md", "windows", "c:/Users/a.md"},
+		{"/C/Users/a.md", "windows", "C:/Users/a.md"},
+		{"/c/Users/a/b.md", "windows", "c:/Users/a/b.md"},
 		{"C:\\Users\\a.md", "windows", "C:\\Users\\a.md"},
 		{"/tmp/a.md", "windows", "/tmp/a.md"},
 		{"/c/Users/a.md", "linux", "/c/Users/a.md"},
@@ -119,6 +122,22 @@ func TestNativePath(t *testing.T) {
 		if got := nativePath(c.path, c.goos); got != c.want {
 			t.Errorf("nativePath(%q, %q) = %q, want %q", c.path, c.goos, got, c.want)
 		}
+	}
+}
+
+func TestGitBashPathIsRead(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("Git Bashの形のパスはWindowsでだけ直す")
+	}
+	native := filepath.ToSlash(write(t, "a.md", "AI を使う\n"))
+	path := "/" + strings.ToLower(native[:1]) + native[2:]
+	out, code := runHook(t, map[string]any{
+		"tool_name":     "Write",
+		"tool_input":    map[string]any{"file_path": path},
+		"tool_response": map[string]any{"type": "create"},
+	})
+	if code != 2 || !strings.Contains(out, path+":1:") {
+		t.Errorf("code %d, output:\n%s", code, out)
 	}
 }
 
