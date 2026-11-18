@@ -32,12 +32,16 @@ var badLines = map[string]string{
 	"人々 100人":                          spacing,
 	"詳しくは https://example.com/ を見る":    spacing,
 	"`curl https://example.com` で取得する": spacing,
-	"[リンク](https://example.com)を見て、ＡＩを使う": fullwidthAlnum,
-	"[リンク](https://example.com)でＡＩを使う":    fullwidthAlnum,
-	"[Go](https://go.dev)とGo の違い":         spacing,
-	"https://example.com。ＡＩを使う":           fullwidthAlnum,
-	"https://example.com　ＡＩを使う":           fullwidthAlnum,
-	"｢https://example.com｣ を開く":           markSpace,
+	"[リンク](https://example.com)を見て、ＡＩを使う":          fullwidthAlnum,
+	"[リンク](https://example.com)でＡＩを使う":             fullwidthAlnum,
+	"[Go](https://go.dev)とGo の違い":                  spacing,
+	"https://example.com。ＡＩを使う":                    fullwidthAlnum,
+	"https://example.com　ＡＩを使う":                    fullwidthAlnum,
+	"｢https://example.com｣ を開く":                    markSpace,
+	"https://example.com（英語）を見る":                   fullwidthParen,
+	"https://example.com「保存」を押す":                   kagi,
+	"https://example.com(英語、ＡＩ向け)を見る":              fullwidthAlnum,
+	`{"url":"https://example.com","name":"ＡＩを使う"}`: fullwidthAlnum,
 }
 
 var goodLines = []string{

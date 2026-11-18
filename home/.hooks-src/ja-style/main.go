@@ -34,12 +34,14 @@ const (
 	word = `[` + ja + `A-Za-z0-9]`
 	sp   = `[ \t\x{3000}]+`
 	mark = `[\x{FF62}\x{FF63}\x{FF65}]`
+	// URL に入らず、日本語の文で URL の直後に来る文字。
+	urlEnd = `\s\x{3000}\x{3001}\x{3002}\x{FF08}\x{FF09}\x{300C}\x{300D}\x{FF63}"|<>()`
 )
 
 var (
 	hasJapanese = regexp.MustCompile(`[` + ja + `]`)
 	codeSpan    = regexp.MustCompile("``.+?``|`[^`]+`")
-	url         = regexp.MustCompile(`https?://(?:[^\s\x{3000}\x{3001}\x{3002}\x{FF63}()<>]|\([^\s()]*\))+\)?`)
+	url         = regexp.MustCompile(`https?://(?:[^` + urlEnd + `]|\([^` + urlEnd + `]*\))+\)?`)
 	rules       = []struct {
 		pattern *regexp.Regexp
 		problem string
