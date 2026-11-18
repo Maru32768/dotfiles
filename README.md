@@ -78,7 +78,7 @@ CI で確かめられない WSL の挙動は、`lab.ps1 restore-test` で実物�
 |---|---|
 | [docs/design.md](docs/design.md) | 目的、方針、構成、採用しなかったもの |
 | [docs/tools.md](docs/tools.md) | mise によるツールのバージョン管理 |
-| [docs/claude.md](docs/claude.md) | Claude Code の設定と、署名の回避を止めるフック |
+| [docs/claude.md](docs/claude.md) | Claude Codeの設定と、署名の回避を止めるフックと、日本語の表記を検査するフック |
 | [docs/codex.md](docs/codex.md) | Codex の設定 |
 | [docs/skills.md](docs/skills.md) | エージェントのスキルの管理 |
 | [docs/agentic-workflow.md](docs/agentic-workflow.md) | エージェントの開発の流れと、それを決めた根拠、測り直す手順 |
