@@ -22,8 +22,8 @@ jq=(jq)
 "${jq[@]}" --version >/dev/null 2>&1 || jq=(mise exec jq@1.8.2 -- jq)
 
 # 名前、repo、commit、種類を1行ずつ出す。スキルの書式はskills.tomlの先頭のコメントのとおり。
-# マーケットプレイスは、sourceがgithubで、refがコミットのハッシュのものだけ。Windowsのjqは行末をCRLFにする
-entries() {
+# Windowsのjqは行末をCRLFにする
+rows="$(
   awk '
     /^\[skills\./ { name = $0; sub(/^\[skills\./, "", name); sub(/\]$/, "", name) }
     /^repo = /    { repo = $3; gsub(/"/, "", repo) }
@@ -34,8 +34,7 @@ entries() {
       | select(.value.source | .source == "github" and (.ref // "" | test("^[0-9a-f]{40}$")))
       | "\(.key) \(.value.source.repo) \(.value.source.ref) marketplace"
     ' "$settings" | tr -d '\r'
-}
-rows="$(entries)"
+)"
 
 for want in "$@"; do
   awk -v n="$want" '$1 == n { found = 1 } END { exit !found }' <<<"$rows" || { echo "固定したスキルにもマーケットプレイスにもない: $want" >&2; exit 1; }
