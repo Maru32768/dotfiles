@@ -33,7 +33,7 @@ chezmoi apply   # 反映する
 
 プラグインは`home/.claude-settings.json`の`enabledPlugins`に`<プラグイン>@<マーケットプレイス>`で書き、`true`で有効、`false`で無効にする。公式の`claude-plugins-official`以外のマーケットプレイスは、`extraKnownMarketplaces`に出どころ(`source`)を書く。
 
-第三者のマーケットプレイスは`source`を`github`にし、`ref`にコミットのハッシュ(40桁の小文字)を書いて固定する。プラグインはスキルと同じくエージェントへの指示なので、知らないうちに中身が変わらないようにする(`docs/skills.md`の｢方針｣)。
+第三者のマーケットプレイスを固定するときは、`source`を`github`にし、`ref`にコミットのハッシュ(40桁の小文字)を書く。プラグインはスキルと同じくエージェントへの指示なので、知らないうちに中身が変わらないようにする(`docs/skills.md`の｢方針｣)。
 
 ```json
 "pstack-claude": {
