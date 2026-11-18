@@ -38,7 +38,7 @@ const (
 
 var (
 	hasJapanese = regexp.MustCompile(`[` + ja + `]`)
-	codeSpan    = regexp.MustCompile("``[^`]+``|`[^`]+`")
+	codeSpan    = regexp.MustCompile("``.+?``|`[^`]+`")
 	url         = regexp.MustCompile(`https?://[!-~]+`)
 	rules       = []struct {
 		pattern *regexp.Regexp

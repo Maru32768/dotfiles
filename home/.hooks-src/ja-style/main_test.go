@@ -43,6 +43,7 @@ var goodLines = []string{
 	"`（）`は全角の括弧",
 	"https://example.com/a_(b) を開く",
 	"See https://example.com を開く",
+	"``（`）``を使う",
 	"- ｢保存｣を押す",
 	"| ｢保存｣ | 押す |",
 	"区切りの前後 / は残す",
