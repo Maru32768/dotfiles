@@ -4,7 +4,7 @@ Windows と WSL で同じ設定を使うため、共通部分を chezmoi で管�
 
 | ファイル | 内容 |
 |---|---|
-| `home/.claude-settings.json` | 共通の設定(プラグイン、マーケットプレイス、フックなど)。プラグインの書き方は｢プラグイン｣ |
+| `home/.claude-settings.json` | 共通の設定 (プラグイン、マーケットプレイス、フックなど) |
 | `home/dot_claude/modify_settings.json` | 共通の設定を `settings.json` へマージする (chezmoi のテンプレートなので両 OS で動く)。review-loopが台帳を置くディレクトリへの許可も足す(「review-loopの台帳の置き場」) |
 | `home/dot_claude/CLAUDE.md` | ユーザー全体の指示。dotfilesで設定を管理していることのほか、日本語の表記、タスクの進め方、コードコメント、コミットとレビューの決まり、技術的な知見の記録を提案する決まりを書く。日本語の表記の一部は、フックが検査してClaudeに報告する(｢日本語の表記を検査するフック｣)。それ以外は指示として読まれるだけで、強制はしない。`agent`には置かない |
 | `home/dot_claude/rules/` | 環境で変わる指示(「環境で変わる指示」)。`agent`には置かない |
