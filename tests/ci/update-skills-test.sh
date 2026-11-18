@@ -142,7 +142,7 @@ printf '{ "extraKnownMarketplaces": { "market": { "source": { "source": "github"
 reset
 out="$(run market)"
 equals "refの行を書き換えられないときは失敗する" "$?" 1
-equals "失敗の理由は、refの行を書き換えられないこと" "$(grep -xF "書き換えられない: market" <<<"$out")" "書き換えられない: market"
+equals "失敗の理由は、refの行を書き換えられないことで、標準エラーにだけ出る" "$(update_skills market 2>&1 >/dev/null)" "書き換えられない: market"
 
 : >"$skills.orig"
 echo '{}' >"$settings.orig"
