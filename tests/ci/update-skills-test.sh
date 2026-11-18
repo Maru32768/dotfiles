@@ -133,7 +133,9 @@ check "名前が無いときはファイルを変えない" unchanged "$skills" 
 # キーが行の先頭に無いと、refの行を見つけられない
 printf '{ "extraKnownMarketplaces": { "market": { "source": { "source": "github", "repo": "o/market", "ref": "%s" } } } }\n' "$old" >"$settings.orig"
 reset
-if run market >/dev/null; then fail "refの行を書き換えられないときは失敗する"; else pass "refの行を書き換えられないときは失敗する"; fi
+out="$(run market)"
+equals "refの行を書き換えられないときは失敗する" "$?" 1
+equals "失敗の理由は、refの行を書き換えられないこと" "$(grep -xF "書き換えられない: market" <<<"$out")" "書き換えられない: market"
 
 if [ "$failures" -gt 0 ]; then
   printf '\n%d件の問題があります\n' "$failures"
