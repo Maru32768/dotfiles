@@ -4,7 +4,7 @@ Windows と WSL で同じ設定を使うため、共通部分を chezmoi で管�
 
 | ファイル | 内容 |
 |---|---|
-| `home/.claude-settings.json` | 共通の設定 (プラグイン、マーケットプレイス、フックなど) |
+| `home/.claude-settings.json` | 共通の設定(プラグイン、マーケットプレイス、フックなど)。プラグインの書き方は｢プラグイン｣ |
 | `home/dot_claude/modify_settings.json` | 共通の設定を `settings.json` へマージする (chezmoi のテンプレートなので両 OS で動く)。review-loopが台帳を置くディレクトリへの許可も足す(「review-loopの台帳の置き場」) |
 | `home/dot_claude/CLAUDE.md` | ユーザー全体の指示。dotfilesで設定を管理していることのほか、日本語の表記、タスクの進め方、コードコメント、コミットとレビューの決まり、技術的な知見の記録を提案する決まりを書く。日本語の表記の一部は、フックが検査してClaudeに報告する(｢日本語の表記を検査するフック｣)。それ以外は指示として読まれるだけで、強制はしない。`agent`には置かない |
 | `home/dot_claude/rules/` | 環境で変わる指示(「環境で変わる指示」)。`agent`には置かない |
@@ -13,6 +13,7 @@ Windows と WSL で同じ設定を使うため、共通部分を chezmoi で管�
 | `home/.hooks-src/block-signing-bypass/` | 署名の回避を止めるフック (Go) |
 | `home/.hooks-src/ja-style/` | 足した行の日本語の表記を検査するフック(Go) |
 | `home/run_onchange_after_20-build-hooks.*` | フックをテストしてビルドする (`.sh` と `.ps1`) |
+| `provision/update-skills.sh` | コミットに固定したマーケットプレイスを上げる。スキルの固定も上げる(`docs/skills.md`) |
 
 ## 反映
 
@@ -28,6 +29,43 @@ chezmoi apply   # 反映する
 - フックはソースが変わると自動でテストとビルドが走る。テストが落ちたら置き換えない。
 
 どちらかの環境で `/config` などから変えた設定を共通にしたいときは、`home/.claude-settings.json` に書き写して反映し直す。
+
+## プラグイン
+
+プラグインは`home/.claude-settings.json`の`enabledPlugins`に`<プラグイン>@<マーケットプレイス>`で書き、`true`で有効、`false`で無効にする。公式の`claude-plugins-official`のほかのマーケットプレイスは、`extraKnownMarketplaces`に出どころ(`source`)を書く。
+
+第三者のマーケットプレイスは、`source`を`github`にし、`ref`にコミットのハッシュ(40桁の小文字)を書いて固定する。プラグインはスキルと同じくエージェントへの指示なので、知らないうちに中身が変わらないようにする(`docs/skills.md`の｢方針｣)。
+
+```json
+"pstack-claude": {
+  "source": {
+    "source": "github",
+    "repo": "michael-denyer/pstack-claude",
+    "ref": "<40桁のハッシュ>"
+  },
+  "autoUpdate": true
+}
+```
+
+- `ref`にコミットのハッシュを書けるのは、Claude Code 2.1.324から。
+- `autoUpdate`は`source`と並べて書く。第三者のマーケットプレイスは既定では自動で更新されない。`true`にすると、起動のときにマーケットプレイスと入れたプラグインを更新するので、固定を上げた後に手で更新しなくてよい。`ref`がコミットのハッシュなら、固定したコミットより先には進まない。
+- `ref`を書き換えると、Claude Codeはマーケットプレイスを取り直す。
+- マーケットプレイスの固定で止まるのは、`marketplace.json`がマーケットプレイスの中の相対パス(pstackの`./plugins/pstack`など)で指すプラグインだけ。別のリポジトリを指すプラグインは、マーケットプレイスを固定しても止まらない。
+- `ref`の無いマーケットプレイスは、自動では更新されず、最初に入れた版のままになる。
+
+固定は`provision/update-skills.sh`が、スキルと同じく上流の既定のブランチの最新に上げる。対象は、`source`が`github`で`ref`がコミットのハッシュのものだけ。週1回のPRにも、スキルと並んで出る(`docs/skills.md`の｢更新する｣)。
+
+```bash
+bash ~/dotfiles/provision/update-skills.sh --dry-run
+bash ~/dotfiles/provision/update-skills.sh pstack-claude
+```
+
+共通の設定からプラグインやマーケットプレイスを消しても、今ある端末からは消えない。マージは`settings.json`にあるキーを消さないため。端末ごとに、次を実行して消す。
+
+```bash
+claude plugin uninstall <プラグイン>@<マーケットプレイス>
+claude plugin marketplace remove <マーケットプレイス>
+```
 
 ## 環境で変わる指示
 

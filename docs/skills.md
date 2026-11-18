@@ -89,7 +89,7 @@ chezmoi apply
 
 ## 更新する
 
-`skills.toml`のスキルと、`home/.claude-settings.json`でコミットに固定したプラグインのマーケットプレイスを、同じスクリプトとPRで上げる。
+`skills.toml`のスキルと、`home/.claude-settings.json`でコミットに固定したプラグインのマーケットプレイス(`docs/claude.md`の｢プラグイン｣)を、同じスクリプトとPRで上げる。
 
 `.github/workflows/update-skills.yml` が週 1 回 (日曜 5:00 JST) `update-skills.sh` を実行し、新しいコミットがあれば `bot/update-skills` ブランチと PR を作る。PR の本文に compare の URL が並ぶので、中身を読む。CI は `GITHUB_TOKEN` の push では動かないので、ワークフローが `workflow_dispatch` で動かす。この CI の結果は PR のチェック欄に出ないので、本文の「CI:」のリンクから見る。
 
