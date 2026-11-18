@@ -28,6 +28,8 @@ var badLines = map[string]string{
 	"これは ｢保存｣":                      markSpace,
 	"設計 ･ 開発":                       markSpace,
 	"// 「保存」を押す":                    kagi,
+	"サーバー APIを呼ぶ":                   spacing,
+	"人々 100人":                       spacing,
 	"詳しくは https://example.com/ を見る": spacing,
 	"[リンク](https://example.com)を見て、ＡＩを使う": fullwidthAlnum,
 }
