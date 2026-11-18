@@ -141,6 +141,11 @@ out="$(run market)"
 equals "refの行を書き換えられないときは失敗する" "$?" 1
 equals "失敗の理由は、refの行を書き換えられないこと" "$(grep -xF "書き換えられない: market" <<<"$out")" "書き換えられない: market"
 
+: >"$skills.orig"
+echo '{}' >"$settings.orig"
+reset
+equals "固定が1つも無いときは、すべて最新" "$(run)" "すべて最新です"
+
 if [ "$failures" -gt 0 ]; then
   printf '\n%d件の問題があります\n' "$failures"
   exit 1
