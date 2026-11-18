@@ -42,6 +42,7 @@ done
 
 declare -A latest=()
 changed=0
+marketplace_changed=false
 while read -r name repo commit kind; do
   # <<<は空の文字列にも空の1行を渡す
   [ -n "$name" ] || continue
@@ -67,6 +68,7 @@ while read -r name repo commit kind; do
       ' "$file" >"$tmp"
     else
       file="$settings"
+      marketplace_changed=true
       # jqで書き直すと書式と行末が変わるので、そのマーケットプレイスのrefの行にある古いハッシュだけを置き換える
       awk -v key="^[ \t]*\"$name\"[ \t]*:" -v o="$commit" -v c="$new" '
         $0 ~ key { cur = 1 }
@@ -86,4 +88,7 @@ elif $dry_run; then
   echo "$changed 件に新しいコミットがあります"
 else
   echo "$changed 件を書き換えました。中身を確かめてから chezmoi apply で反映します"
+  if $marketplace_changed; then
+    echo "マーケットプレイスのプラグインは、反映した後にdocs/claude.mdの｢プラグイン｣の手順で入れ替えます"
+  fi
 fi

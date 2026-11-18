@@ -99,6 +99,8 @@ chezmoi apply
 cd ~/dotfiles && git pull --ff-only && git fetch origin bot/update-skills && git cherry-pick FETCH_HEAD && git push
 ```
 
+マーケットプレイスの固定を上げたときは、`chezmoi apply`で反映しても入れたプラグインは前の版のままなので、`docs/claude.md`の｢プラグイン｣の手順で入れ替える。
+
 PR は、次の実行ですべて最新になったと分かったときに閉じられる。すぐ閉じるなら `gh pr close bot/update-skills --delete-branch` を実行する。
 
 手元で確かめるときは、スクリプトを直接実行する。
