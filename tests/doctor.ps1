@@ -84,6 +84,12 @@ Check 'hook denies a bypass' {
 Check 'hook allows a normal command' {
     -not (Invoke-Hook '{"tool_name":"Bash","tool_input":{"command":"git status"}}')
 }
+$jaStyleCommand = $settings.hooks.PostToolUse[0].hooks[0].command
+Check 'Claude settings: ja-style hook registered' { $jaStyleCommand -match 'ja-style' }
+Check 'ja-style hook runs' {
+    '{"tool_input":{"file_path":"/dev/null"},"tool_response":{"structuredPatch":[]}}' | & $GitBash -c $jaStyleCommand
+    $LASTEXITCODE -eq 0
+}
 
 $expectedGo = $locked['go']
 Check "Git Bash login shell uses Go $expectedGo" {

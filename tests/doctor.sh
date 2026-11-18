@@ -115,6 +115,9 @@ allow_input='{"tool_name":"Bash","tool_input":{"command":"git status"}}'
 check "署名回避のフックが拒否する" "printf '%s' '$deny_input' | '$hook' | grep -q deny"
 check "署名回避のフックが通常のコマンドを通す" "[ -z \"\$(printf '%s' '$allow_input' | '$hook')\" ]"
 check "Claude の設定にフックがある" 'jq -e ".hooks.PreToolUse[0].hooks[0].command | test(\"block-signing-bypass\")" ~/.claude/settings.json'
+ja_input='{"tool_input":{"file_path":"/dev/null"},"tool_response":{"structuredPatch":[]}}'
+check "日本語の表記のフックが動く" "printf '%s' '$ja_input' | '$HOME/.claude/hooks/ja-style'"
+check "Claude の設定に日本語の表記のフックがある" 'jq -e ".hooks.PostToolUse[0].hooks[0].command | test(\"ja-style\")" ~/.claude/settings.json'
 check "Claude Code" 'claude --version'
 [ "$host" = mac ] || check "サンドボックスの依存" 'command -v bwrap && command -v socat'
 

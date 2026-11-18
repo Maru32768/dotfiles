@@ -33,6 +33,7 @@ run_shellcheck() {
 
 run_go() {
   (cd home/.hooks-src/block-signing-bypass && go vet ./... && go test ./...)
+  (cd home/.hooks-src/ja-style && go vet ./... && go test ./...)
 }
 
 section "shellcheck" run_shellcheck

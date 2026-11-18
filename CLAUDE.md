@@ -20,6 +20,7 @@ bash tests/ci/docs-redesign-test.sh     # docs-redesignのlost.shとoutline.sh�
 bash tests/ci/docs-overview-test.sh     # docs-overviewのview.shのテスト(使い捨てのMarkdownをHTMLに包み、中身が壊れないことと、読み込むスクリプトの固定を試す)
 cd home/.hooks-src/block-signing-bypass && go test ./...            # フックのテスト
 cd home/.hooks-src/block-signing-bypass && go test -run 'TestName' ./...  # 1 つだけ
+cd home/.hooks-src/ja-style && go test ./...                        # 日本語の表記のフックのテスト
 bash tests/ci/container.sh main         # ubuntu:26.04 のコンテナで環境を作って確かめる。agent、research、desktop (WSL ではない PC) も可。数分かかり、数 GB をダウンロードする
 bash tests/doctor.sh                    # 今の環境の確認
 chezmoi diff && chezmoi apply           # ホームへの反映

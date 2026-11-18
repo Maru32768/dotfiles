@@ -79,6 +79,18 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME/.claude/hooks/ja-style\"",
+            "timeout": 10
+          }
+        ]
+      }
     ]
   }
 }
