@@ -1,9 +1,9 @@
-// ja-style は Claude Code の PostToolUse フック。
-// Edit と Write で足した行を、~/.claude/CLAUDE.md の｢日本語の表記｣の規則で検査し、
-// 違反を Claude に返す。
+// ja-styleはClaude CodeのPostToolUseフック。
+// EditとWriteで足した行を、~/.claude/CLAUDE.mdの｢日本語の表記｣の規則で検査し、
+// 違反をClaudeに返す。
 //
 // 引用、外部のデータ、履歴などの対象外は文脈でしか決まらないので、拒否はせず、
-// 判断を Claude に任せる。前からある行は報告しない。一括で揃えさせないため。
+// 判断をClaudeに任せる。変えていない行は報告しない。一括で揃えさせないため。
 package main
 
 import (
@@ -35,7 +35,7 @@ const (
 	word = `[` + ja + `A-Za-z0-9]`
 	sp   = `[ \t\x{3000}]+`
 	mark = `[\x{FF62}\x{FF63}\x{FF65}]`
-	// URL に入らず、日本語の文で URL の直後に来る文字。
+	// URLに入らず、日本語の文でURLの直後に来る文字。
 	urlEnd = `\s\x{3000}\x{3001}\x{3002}\x{FF08}\x{FF09}\x{300C}\x{300D}\x{FF63}"|<>()`
 )
 
@@ -59,9 +59,9 @@ var (
 
 func lineProblems(line string) []string {
 	// コードの中身は検査しないが、コードと日本語の間のスペースは検査するため、英字に置き換える。
-	// URL は、前のスペースを検査し、規則で残す後ろのスペースは検査しないように、英字と記号に置き換える。
-	// 日本語を含む URL があるので、文字の種類では終わりを決められない。空白、句読点、閉じカギカッコと、
-	// 対応の無い閉じ括弧(Markdown のリンクの終わり)で見分ける。
+	// URLは、前のスペースを検査し、規則で残す後ろのスペースは検査しないように、英字と記号に置き換える。
+	// 日本語を含むURLがあるので、文字の種類では終わりを決められない。空白、句読点、閉じカギカッコと、
+	// 対応の無い閉じ括弧(Markdownのリンクの終わり)で見分ける。
 	line = url.ReplaceAllString(codeSpan.ReplaceAllString(line, "x"), "x/")
 	if !hasJapanese.MatchString(line) {
 		return nil
