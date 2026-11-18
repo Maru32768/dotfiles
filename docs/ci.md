@@ -4,7 +4,7 @@
 
 | ジョブ | スクリプト | 内容 |
 |---|---|---|
-| `static` | `tests/ci/static.sh` | shellcheck、フック･`op-run`･`setup-credentials.sh`･`split-pdf`･`split-pr-stack`･review-loopの`evidence.sh`･`usage-log`･docs-redesignのスクリプト･docs-overviewのスクリプトのテスト、不変条件、chezmoi のレンダリング、gitleaks、actionlint |
+| `static` | `tests/ci/static.sh` | shellcheck、フック･`op-run`･`setup-credentials.sh`･`split-pdf`･`split-pr-stack`･review-loopの`evidence.sh`･`usage-log`･docs-redesignのスクリプト･docs-overviewのスクリプト･`update-skills.sh`のテスト、不変条件、chezmoiのレンダリング、gitleaks、actionlint |
 | `container` | `tests/ci/container.sh <main\|agent\|research\|desktop>` | `ubuntu:26.04` で環境を作り、確認と再適用まで行う。`desktop` は WSL ではない PC (`docs/desktop.md`)。`main` と `desktop` では、先に `user.sh` の予行 (`DOTFILES_PREVIEW=1`) を確かめる。置いておいた、書き換わるファイル (`useradd` が置いた `.bashrc`、`~/.config/mise/config.toml`)、消えるファイル (第三者のスキルに置いたファイル)、ホームの mise の設定 (`~/.tool-versions`) だけを出し、リポジトリの写し、mise、キャッシュのほかはホームに何も書かないこと。`doctor.sh` が `~/.tool-versions` を見つけることも確かめる |
 | `macos` | `packages/Brewfile`、`provision/user.sh`、`tests/doctor.sh`、`tests/ci/setup-credentials-test.sh`、`tests/ci/render.sh` | `macos-latest`のランナーで、Homebrewの一覧と`user.sh`でmacの環境を作り、`doctor.sh`で確かめる。その前に`user.sh`の予行が、今ある`~/.zshrc`を書き換わるファイルとして出すことを確かめる。`render.sh`の検査のうち、macでしか効かないもの(HomebrewのPATH、Appleのssh)も回す(`docs/mac.md`) |
 | `windows` | `tests/ci/windows.ps1`、`tests/ci/op-run-test.ps1`、`tests/ci/lab-run-test.ps1` | Windows PowerShell 5.1 での構文、Windows 版の `op-run` のテスト、`lab.ps1 run`が偽の`wsl.exe`に渡す引数のテスト(Windows PowerShell 5.1とPowerShell 7の両方で動かす)、PSScriptAnalyzer |
@@ -13,7 +13,7 @@
 
 CIは`docs/**`と`**.md`だけの変更では動かない。ただし、`home/`の下の`.md`(Claudeへの指示やスキル)は`render.sh`が、`docs/gpg.md`の鍵のフィンガープリントは`invariants.sh`が確かめるので、それだけの変更でも動く。
 
-`.github/workflows/update-skills.yml` は、固定したスキルを上げる PR を週 1 回作る (`docs/skills.md`)。書き込みの権限を持つので、CI のワークフローには混ぜない。
+`.github/workflows/update-skills.yml`は、固定したスキルとプラグインのマーケットプレイスを上げるPRを週1回作る(`docs/skills.md`)。書き込みの権限を持つので、CIのワークフローには混ぜない。
 
 ## 手元で実行する
 

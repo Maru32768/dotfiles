@@ -7,7 +7,7 @@ Windows、WSL (Ubuntu 26.04)、WSL ではない Linux の PC、mac の設定と�
 ## コマンド
 
 ```bash
-bash tests/ci/static.sh                 # 環境を作らずにできる検査をすべて (shellcheck、フックのテスト、op-run のテスト、setup-credentials のテスト、split-pdf のテスト、usage-logのテスト、split-pr-stackのテスト、review-loopの記録のテスト、docs-redesignのスクリプトのテスト、docs-overviewのスクリプトのテスト、不変条件、レンダリング、gitleaks、actionlint)
+bash tests/ci/static.sh                 # 環境を作らずにできる検査をすべて(shellcheck、フックのテスト、op-runのテスト、setup-credentialsのテスト、split-pdfのテスト、usage-logのテスト、split-pr-stackのテスト、review-loopの記録のテスト、docs-redesignのスクリプトのテスト、docs-overviewのスクリプトのテスト、update-skillsのテスト、不変条件、レンダリング、gitleaks、actionlint)
 bash tests/ci/invariants.sh             # 不変条件だけ
 bash tests/ci/render.sh                 # linux、Windows、mac の 6 通りの環境を描画して置かれるものを確かめる (スキルの取得でネットワークを使う)
 bash tests/ci/op-run-test.sh            # op-run (bash 版) のテスト
@@ -18,6 +18,7 @@ bash tests/ci/split-pr-stack-test.sh    # split-pr-stackのスクリプトのテ
 bash tests/ci/review-evidence-test.sh   # review-loopのevidence.shのテスト(使い捨てのリポジトリで、記録、指紋、mutationを試す)
 bash tests/ci/docs-redesign-test.sh     # docs-redesignのlost.shとoutline.shのテスト(使い捨ての文書で、落ちた記述の検出と見出しの一覧を試す)
 bash tests/ci/docs-overview-test.sh     # docs-overviewのview.shのテスト(使い捨てのMarkdownをHTMLに包み、中身が壊れないことと、読み込むスクリプトの固定を試す)
+bash tests/ci/update-skills-test.sh     # update-skills.shのテスト(偽のgitで、スキルとマーケットプレイスの固定を上げる。jqが動かなければmiseで取得する)
 cd home/.hooks-src/block-signing-bypass && go test ./...            # フックのテスト
 cd home/.hooks-src/block-signing-bypass && go test -run 'TestName' ./...  # 1 つだけ
 cd home/.hooks-src/ja-style && go test ./...                        # 日本語の表記のフックのテスト

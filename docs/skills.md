@@ -6,7 +6,7 @@ GitHub で公開されているスキルを、Windows と `dev` に同じ版で�
 |---|---|
 | `home/.chezmoidata/skills.toml` | スキルごとの出どころ (`repo`、`path`)、固定するコミット、置く先 |
 | `home/.chezmoiexternals/skills.toml.tmpl` | 一覧から chezmoi の external を作る。GitHub のアーカイブから、そのスキルのディレクトリだけを取り出す |
-| `provision/update-skills.sh` | 固定したコミットを最新に上げる |
+| `provision/update-skills.sh` | 固定したコミットを最新に上げる。コミットに固定したプラグインのマーケットプレイスも上げる |
 
 置く先は 2 つある。
 
@@ -89,6 +89,8 @@ chezmoi apply
 
 ## 更新する
 
+`skills.toml`のスキルと、`home/.claude-settings.json`でコミットに固定したプラグインのマーケットプレイスを、同じスクリプトとPRで上げる。
+
 `.github/workflows/update-skills.yml` が週 1 回 (日曜 5:00 JST) `update-skills.sh` を実行し、新しいコミットがあれば `bot/update-skills` ブランチと PR を作る。PR の本文に compare の URL が並ぶので、中身を読む。CI は `GITHUB_TOKEN` の push では動かないので、ワークフローが `workflow_dispatch` で動かす。この CI の結果は PR のチェック欄に出ないので、本文の「CI:」のリンクから見る。
 
 コミットは署名されていない。GitHub の画面からマージせず、署名の鍵がある端末で取り込む。`commit.gpgsign` で署名される。
@@ -105,7 +107,7 @@ PR は、次の実行ですべて最新になったと分かったときに閉�
 bash ~/dotfiles/provision/update-skills.sh --dry-run
 ```
 
-新しいコミットがあるものと、差分を見る compare の URL を表示する。中身を読んでから、引数なしか、スキルの名前を付けて実行すると `skills.toml` が書き換わる。
+新しいコミットがあるものと、差分を見るcompareのURLを表示する。中身を読んでから、引数なしか、スキルかマーケットプレイスの名前を付けて実行すると、`skills.toml`と`home/.claude-settings.json`が書き換わる。`home/.claude-settings.json`では、そのマーケットプレイスの`ref`の行だけが変わる。
 
 ```bash
 bash ~/dotfiles/provision/update-skills.sh rust-skills

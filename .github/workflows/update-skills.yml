@@ -1,5 +1,6 @@
-# skills.toml で固定したコミットを上流の最新に上げる PR を作る。中身を読んでから手元で署名して取り込む (docs/skills.md)。
-name: スキルの更新
+# skills.tomlのスキルと、.claude-settings.jsonのプラグインのマーケットプレイスで固定したコミットを、上流の最新に上げるPRを作る。
+# 中身を読んでから手元で署名して取り込む(docs/skills.md)。
+name: スキルとマーケットプレイスの更新
 
 on:
   schedule:
@@ -22,6 +23,7 @@ jobs:
       actions: write # CI を workflow_dispatch で動かす。GITHUB_TOKEN の push では CI が動かないため
     env:
       BRANCH: bot/update-skills
+      TITLE: スキルとプラグインのマーケットプレイスを上流の最新のコミットに上げる
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -50,19 +52,19 @@ jobs:
           fi
 
           git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
-            commit --quiet -am "スキルを上流の最新のコミットに上げる"
+            commit --quiet -am "$TITLE"
           gh auth setup-git
           git push --force origin "HEAD:refs/heads/$BRANCH"
 
           body="$(
-            printf '%s\n\n' "skills.toml で固定したコミットを上流の最新に上げます。compare で中身を読んでから、手元で署名して取り込みます (docs/skills.md の「更新する」)。"
+            printf '%s\n\n' "skills.tomlと.claude-settings.jsonで固定したスキルとプラグインのマーケットプレイスを、上流の最新のコミットに上げます。compareで中身を読んでから、手元で署名して取り込みます(docs/skills.mdの｢更新する｣)。"
             # workflow_dispatch の CI は PR のチェック欄に出ないので、結果への道を本文に置く
             printf 'CI: %s\n\n' "https://github.com/$GITHUB_REPOSITORY/actions/workflows/ci.yml?query=branch%3A${BRANCH//\//%2F}"
             printf '%s\n' "$out" | grep ': https://github.com/' | sed 's/^/- /'
           )"
           if [ -n "$open_pr" ]; then
-            gh pr edit "$open_pr" --body "$body"
+            gh pr edit "$open_pr" --title "$TITLE" --body "$body"
           else
-            gh pr create --head "$BRANCH" --base master --title "スキルを上流の最新のコミットに上げる" --body "$body"
+            gh pr create --head "$BRANCH" --base master --title "$TITLE" --body "$body"
           fi
           gh workflow run ci.yml --ref "$BRANCH"
