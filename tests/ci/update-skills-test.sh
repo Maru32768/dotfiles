@@ -95,21 +95,25 @@ check() { if "${@:2}"; then pass "$1"; else fail "$1"; fi; }
 changes() { diff "$1.orig" "$1" | sed -n 's/^< /- /p; s/^> /+ /p'; }
 urls="stale: https://github.com/o/stale/compare/$old...$new
 market: https://github.com/o/market/compare/$old...$new"
+reminder="マーケットプレイスのプラグインは、反映した後にdocs/claude.mdの｢プラグイン｣の手順で入れ替えます"
 
 reset
 out="$(run --dry-run)"
 equals "--dry-runは、古いスキルとマーケットプレイスのcompareのURLだけを出す" "$(grep ': https://' <<<"$out")" "$urls"
 check "--dry-runはファイルを変えない" unchanged "$skills" "$settings"
+equals "--dry-runは、プラグインの入れ替えを案内しない" "$(grep -cxF "$reminder" <<<"$out")" 0
 
 reset
-run market >/dev/null
+out="$(run market)"
+equals "マーケットプレイスを上げると、プラグインの入れ替えを案内する" "$(tail -n1 <<<"$out")" "$reminder"
 equals "マーケットプレイスを上げると、そのrefの行だけが変わる" "$(changes "$settings")" "-         \"ref\": \"$old\"
 +         \"ref\": \"$new\""
 equals "変わるのは、同じ古いコミットに固定したsameではなく、marketのref" "$(grep -A4 '"market": {' "$settings" | grep '"ref"' | tr -d ' ')" "\"ref\":\"$new\""
 check "マーケットプレイスだけを上げると、スキルは変わらない" unchanged "$skills"
 
 reset
-run stale >/dev/null
+out="$(run stale)"
+equals "スキルだけを上げても、プラグインの入れ替えは案内しない" "$(grep -cxF "$reminder" <<<"$out")" 0
 equals "スキルを上げると、そのcommitの行だけが変わる" "$(changes "$skills")" "- commit = \"$old\"
 + commit = \"$new\""
 check "スキルだけを上げると、マーケットプレイスは変わらない" unchanged "$settings"
