@@ -141,6 +141,18 @@ func TestMarkdownFenceIsSkipped(t *testing.T) {
 	}
 }
 
+func TestWriteUpdateReportsOnlyAddedLines(t *testing.T) {
+	path := write(t, "a.md", "古い （行）\nAIを使う\n")
+	out, code := runHook(t, map[string]any{
+		"tool_name":     "Write",
+		"tool_input":    map[string]any{"file_path": path},
+		"tool_response": map[string]any{"type": "update", "structuredPatch": []hunk{{NewStart: 1, Lines: []string{" 古い （行）", "+AIを使う"}}}},
+	})
+	if code != 0 || out != "" {
+		t.Errorf("code %d, output:\n%s", code, out)
+	}
+}
+
 func TestLongLineReportIsBounded(t *testing.T) {
 	path := write(t, "a.json", strings.Repeat("（日本「・ A", 50000)+"\n")
 	out, code := runHook(t, map[string]any{
