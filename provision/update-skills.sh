@@ -43,6 +43,8 @@ done
 declare -A latest=()
 changed=0
 while read -r name repo commit kind; do
+  # <<<は空の文字列にも空の1行を渡す
+  [ -n "$name" ] || continue
   if [ "$#" -gt 0 ] && ! printf '%s\n' "$@" | grep -qxF "$name"; then
     continue
   fi
