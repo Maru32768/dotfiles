@@ -15,6 +15,8 @@ pass() { printf 'PASS %s\n' "$1"; }
 fail() { printf 'FAIL %s\n' "$1"; failures=$((failures + 1)); }
 check() { if eval "$2" >/dev/null 2>&1; then pass "$1"; else fail "$1"; fi; }
 equals() { if [ "$2" = "$3" ]; then pass "$1"; else fail "$1"; printf '  want: %s\n  got:  %s\n' "$3" "$2"; fi; }
+# macOSのwcは、数の前に空白を付ける
+count_lines() { wc -l < "$1" | tr -d ' '; }
 
 repo="$work/repo"
 g() { git -C "$repo" "$@"; }
@@ -62,10 +64,10 @@ equals "組み込みのコマンドがexitしても、その終了コードを�
 mkdir -p "$work/unwritable.tsv"
 e "$work/unwritable.tsv" run ok -- true > /dev/null 2>&1
 equals "記録を書けなければ、コマンドが成功しても2で終わる" "$?" "2"
-lines=$(wc -l < "$log")
-check "runのラベルにbaselineは使えず、実行も記録もしない" '! e "$log" run baseline -- touch "$work/baseline-ran" && [ ! -e "$work/baseline-ran" ] && [ "$(wc -l < "$log")" = "$lines" ]'
-lines=$(wc -l < "$log")
-check "タブを含むラベルは、実行も記録もせずに拒否する" '! e "$log" run "a	b" -- touch "$work/tab-ran" && [ ! -e "$work/tab-ran" ] && [ "$(wc -l < "$log")" = "$lines" ]'
+lines=$(count_lines "$log")
+check "runのラベルにbaselineは使えず、実行も記録もしない" '! e "$log" run baseline -- touch "$work/baseline-ran" && [ ! -e "$work/baseline-ran" ] && [ "$(count_lines "$log")" = "$lines" ]'
+lines=$(count_lines "$log")
+check "タブを含むラベルは、実行も記録もせずに拒否する" '! e "$log" run "a	b" -- touch "$work/tab-ran" && [ ! -e "$work/tab-ran" ] && [ "$(count_lines "$log")" = "$lines" ]'
 check "作業ツリーの中の、無視されていない記録は拒否する" '! e "$repo/evidence.tsv" run x -- true && [ ! -e "$repo/evidence.tsv" ]'
 check "作業ツリーの中でも、無視された記録は使える" 'e "$repo/build/evidence.tsv" run x -- true'
 
@@ -146,7 +148,7 @@ patch_of() {
 }
 patch_of kill 's/\$1 + \$2/$1 - $2/'
 patch_of survive 's/\$1 \* \$2/$1 + $2/'
-patch_of loop '1i while :; do :; done'
+patch_of loop $'1i\\\nwhile :; do :; done'
 sed 's/^-add/-nothing/' "$work/kill.patch" > "$work/noapply.patch"
 mlog="$work/mutate.tsv"
 count="$work/count"
@@ -158,26 +160,33 @@ mutate kill > /dev/null
 rc=$?
 equals "テストが落ちる変異はKilledで0" "$rc $(last 2-4 "$mlog")" "0 mutate	kill.patch	Killed"
 check "Killedの後、作業ツリーがきれいで指紋も同じ" same
-equals "初回は基準の実行と変異の実行で、2回回す" "$(wc -l < "$count")" "2"
+equals "初回は基準の実行と変異の実行で、2回回す" "$(count_lines "$count")" "2"
 check "基準の実行をbaselineとして記録する" 'grep -q "	run	baseline	0	$fp0	" "$mlog"'
 mutate survive > /dev/null
 rc=$?
 equals "テストが気づかない変異はSurvivedで1" "$rc $(last 2-4 "$mlog")" "1 mutate	survive.patch	Survived"
 check "Survivedの後、作業ツリーがきれいで指紋も同じ" same
-equals "同じ指紋と同じコマンドの2回目は、基準の実行を省く" "$(wc -l < "$count")" "3"
+equals "同じ指紋と同じコマンドの2回目は、基準の実行を省く" "$(count_lines "$count")" "3"
 rlog="$work/run-only.tsv"
 e "$rlog" run same -- sh -c 'echo run >> "$0"; sh test.sh' "$count" > /dev/null
 e "$rlog" mutate "$work/kill.patch" -- sh -c 'echo run >> "$0"; sh test.sh' "$count" > /dev/null
-equals "同じコマンドのrunの行があっても、baselineの行が無ければ基準の実行を省かない" "$(wc -l < "$count")" "6"
+equals "同じコマンドのrunの行があっても、baselineの行が無ければ基準の実行を省かない" "$(count_lines "$count")" "6"
 mutate noapply > /dev/null 2>&1
 rc=$?
 equals "当たらないパッチはInvalidで4" "$rc $(last 2-4 "$mlog")" "4 mutate	noapply.patch	Invalid"
 check "Invalidの後、作業ツリーがきれいで指紋も同じ" same
-MUTATE_TIMEOUT=2 mutate loop > /dev/null 2>&1
-rc=$?
-equals "MUTATE_TIMEOUTを過ぎるとTimeoutで3" "$rc $(last 2-4 "$mlog")" "3 mutate	loop.patch	Timeout"
-check "Timeoutの後、作業ツリーがきれいで指紋も同じ" same
-equals "MUTATE_TIMEOUTが違えば、同じコマンドでも基準の実行をやり直す" "$(wc -l < "$count")" "8"
+equals "当たらないパッチは、コマンドを回さない" "$(count_lines "$count")" "6"
+# macOSにはtimeoutが無い。そのときevidence.shがMUTATE_TIMEOUTを拒むことは、後のnobinの検査が確かめる
+if command -v timeout > /dev/null; then
+  runs=$(count_lines "$count")
+  MUTATE_TIMEOUT=2 mutate loop > /dev/null 2>&1
+  rc=$?
+  equals "MUTATE_TIMEOUTを過ぎるとTimeoutで3" "$rc $(last 2-4 "$mlog")" "3 mutate	loop.patch	Timeout"
+  check "Timeoutの後、作業ツリーがきれいで指紋も同じ" same
+  equals "MUTATE_TIMEOUTが違えば、同じコマンドでも基準の実行をやり直す" "$(count_lines "$count")" "$((runs + 2))"
+else
+  printf 'SKIP timeoutが無いので、MUTATE_TIMEOUTで止める検査を飛ばす\n'
+fi
 
 # 変異のときだけ、コマンドが$goのファイルを待つ。待っている間にTERMを送る
 go="$work/go"
@@ -196,11 +205,12 @@ check "TERMで止めた後、作業ツリーがきれいで指紋も同じ" same
 same || g checkout -q -- .
 check "TERMで止めると、変異の結果を記録しない" '! grep -q "	mutate	" "$work/signal.tsv"'
 # 変異のときだけ、コマンドが$2を実行してから待つ。待っている間に$1を送り、終了コードとmutateの行の数を出す。
-# 無視されたシグナルはtrapできない。Linuxの非対話のbashは&で起こしたジョブにINTを無視させ、テストを
-# 無視された状態で起動すれば(裏で回すときなど)それも引き継ぐので、envで既定に戻す
+# 無視されたシグナルはtrapできない。非対話のbashは&で起こしたジョブにINTを無視させ、テストを
+# 無視された状態で起動すれば(裏で回すときなど)それも引き継ぐので、既定に戻す。macOSのenvには
+# --default-signalが無いので、perlで戻す
 interrupt() {
   local go="$work/go-$3" pid
-  (cd "$repo" && exec env --default-signal="$1" bash "$ev" "$work/signal-$3.tsv" mutate "$work/kill.patch" -- \
+  (cd "$repo" && exec perl -e '$SIG{shift()} = "DEFAULT"; exec @ARGV or die "exec: $!\n"' "$1" bash "$ev" "$work/signal-$3.tsv" mutate "$work/kill.patch" -- \
     sh -c 'if grep -q "1 - " app.sh; then $1; : > "$0.started"; until [ -e "$0" ]; do sleep 0.1; done; fi; sh test.sh' "$go" "$2") > /dev/null 2>&1 &
   pid=$!
   for _ in $(seq 600); do [ -e "$go.started" ] && break; sleep 0.1; done
@@ -267,7 +277,7 @@ diff -u --label a/g.txt --label b/g.txt "$drepo/g.txt" "$work/g.mut" > "$work/pr
 rc=$?
 equals "変える前の並びが別の場所にもあるパッチも、当てた後に戻す" "$rc [$(git -C "$drepo" status --porcelain)]" "0 []"
 # 戻した後のビルドが、無視されないファイルを残す
-lines=$(wc -l < "$mlog")
+lines=$(count_lines "$mlog")
 MUTATE_BUILD='touch gen.txt' e "$mlog" mutate "$work/kill.patch" -- sh -c 'rm -f gen.txt; sh test.sh' > /dev/null 2>&1
 rc=$?
 check "戻した後のビルドが無視されないファイルを残すと、5で終わり変異の結果を記録しない" '[ "$rc" = 5 ] && ! tail -n "+$((lines + 1))" "$mlog" | grep -q "	mutate	"'
@@ -291,23 +301,24 @@ rc=$?
 equals "基準の実行が失敗するとInvalidで4" "$rc $(last 2-4 "$mlog")" "4 mutate	kill.patch	Invalid"
 equals "基準の実行が失敗すると、パッチを当てずに止まる" "$(cat "$work/seen")" "$(cat "$repo/app.sh")"
 check "基準の実行が失敗した後、作業ツリーがきれいで指紋も同じ" same
-lines=$(wc -l < "$mlog")
+lines=$(count_lines "$mlog")
 e "$mlog" mutate "$work/kill.patch" -- sh -c 'touch junk.txt; exit 1' > /dev/null 2>&1
 rc=$?
-check "基準の実行が失敗してファイルを残すと、5で終わり何も記録しない" '[ "$rc" = 5 ] && [ "$(wc -l < "$mlog")" = "$lines" ]'
+check "基準の実行が失敗してファイルを残すと、5で終わり何も記録しない" '[ "$rc" = 5 ] && [ "$(count_lines "$mlog")" = "$lines" ]'
 rm -f "$repo/junk.txt"
-lines=$(wc -l < "$mlog")
+lines=$(count_lines "$mlog")
 MUTATE_BUILD='touch junk.txt; exit 1' e "$mlog" mutate "$work/kill.patch" -- sh test.sh > /dev/null 2>&1
 rc=$?
-check "基準の実行のビルドが失敗してファイルを残すと、5で終わり何も記録しない" '[ "$rc" = 5 ] && [ "$(wc -l < "$mlog")" = "$lines" ]'
+check "基準の実行のビルドが失敗してファイルを残すと、5で終わり何も記録しない" '[ "$rc" = 5 ] && [ "$(count_lines "$mlog")" = "$lines" ]'
 rm -f "$repo/junk.txt"
 
 # 変異だけがビルドに失敗するビルド
+runs=$(count_lines "$count")
 MUTATE_BUILD='! grep -q "1 - " app.sh' mutate kill > /dev/null 2>&1
 rc=$?
 equals "MUTATE_BUILDが失敗するとInvalidで4" "$rc $(last 2-4 "$mlog")" "4 mutate	kill.patch	Invalid"
 check "ビルドの失敗の後、作業ツリーがきれいで指紋も同じ" same
-equals "MUTATE_BUILDが違えば、同じコマンドでも基準の実行をやり直す" "$(wc -l < "$count")" "9"
+equals "MUTATE_BUILDが違えば、同じコマンドでも基準の実行をやり直す" "$(count_lines "$count")" "$((runs + 1))"
 # テストがビルドの成果物(無視されたbuild/)を読むとき、変異ごとにビルドし直してから回す
 MUTATE_BUILD='mkdir -p build && cp app.sh build/app.sh' \
   e "$mlog" mutate "$work/kill.patch" -- sh -c '. build/app.sh; [ "$(add 2 3)" = 5 ]' > /dev/null 2>&1
@@ -322,9 +333,9 @@ equals "変異の実行が126で終わる(コマンドを実行できない)とI
 equals "変異の実行が127で終わる(コマンドが無い)とInvalidで4" "$(exits 127)" "4 Invalid"
 equals "変異の実行が128以上で終わる(クラッシュ)とKilledで0" "$(exits 134)" "0 Killed"
 
-lines=$(wc -l < "$mlog")
-runs=$(wc -l < "$count")
-untouched() { [ "$rc" = 2 ] && [ "$(wc -l < "$mlog")" = "$lines" ] && [ "$(wc -l < "$count")" = "$runs" ] && grep -q "1 + " "$repo/app.sh"; }
+lines=$(count_lines "$mlog")
+runs=$(count_lines "$count")
+untouched() { [ "$rc" = 2 ] && [ "$(count_lines "$mlog")" = "$lines" ] && [ "$(count_lines "$count")" = "$runs" ] && grep -q "1 + " "$repo/app.sh"; }
 printf 'dirt\n' > "$repo/dirt.txt"
 mutate kill > /dev/null 2>&1
 rc=$?
@@ -354,30 +365,30 @@ printf 'there\n' >> "$repo/sub/here.txt"
 g commit -q -am here
 fp0=$(fp)
 mutate kill > /dev/null
-equals "指紋が変わると、同じコマンドでも基準の実行をやり直す" "$(wc -l < "$count")" "$((runs + 2))"
+equals "指紋が変わると、同じコマンドでも基準の実行をやり直す" "$(count_lines "$count")" "$((runs + 2))"
 # 成功したbaselineの行の後に、同じ指紋とキーで失敗した行を足す
 row=$(grep "	run	baseline	" "$mlog" | tail -n 1)
 awk -F'\t' -v OFS='\t' '{ $4 = 1; print }' <<< "$row" >> "$mlog"
-runs=$(wc -l < "$count")
+runs=$(count_lines "$count")
 mutate kill > /dev/null
-equals "最新のbaselineの行が失敗なら、前に成功した行があっても基準の実行をやり直す" "$(wc -l < "$count")" "$((runs + 2))"
-lines=$(wc -l < "$mlog")
+equals "最新のbaselineの行が失敗なら、前に成功した行があっても基準の実行をやり直す" "$(count_lines "$count")" "$((runs + 2))"
+lines=$(count_lines "$mlog")
 
 # 変異のときだけ、コマンドが追跡しているファイルを書き換える。戻した後の作業ツリーが違うので、何も記録しない
 e "$mlog" mutate "$work/kill.patch" -- sh -c 'grep -q "1 - " app.sh && echo x >> test.sh; sh test.sh' > /dev/null 2>&1
 rc=$?
-check "変異の実行がファイルを書き換えると5で終わり、変異の結果を記録しない" '[ "$rc" = 5 ] && [ "$(wc -l < "$mlog")" = "$((lines + 1))" ] && [ "$(last 3 "$mlog")" = baseline ]'
+check "変異の実行がファイルを書き換えると5で終わり、変異の結果を記録しない" '[ "$rc" = 5 ] && [ "$(count_lines "$mlog")" = "$((lines + 1))" ] && [ "$(last 3 "$mlog")" = baseline ]'
 g checkout -q -- test.sh
 # git apply -Rは作業ツリーだけを戻すので、indexに変異が残る
 e "$mlog" mutate "$work/kill.patch" -- sh -c 'grep -q "1 - " app.sh && git add -A; sh test.sh' > /dev/null 2>&1
 rc=$?
 equals "変異の実行がindexに変異を入れると5で終わる" "$rc" "5"
 g reset -q --hard
-lines=$(wc -l < "$mlog")
-runs=$(wc -l < "$count")
+lines=$(count_lines "$mlog")
+runs=$(count_lines "$count")
 e "$mlog" mutate "$work/kill.patch" -- sh -c 'echo run >> "$0"; echo x >> test.sh' "$count" > /dev/null 2>&1
 rc=$?
-check "基準の実行がファイルを書き換えると、5で終わり、変異を回さず、baselineの行も残さない" '[ "$rc" = 5 ] && [ "$(wc -l < "$count")" = "$((runs + 1))" ] && [ "$(wc -l < "$mlog")" = "$lines" ]'
+check "基準の実行がファイルを書き換えると、5で終わり、変異を回さず、baselineの行も残さない" '[ "$rc" = 5 ] && [ "$(count_lines "$count")" = "$((runs + 1))" ] && [ "$(count_lines "$mlog")" = "$lines" ]'
 g checkout -q -- test.sh
 
 # --- サブディレクトリとlinked worktree ---
