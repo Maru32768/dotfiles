@@ -33,6 +33,11 @@ var badLines = map[string]string{
 	"詳しくは https://example.com/ を見る":    spacing,
 	"`curl https://example.com` で取得する": spacing,
 	"[リンク](https://example.com)を見て、ＡＩを使う": fullwidthAlnum,
+	"[リンク](https://example.com)でＡＩを使う":    fullwidthAlnum,
+	"[Go](https://go.dev)とGo の違い":         spacing,
+	"https://example.com。ＡＩを使う":           fullwidthAlnum,
+	"https://example.com　ＡＩを使う":           fullwidthAlnum,
+	"｢https://example.com｣ を開く":           markSpace,
 }
 
 var goodLines = []string{
@@ -48,6 +53,8 @@ var goodLines = []string{
 	"See https://example.com を開く",
 	"https://ja.wikipedia.org/wiki/Go_(プログラミング言語) を参照する",
 	"https://example.com/ＡＩ を見る",
+	"[Go](https://ja.wikipedia.org/wiki/Go_(プログラミング言語))を参照する",
+	"[リンク](https://example.com) を見る",
 	"http://localhost:8080 を開く",
 	"``（`）``を使う",
 	"- ｢保存｣を押す",

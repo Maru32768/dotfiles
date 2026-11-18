@@ -39,7 +39,7 @@ const (
 var (
 	hasJapanese = regexp.MustCompile(`[` + ja + `]`)
 	codeSpan    = regexp.MustCompile("``.+?``|`[^`]+`")
-	url         = regexp.MustCompile(`https?://[^\s\x{3001}\x{3002}]+`)
+	url         = regexp.MustCompile(`https?://(?:[^\s\x{3000}\x{3001}\x{3002}\x{FF63}()<>]|\([^\s()]*\))+\)?`)
 	rules       = []struct {
 		pattern *regexp.Regexp
 		problem string
@@ -57,7 +57,8 @@ var (
 func lineProblems(line string) []string {
 	// コードの中身は検査しないが、コードと日本語の間のスペースは検査するため、英字に置き換える。
 	// URL は、前のスペースを検査し、規則で残す後ろのスペースは検査しないように、英字と記号に置き換える。
-	// 日本語を含む URL があるので、URL の終わりは空白か句読点で見分ける。
+	// 日本語を含む URL があるので、文字の種類では終わりを決められない。空白、句読点、閉じカギカッコと、
+	// 対応の無い閉じ括弧(Markdown のリンクの終わり)で見分ける。
 	line = url.ReplaceAllString(codeSpan.ReplaceAllString(line, "x"), "x/")
 	if !hasJapanese.MatchString(line) {
 		return nil
