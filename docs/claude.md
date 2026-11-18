@@ -54,11 +54,6 @@ chezmoi apply   # 反映する
 
 固定は`provision/update-skills.sh`が、スキルと同じく上流の既定のブランチの最新に上げる。対象は、`source`が`github`で`ref`がコミットのハッシュのものだけ。週1回のPRにも、スキルと並んで出る(`docs/skills.md`の｢更新する｣)。
 
-```bash
-bash ~/dotfiles/provision/update-skills.sh --dry-run
-bash ~/dotfiles/provision/update-skills.sh pstack-claude
-```
-
 固定を上げて`chezmoi apply`で反映したら、端末ごとに対話のセッションを1回始めてマーケットプレイスを取り直させ、プラグインを入れ替える。
 
 ```bash
