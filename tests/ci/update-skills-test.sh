@@ -112,7 +112,7 @@ equals "変わるのは、同じ古いコミットに固定したsameではな�
 check "マーケットプレイスだけを上げると、スキルは変わらない" unchanged "$skills"
 
 reset
-out="$(run stale)"
+out="$(run stale same)"
 equals "スキルだけを上げても、プラグインの入れ替えは案内しない" "$(grep -cxF "$reminder" <<<"$out")" 0
 equals "スキルを上げると、そのcommitの行だけが変わる" "$(changes "$skills")" "- commit = \"$old\"
 + commit = \"$new\""
