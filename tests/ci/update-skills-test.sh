@@ -91,8 +91,8 @@ reset() { cp "$skills.orig" "$skills" && cp "$settings.orig" "$settings"; }
 run() { PATH="$work/bin:$PATH" HEADS="$work/heads" bash "$work/tree/provision/update-skills.sh" "$@" 2>&1; }
 unchanged() { for f; do cmp -s "$f" "$f.orig" || return 1; done; }
 check() { if "${@:2}"; then pass "$1"; else fail "$1"; fi; }
-# 元のファイルから消えた行と足された行を、字下げを除いて"- 行"と"+ 行"で出す
-changes() { diff "$1.orig" "$1" | sed -n 's/^< */- /p; s/^> */+ /p'; }
+# 元のファイルから消えた行と足された行を、字下げも含めて"- 行"と"+ 行"で出す
+changes() { diff "$1.orig" "$1" | sed -n 's/^< /- /p; s/^> /+ /p'; }
 
 reset
 out="$(run --dry-run)"
@@ -102,8 +102,8 @@ check "--dry-runはファイルを変えない" unchanged "$skills" "$settings"
 
 reset
 run market >/dev/null
-equals "マーケットプレイスを上げると、そのrefの行だけが変わる" "$(changes "$settings")" "- \"ref\": \"$old\"
-+ \"ref\": \"$new\""
+equals "マーケットプレイスを上げると、そのrefの行だけが変わる" "$(changes "$settings")" "-         \"ref\": \"$old\"
++         \"ref\": \"$new\""
 equals "変わるのは、同じ古いコミットに固定したsameではなく、marketのref" "$(grep -A4 '"market": {' "$settings" | grep '"ref"' | tr -d ' ')" "\"ref\":\"$new\""
 check "マーケットプレイスだけを上げると、スキルは変わらない" unchanged "$skills"
 
@@ -117,8 +117,8 @@ reset
 run >/dev/null
 equals "引数なしで、古いものをすべて上げる" "$(changes "$skills"; changes "$settings")" "- commit = \"$old\"
 + commit = \"$new\"
-- \"ref\": \"$old\"
-+ \"ref\": \"$new\""
+-         \"ref\": \"$old\"
++         \"ref\": \"$new\""
 equals "上げた後にもう一度実行すると、すべて最新" "$(run)" "すべて最新です"
 
 reset
