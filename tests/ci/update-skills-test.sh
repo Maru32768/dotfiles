@@ -82,7 +82,7 @@ cat >"$settings.orig" <<EOF
         "repo": "o/unpinned"
       }
     },
-    "giturl": { "source": { "source": "git", "url": "https://github.com/o/giturl.git" } }
+    "giturl": { "source": { "source": "git", "url": "https://github.com/o/giturl.git", "ref": "$old" } }
   }
 }
 EOF
