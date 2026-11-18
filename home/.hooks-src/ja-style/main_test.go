@@ -140,6 +140,18 @@ func TestMarkdownFenceIsSkipped(t *testing.T) {
 	}
 }
 
+func TestLongLineReportIsBounded(t *testing.T) {
+	path := write(t, "a.json", strings.Repeat("（日本「・ A", 50000)+"\n")
+	out, code := runHook(t, map[string]any{
+		"tool_name":     "Write",
+		"tool_input":    map[string]any{"file_path": path},
+		"tool_response": map[string]any{"type": "create"},
+	})
+	if code != 2 || len(out) > 2000 || strings.Count(out, path+":1:") != 1 {
+		t.Errorf("code %d, %d bytes, output:\n%.500s", code, len(out), out)
+	}
+}
+
 func TestCleanEditIsSilent(t *testing.T) {
 	path := write(t, "a.md", "AIを使う\n")
 	out, code := runHook(t, map[string]any{

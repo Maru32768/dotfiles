@@ -25,7 +25,8 @@ const (
 	parenSpace     = "丸括弧の内側と外側にスペースを入れない"
 	markSpace      = "カギカッコと中黒の前後にスペースを入れない"
 
-	maxReports = 20
+	maxReports   = 20
+	maxLineRunes = 100
 )
 
 const (
@@ -139,9 +140,16 @@ func report(call toolCall) ([]string, error) {
 		if n < 1 || n > len(lines) || inFence[n] {
 			continue
 		}
-		for _, p := range lineProblems(lines[n-1]) {
-			reports = append(reports, fmt.Sprintf("%s:%d: %s: %s", path, n, p, lines[n-1]))
+		problems := lineProblems(lines[n-1])
+		if len(problems) == 0 {
+			continue
 		}
+		// 1行のJSONやバンドルしたJSを書いたときに、報告がClaudeの文脈を埋めないように切る。
+		line := []rune(lines[n-1])
+		if len(line) > maxLineRunes {
+			line = append(line[:maxLineRunes], '…')
+		}
+		reports = append(reports, fmt.Sprintf("%s:%d: %s: %s", path, n, strings.Join(problems, "、"), string(line)))
 	}
 	return reports, nil
 }
