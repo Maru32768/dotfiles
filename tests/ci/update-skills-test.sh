@@ -93,11 +93,12 @@ unchanged() { for f; do cmp -s "$f" "$f.orig" || return 1; done; }
 check() { if "${@:2}"; then pass "$1"; else fail "$1"; fi; }
 # 元のファイルから消えた行と足された行を、字下げも含めて"- 行"と"+ 行"で出す
 changes() { diff "$1.orig" "$1" | sed -n 's/^< /- /p; s/^> /+ /p'; }
+urls="stale: https://github.com/o/stale/compare/$old...$new
+market: https://github.com/o/market/compare/$old...$new"
 
 reset
 out="$(run --dry-run)"
-equals "--dry-runは、古いスキルとマーケットプレイスのcompareのURLだけを出す" "$(grep ': https://' <<<"$out")" "stale: https://github.com/o/stale/compare/$old...$new
-market: https://github.com/o/market/compare/$old...$new"
+equals "--dry-runは、古いスキルとマーケットプレイスのcompareのURLだけを出す" "$(grep ': https://' <<<"$out")" "$urls"
 check "--dry-runはファイルを変えない" unchanged "$skills" "$settings"
 
 reset
@@ -114,7 +115,9 @@ equals "スキルを上げると、そのcommitの行だけが変わる" "$(chan
 check "スキルだけを上げると、マーケットプレイスは変わらない" unchanged "$settings"
 
 reset
-run >/dev/null
+out="$(run)"
+equals "引数なしで成功する" "$?" 0
+equals "書き換えるときも、古いもののcompareのURLを出す" "$(grep ': https://' <<<"$out")" "$urls"
 equals "引数なしで、古いものをすべて上げる" "$(changes "$skills"; changes "$settings")" "- commit = \"$old\"
 + commit = \"$new\"
 -         \"ref\": \"$old\"
