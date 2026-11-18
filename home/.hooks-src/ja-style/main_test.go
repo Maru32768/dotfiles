@@ -165,6 +165,18 @@ func TestLongLineReportIsBounded(t *testing.T) {
 	}
 }
 
+func TestIndentedFenceIsSkipped(t *testing.T) {
+	path := write(t, "a.md", "- 例\n\n  ```\n  「コード」\n  ```\n")
+	out, code := runHook(t, map[string]any{
+		"tool_name":     "Write",
+		"tool_input":    map[string]any{"file_path": path},
+		"tool_response": map[string]any{"type": "create"},
+	})
+	if code != 0 || out != "" {
+		t.Errorf("code %d, output:\n%s", code, out)
+	}
+}
+
 func TestCleanEditIsSilent(t *testing.T) {
 	path := write(t, "a.md", "AIを使う\n")
 	out, code := runHook(t, map[string]any{
