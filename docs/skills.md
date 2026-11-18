@@ -6,7 +6,7 @@ GitHub で公開されているスキルを、Windows と `dev` に同じ版で�
 |---|---|
 | `home/.chezmoidata/skills.toml` | スキルごとの出どころ (`repo`、`path`)、固定するコミット、置く先 |
 | `home/.chezmoiexternals/skills.toml.tmpl` | 一覧から chezmoi の external を作る。GitHub のアーカイブから、そのスキルのディレクトリだけを取り出す |
-| `provision/update-skills.sh` | 固定したコミットを最新に上げる。コミットに固定したプラグインのマーケットプレイスも上げる |
+| `provision/update-skills.sh` | スキルと、コミットに固定したプラグインのマーケットプレイスを、最新のコミットに上げる |
 
 置く先は 2 つある。
 
@@ -107,7 +107,7 @@ PR は、次の実行ですべて最新になったと分かったときに閉�
 bash ~/dotfiles/provision/update-skills.sh --dry-run
 ```
 
-新しいコミットがあるものと、差分を見るcompareのURLを表示する。中身を読んでから、引数なしか、スキルかマーケットプレイスの名前を付けて実行すると、`skills.toml`と`home/.claude-settings.json`が書き換わる。`home/.claude-settings.json`では、そのマーケットプレイスの`ref`の行だけが変わる。
+新しいコミットがあるものと、差分を見るcompareのURLを表示する。中身を読んでから、引数なしで、またはスキルかマーケットプレイスの名前を付けて実行すると、新しいコミットがあるものは、`skills.toml`か`home/.claude-settings.json`で固定したコミットが書き換わる。`home/.claude-settings.json`では、そのマーケットプレイスの`ref`の行だけが変わる。
 
 ```bash
 bash ~/dotfiles/provision/update-skills.sh rust-skills
