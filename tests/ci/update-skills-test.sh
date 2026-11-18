@@ -130,6 +130,11 @@ for name in nope unpinned; do
 done
 check "名前が無いときはファイルを変えない" unchanged "$skills" "$settings"
 
+# キーが行の先頭に無いと、refの行を見つけられない
+printf '{ "extraKnownMarketplaces": { "market": { "source": { "source": "github", "repo": "o/market", "ref": "%s" } } } }\n' "$old" >"$settings.orig"
+reset
+if run market >/dev/null; then fail "refの行を書き換えられないときは失敗する"; else pass "refの行を書き換えられないときは失敗する"; fi
+
 if [ "$failures" -gt 0 ]; then
   printf '\n%d件の問題があります\n' "$failures"
   exit 1
