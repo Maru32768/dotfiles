@@ -108,6 +108,20 @@ func TestAddedLines(t *testing.T) {
 	}
 }
 
+func TestNativePath(t *testing.T) {
+	cases := []struct{ path, goos, want string }{
+		{"/c/Users/a.md", "windows", "c:/Users/a.md"},
+		{"C:\\Users\\a.md", "windows", "C:\\Users\\a.md"},
+		{"/tmp/a.md", "windows", "/tmp/a.md"},
+		{"/c/Users/a.md", "linux", "/c/Users/a.md"},
+	}
+	for _, c := range cases {
+		if got := nativePath(c.path, c.goos); got != c.want {
+			t.Errorf("nativePath(%q, %q) = %q, want %q", c.path, c.goos, got, c.want)
+		}
+	}
+}
+
 func runHook(t *testing.T, input map[string]any) (string, int) {
 	t.Helper()
 	data, _ := json.Marshal(input)

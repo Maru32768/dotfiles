@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 )
 
@@ -106,6 +107,16 @@ type toolCall struct {
 	} `json:"tool_response"`
 }
 
+var gitBashDrive = regexp.MustCompile(`^/([A-Za-z])(/|$)`)
+
+// WindowsのClaude Codeは、Git Bashの形のパス(/c/Users/...)をそのままフックに渡すことがある。
+func nativePath(path, goos string) string {
+	if goos != "windows" {
+		return path
+	}
+	return gitBashDrive.ReplaceAllString(path, "$1:/")
+}
+
 func report(call toolCall) ([]string, error) {
 	create := call.ToolResponse.Type == "create"
 	targets := addedLines(call.ToolResponse.StructuredPatch)
@@ -113,7 +124,7 @@ func report(call toolCall) ([]string, error) {
 		return nil, nil
 	}
 	path := call.ToolInput.FilePath
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(nativePath(path, runtime.GOOS))
 	if err != nil {
 		return nil, err
 	}
