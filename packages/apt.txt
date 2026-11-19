@@ -1,17 +1,21 @@
 # mise で入らないものだけをここに書く
 bc
+bison
 bubblewrap
 build-essential
 ca-certificates
 curl
 file
+flex
 git
 gnupg
 jq
 libasound2t64
+libelf-dev
 libncurses-dev
 libnspr4
 libnss3
+libssl-dev
 pinentry-gtk2
 socat
 tmux
