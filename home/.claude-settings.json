@@ -20,7 +20,7 @@
       "source": {
         "source": "github",
         "repo": "michael-denyer/pstack-claude",
-        "ref": "f1209c06a3fdebd7856dda467f8871dfb2ddc1ed"
+        "ref": "97d2ba2790822939ee43db0d7856219ea96c450d"
       },
       "autoUpdate": true
     },
