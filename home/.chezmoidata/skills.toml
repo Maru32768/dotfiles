@@ -11,7 +11,7 @@
 [skills.agentic-browser-testing]
 repo = "petrkindlmann/qa-skills"
 path = "skills/agentic-browser-testing"
-commit = "9b075da4cde9e82a749a44bb9e99387c4b91688f"
+commit = "5087a3461d49da76b1e794d9b0bfbd23f38dc75b"
 targets = ["claude", "codex"]
 
 [skills.clarity]
@@ -23,25 +23,25 @@ targets = ["claude", "codex"]
 [skills.deploy-to-vercel]
 repo = "vercel-labs/agent-skills"
 path = "skills/deploy-to-vercel"
-commit = "1a2c79d4e6c4a2283dc2c614b6538cbe1ed5ca62"
+commit = "5a37a6329fbad3666c3207392a6a7c0110e92efb"
 targets = ["claude", "codex"]
 
 [skills.exploratory-testing]
 repo = "petrkindlmann/qa-skills"
 path = "skills/exploratory-testing"
-commit = "9b075da4cde9e82a749a44bb9e99387c4b91688f"
+commit = "5087a3461d49da76b1e794d9b0bfbd23f38dc75b"
 targets = ["claude", "codex"]
 
 [skills.find-skills]
 repo = "vercel-labs/skills"
 path = "skills/find-skills"
-commit = "b716f9dc2ba36b6aa8f0080615e5a3a6caeac63b"
+commit = "57217cf86ba38148a57af9e90d14a4c049558330"
 targets = ["claude"]
 
 [skills.gh-stack]
 repo = "github/gh-stack"
 path = "skills/gh-stack"
-commit = "b1bfce9e51d0cd92fc23efd6ecb37ff68139e7db"
+commit = "80b6d6e910cc1b7eaa26b961d7721ade21084fed"
 targets = ["claude", "codex"]
 
 [skills.rust-skills]
@@ -55,59 +55,59 @@ exclude = ["AGENTS.md", "CLAUDE.md"]
 [skills.translate-book]
 repo = "deusyu/translate-book"
 path = ""
-commit = "cf3862d46e79dc89abe3de13f3839039f1d8a637"
+commit = "1c531b49c688a7e8e601b176ce489790bcd10284"
 targets = ["claude"]
 
 [skills.vercel-cli-with-tokens]
 repo = "vercel-labs/agent-skills"
 path = "skills/vercel-cli-with-tokens"
-commit = "1a2c79d4e6c4a2283dc2c614b6538cbe1ed5ca62"
+commit = "5a37a6329fbad3666c3207392a6a7c0110e92efb"
 targets = ["claude", "codex"]
 
 [skills.vercel-composition-patterns]
 repo = "vercel-labs/agent-skills"
 path = "skills/composition-patterns"
-commit = "1a2c79d4e6c4a2283dc2c614b6538cbe1ed5ca62"
+commit = "5a37a6329fbad3666c3207392a6a7c0110e92efb"
 targets = ["claude", "codex"]
 
 [skills.vercel-optimize]
 repo = "vercel-labs/agent-skills"
 path = "skills/vercel-optimize"
-commit = "1a2c79d4e6c4a2283dc2c614b6538cbe1ed5ca62"
+commit = "5a37a6329fbad3666c3207392a6a7c0110e92efb"
 targets = ["claude", "codex"]
 
 [skills.vercel-react-best-practices]
 repo = "vercel-labs/agent-skills"
 path = "skills/react-best-practices"
-commit = "1a2c79d4e6c4a2283dc2c614b6538cbe1ed5ca62"
+commit = "5a37a6329fbad3666c3207392a6a7c0110e92efb"
 targets = ["claude", "codex"]
 
 [skills.vercel-react-native-skills]
 repo = "vercel-labs/agent-skills"
 path = "skills/react-native-skills"
-commit = "1a2c79d4e6c4a2283dc2c614b6538cbe1ed5ca62"
+commit = "5a37a6329fbad3666c3207392a6a7c0110e92efb"
 targets = ["claude", "codex"]
 
 [skills.vercel-react-view-transitions]
 repo = "vercel-labs/agent-skills"
 path = "skills/react-view-transitions"
-commit = "1a2c79d4e6c4a2283dc2c614b6538cbe1ed5ca62"
+commit = "5a37a6329fbad3666c3207392a6a7c0110e92efb"
 targets = ["claude", "codex"]
 
 [skills.web-design-guidelines]
 repo = "vercel-labs/agent-skills"
 path = "skills/web-design-guidelines"
-commit = "1a2c79d4e6c4a2283dc2c614b6538cbe1ed5ca62"
+commit = "5a37a6329fbad3666c3207392a6a7c0110e92efb"
 targets = ["claude", "codex"]
 
 [skills.writing-guidelines]
 repo = "vercel-labs/agent-skills"
 path = "skills/writing-guidelines"
-commit = "1a2c79d4e6c4a2283dc2c614b6538cbe1ed5ca62"
+commit = "5a37a6329fbad3666c3207392a6a7c0110e92efb"
 targets = ["claude", "codex"]
 
 [skills.yomiyasu]
 repo = "nanaism/yomiyasu"
 path = "skills/yomiyasu"
-commit = "db78b9bc5e868549b517a037df7a4d1c93edac23"
+commit = "c49d5f1bee91258e33e1febc3569c6c87be7669e"
 targets = ["claude", "codex"]
