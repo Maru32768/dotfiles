@@ -619,10 +619,20 @@ func addedOffsets(before, after []string) []int {
 	}
 	// 置換範囲に残った文脈行を除く。大きな置換でフックがタイムアウトするのを避ける。
 	const maxCells = 1 << 20
-	if len(after) > 0 && len(before) > maxCells/len(after) {
-		return nil
-	}
 	width := len(after) + 1
+	if len(before)+1 > maxCells/width {
+		existing := make(map[string]struct{}, len(before))
+		for _, line := range before {
+			existing[line] = struct{}{}
+		}
+		var added []int
+		for i, line := range after {
+			if _, exists := existing[line]; !exists {
+				added = append(added, first+i)
+			}
+		}
+		return added
+	}
 	lcs := make([]int, (len(before)+1)*width)
 	for i := len(before) - 1; i >= 0; i-- {
 		for j := len(after) - 1; j >= 0; j-- {

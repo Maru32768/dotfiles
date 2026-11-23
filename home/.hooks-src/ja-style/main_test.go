@@ -371,6 +371,34 @@ func TestAntigravityReplacementChecksOnlyChangedLinesInRange(t *testing.T) {
 	}
 }
 
+func TestAntigravityLargeReplacementStillChecksNewProse(t *testing.T) {
+	originalQueue := agyQueueDir
+	agyQueueDir = t.TempDir()
+	t.Cleanup(func() { agyQueueDir = originalQueue })
+	middle := strings.Repeat("共通の文\n", 1097) + "既存の （文）\n"
+	before := "前の始まり\n" + middle + "前の終わり\n"
+	after := "新しい （始まり）\n" + middle + "新しい （終わり）\n"
+	path := write(t, "a.md", after)
+	_, stderr, code := runHookAll(t, map[string]any{
+		"conversationId": "conv-large",
+		"toolCall": map[string]any{
+			"name": "replace_file_content",
+			"args": map[string]any{
+				"TargetFile": path, "StartLine": 1, "EndLine": 1100,
+				"TargetContent": before, "ReplacementContent": after,
+			},
+		},
+	})
+	if code != 0 || stderr != "" {
+		t.Fatalf("PostToolUse: code %d, stderr %q", code, stderr)
+	}
+	got, _, code := runHookAll(t, map[string]any{"conversationId": "conv-large", "invocationNum": 1})
+	if code != 0 || !strings.Contains(got, "a.md:1:") || !strings.Contains(got, "a.md:1100:") ||
+		strings.Contains(got, "a.md:1099:") {
+		t.Fatalf("PreInvocation: code %d, output %s", code, got)
+	}
+}
+
 func TestAntigravityDoesNotGuessLineNumbersForRepeatedReplacement(t *testing.T) {
 	dir := t.TempDir()
 	originalQueue := agyQueueDir
