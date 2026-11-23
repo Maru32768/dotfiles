@@ -368,12 +368,13 @@ func reportCodexPatch(call toolCall) []string {
 					}
 				}
 			}
+			originalRegion := lines[:max(0, appendAt)]
 			for _, chunk := range chunks {
 				if len(chunk.lines) == 0 && chunk.anchor == "" {
 					continue
 				}
 				if chunk.anchor != "" {
-					anchor := codexAnchor(lines[first:], chunk.anchor)
+					anchor := codexAnchor(originalRegion[first:], chunk.anchor)
 					if anchor < 0 {
 						break
 					}
@@ -388,12 +389,12 @@ func reportCodexPatch(call toolCall) []string {
 					appendAt += len(chunk.lines)
 				default:
 					searchFrom := first
-					if chunk.atEnd && len(chunk.lines) <= len(lines)-first {
-						searchFrom = len(lines) - len(chunk.lines)
+					if chunk.atEnd && len(chunk.lines) <= len(originalRegion)-first {
+						searchFrom = len(originalRegion) - len(chunk.lines)
 					}
-					starts := matchingPatchStarts(lines, chunk.lines, chunk.added, searchFrom)
+					starts := matchingPatchStarts(originalRegion, chunk.lines, chunk.added, searchFrom)
 					if len(starts) == 0 && searchFrom != first {
-						starts = matchingPatchStarts(lines, chunk.lines, chunk.added, first)
+						starts = matchingPatchStarts(originalRegion, chunk.lines, chunk.added, first)
 					}
 					if len(starts) == 0 {
 						continue
