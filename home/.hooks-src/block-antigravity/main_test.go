@@ -80,6 +80,7 @@ var allowedCommands = []string{
 	"cat <<E'OF'\nagy --help\nEOF",
 	"cat <<''\nagy --help\n\n",
 	"0<<'EOF' cat\nagy --help\nEOF",
+	"printf '%s\\n' \"$(cat <<'EOF'\n)\nagy --help\nEOF\n)\"",
 }
 
 func decide(t *testing.T, toolName, command string) bool {

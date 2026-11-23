@@ -314,6 +314,7 @@ func extractParenSub(s string, start int) (string, int) {
 	depth := 1
 	inSingle := false
 	inDouble := false
+	var pending []heredoc
 	for i := start; i < len(s); i++ {
 		ch := s[i]
 		if inSingle {
@@ -341,6 +342,20 @@ func extractParenSub(s string, start int) (string, int) {
 			inSingle = true
 		case '"':
 			inDouble = true
+		case '<':
+			if i == start || s[i-1] != '<' {
+				if doc, next := readHeredocDelimiter(s[i:]); next > 0 {
+					pending = append(pending, doc)
+					i += next - 1
+				}
+			}
+		case '\n':
+			if len(pending) > 0 {
+				if end, _ := readHeredocs(s, i+1, pending); end > 0 {
+					i = end - 1
+				}
+				pending = nil
+			}
 		case '(':
 			depth++
 		case ')':
