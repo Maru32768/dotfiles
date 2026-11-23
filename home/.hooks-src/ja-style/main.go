@@ -410,13 +410,21 @@ func reportCodexPatch(call toolCall) []string {
 					start = appendAt
 					appendAt += len(chunk.lines)
 				default:
-					searchFrom := first
-					if chunk.atEnd && len(chunk.lines) <= len(originalRegion)-first {
-						searchFrom = len(originalRegion) - len(chunk.lines)
+					locate := func() []int {
+						if chunk.atEnd && len(chunk.lines) <= len(originalRegion)-first {
+							eof := len(originalRegion) - len(chunk.lines)
+							if starts := matchingPatchStarts(originalRegion, chunk.lines, chunk.added, eof); len(starts) > 0 {
+								return starts
+							}
+						}
+						return matchingPatchStarts(originalRegion, chunk.lines, chunk.added, first)
 					}
-					starts := matchingPatchStarts(originalRegion, chunk.lines, chunk.added, searchFrom)
-					if len(starts) == 0 && searchFrom != first {
-						starts = matchingPatchStarts(originalRegion, chunk.lines, chunk.added, first)
+					starts := locate()
+					last := len(chunk.lines) - 1
+					if len(starts) == 0 && last >= 0 && chunk.lines[last] == "" && !slices.Contains(chunk.added, last) {
+						// Codexは終端の改行を表す空の文脈行を除いて再照合する。
+						chunk.lines = chunk.lines[:last]
+						starts = locate()
 					}
 					if len(starts) == 0 {
 						continue
