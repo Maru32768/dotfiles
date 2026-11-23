@@ -548,7 +548,7 @@ func reportAntigravityPostTool(call toolCall) []string {
 	for _, chunk := range chunks {
 		before := textLines(chunk.TargetContent)
 		after := textLines(chunk.ReplacementContent)
-		delta := len(after) - len(before)
+		delta := strings.Count(chunk.ReplacementContent, "\n") - strings.Count(chunk.TargetContent, "\n")
 		first, last := 0, len(lines)
 		if chunk.StartLine > 0 {
 			first = max(0, chunk.StartLine-1+shift)

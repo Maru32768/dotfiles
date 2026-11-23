@@ -449,6 +449,33 @@ func TestAntigravityLaterChunkUsesShiftFromAmbiguousReplacement(t *testing.T) {
 	}
 }
 
+func TestAntigravityInlineDeletionKeepsFollowingChunkOnSameLine(t *testing.T) {
+	path := write(t, "a.md", "作業の説明\n変更した （行）\n")
+	input, err := json.Marshal(map[string]any{
+		"toolCall": map[string]any{
+			"name": "multi_replace_file_content",
+			"args": map[string]any{
+				"TargetFile": path,
+				"ReplacementChunks": []map[string]any{
+					{"StartLine": 1, "EndLine": 1, "TargetContent": "TODO ", "ReplacementContent": ""},
+					{"StartLine": 2, "EndLine": 2, "TargetContent": "前の行", "ReplacementContent": "変更した （行）"},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var call toolCall
+	if err := json.Unmarshal(input, &call); err != nil {
+		t.Fatal(err)
+	}
+	got := strings.Join(reportAntigravityPostTool(call), "\n")
+	if !strings.Contains(got, "a.md:2:") {
+		t.Fatalf("reports: %s", got)
+	}
+}
+
 func TestCodexPatchUsesContextToLocateDuplicateLine(t *testing.T) {
 	path := write(t, "a.md", "新しい （行）\n\n対象の節\n新しい （行）\n最後の行\n")
 	patch := "*** Begin Patch\n*** Update File: a.md\n@@ 対象の節\n-前の行\n+新しい （行）\n*** End Patch\n"
