@@ -15,7 +15,7 @@ $ErrorActionPreference = 'Stop'
 $targets = @(
     @{ Name = 'block-signing-bypass'; Dest = (Join-Path $HOME '.agents\hooks\block-signing-bypass.exe') }
     @{ Name = 'block-antigravity'; Dest = (Join-Path $HOME '.agents\hooks\block-antigravity.exe') }
-    @{ Name = 'ja-style'; Dest = (Join-Path $HOME '.claude\hooks\ja-style.exe') }
+    @{ Name = 'ja-style'; Dest = (Join-Path $HOME '.agents\hooks\ja-style.exe') }
 )
 
 foreach ($target in $targets) {
@@ -41,4 +41,4 @@ foreach ($target in $targets) {
     }
 }
 
-Remove-Item -Force -ErrorAction SilentlyContinue (Join-Path $HOME '.claude\hooks\block-signing-bypass.exe')
+Remove-Item -Force -ErrorAction SilentlyContinue (Join-Path $HOME '.claude\hooks\block-signing-bypass.exe'), (Join-Path $HOME '.claude\hooks\ja-style.exe')

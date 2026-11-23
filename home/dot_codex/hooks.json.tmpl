@@ -1,10 +1,13 @@
 {{- $signingCmd := printf "\"%s\"" (joinPath .chezmoi.homeDir ".agents" "hooks" "block-signing-bypass") -}}
 {{- $antigravityCmd := printf "\"%s\"" (joinPath .chezmoi.homeDir ".agents" "hooks" "block-antigravity") -}}
+{{- $jaStyleCmd := printf "\"%s\"" (joinPath .chezmoi.homeDir ".agents" "hooks" "ja-style") -}}
 {{- if eq .chezmoi.os "windows" -}}
 {{-   $signingBin := printf "%s.exe" (joinPath .chezmoi.homeDir ".agents" "hooks" "block-signing-bypass") | replace "/" "\\" -}}
 {{-   $antigravityBin := printf "%s.exe" (joinPath .chezmoi.homeDir ".agents" "hooks" "block-antigravity") | replace "/" "\\" -}}
+{{-   $jaStyleBin := printf "%s.exe" (joinPath .chezmoi.homeDir ".agents" "hooks" "ja-style") | replace "/" "\\" -}}
 {{-   $signingCmd = printf "cmd.exe /c \"%s\"" $signingBin -}}
 {{-   $antigravityCmd = printf "cmd.exe /c \"%s\"" $antigravityBin -}}
+{{-   $jaStyleCmd = printf "cmd.exe /c \"%s\"" $jaStyleBin -}}
 {{- end -}}
 {
   "hooks": {
@@ -25,6 +28,18 @@
           {
             "type": "command",
             "command": {{ $antigravityCmd | toJson }},
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "apply_patch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": {{ $jaStyleCmd | toJson }},
             "timeout": 10
           }
         ]

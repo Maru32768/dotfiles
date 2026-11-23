@@ -91,7 +91,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$HOME/.claude/hooks/ja-style\"",
+            "command": "\"$HOME/.agents/hooks/ja-style\"",
             "timeout": 10
           }
         ]

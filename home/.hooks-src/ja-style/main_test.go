@@ -144,9 +144,17 @@ func TestGitBashPathIsRead(t *testing.T) {
 func runHook(t *testing.T, input map[string]any) (string, int) {
 	t.Helper()
 	data, _ := json.Marshal(input)
-	var stderr bytes.Buffer
-	code := run(bytes.NewReader(data), &stderr)
+	var stdout, stderr bytes.Buffer
+	code := run(bytes.NewReader(data), &stdout, &stderr)
 	return stderr.String(), code
+}
+
+func runHookAll(t *testing.T, input map[string]any) (string, string, int) {
+	t.Helper()
+	data, _ := json.Marshal(input)
+	var stdout, stderr bytes.Buffer
+	code := run(bytes.NewReader(data), &stdout, &stderr)
+	return stdout.String(), stderr.String(), code
 }
 
 func write(t *testing.T, name, content string) string {
@@ -239,5 +247,95 @@ func TestCleanEditIsSilent(t *testing.T) {
 	})
 	if code != 0 || out != "" {
 		t.Errorf("code %d, output:\n%s", code, out)
+	}
+}
+
+func TestCodexApplyPatchReportsAddedLinesOnly(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "a.md")
+	if err := os.WriteFile(path, []byte("古い （行）\n新しい （行）\n```\n「コード」\n```\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	patch := "*** Begin Patch\n*** Update File: a.md\n@@\n 古い （行）\n+新しい （行）\n ```\n+「コード」\n ```\n*** End Patch\n"
+	stdout, stderr, code := runHookAll(t, map[string]any{
+		"cwd":        dir,
+		"tool_name":  "apply_patch",
+		"tool_input": map[string]any{"input": patch},
+	})
+	if code != 0 || stderr != "" {
+		t.Fatalf("code %d, stderr %q", code, stderr)
+	}
+	var resp struct {
+		HookSpecificOutput struct {
+			HookEventName     string `json:"hookEventName"`
+			AdditionalContext string `json:"additionalContext"`
+		} `json:"hookSpecificOutput"`
+	}
+	if err := json.Unmarshal([]byte(stdout), &resp); err != nil {
+		t.Fatalf("invalid json %q: %v", stdout, err)
+	}
+	ctx := resp.HookSpecificOutput.AdditionalContext
+	if resp.HookSpecificOutput.HookEventName != "PostToolUse" ||
+		!strings.Contains(ctx, "a.md:2:") ||
+		strings.Contains(ctx, "a.md:1:") ||
+		strings.Contains(ctx, "a.md:4:") {
+		t.Errorf("unexpected context:\n%s", ctx)
+	}
+}
+
+func TestAntigravityPostToolUseQueuesForPreInvocation(t *testing.T) {
+	origDir := agyQueueDir
+	agyQueueDir = t.TempDir()
+	t.Cleanup(func() { agyQueueDir = origDir })
+
+	path := write(t, "a.md", "古い （行）\n新しい （行）\n")
+	stdout, stderr, code := runHookAll(t, map[string]any{
+		"hookEventName":  "PostToolUse",
+		"conversationId": "conv-1",
+		"toolCall": map[string]any{
+			"name": "edit_file",
+			"args": map[string]any{
+				"Path":        path,
+				"Target":      "旧",
+				"Replacement": "新しい （行）",
+			},
+		},
+	})
+	if code != 0 || stderr != "" || strings.TrimSpace(stdout) != "{}" {
+		t.Fatalf("PostToolUse: code %d, stdout %q, stderr %q", code, stdout, stderr)
+	}
+
+	stdout, stderr, code = runHookAll(t, map[string]any{
+		"hookEventName":  "PreInvocation",
+		"conversationId": "conv-1",
+	})
+	if code != 0 || stderr != "" {
+		t.Fatalf("PreInvocation: code %d, stderr %q", code, stderr)
+	}
+	var resp struct {
+		InjectSteps []struct {
+			SystemMessage struct {
+				SystemMessage string `json:"systemMessage"`
+			} `json:"systemMessage"`
+		} `json:"injectSteps"`
+	}
+	if err := json.Unmarshal([]byte(stdout), &resp); err != nil {
+		t.Fatalf("PreInvocation invalid json %q: %v", stdout, err)
+	}
+	if len(resp.InjectSteps) != 1 {
+		t.Fatalf("PreInvocation injectSteps len = %d", len(resp.InjectSteps))
+	}
+	msg := resp.InjectSteps[0].SystemMessage.SystemMessage
+	if !strings.Contains(msg, path+":2:") || strings.Contains(msg, path+":1:") {
+		t.Errorf("PreInvocation message:\n%s", msg)
+	}
+
+	// 2回目のPreInvocationではキューが空になっている。
+	stdout, _, code = runHookAll(t, map[string]any{
+		"hookEventName":  "PreInvocation",
+		"conversationId": "conv-1",
+	})
+	if code != 0 || strings.TrimSpace(stdout) != "{}" {
+		t.Errorf("second PreInvocation: code %d, stdout %q", code, stdout)
 	}
 }

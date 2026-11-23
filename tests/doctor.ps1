@@ -80,9 +80,14 @@ Check 'Claude settings: block-antigravity hook registered' { $agyBlockCommand -m
 $codexHooks = Get-Content -Raw (Join-Path $HOME '.codex\hooks.json') | ConvertFrom-Json
 Check 'Codex hooks: hook registered' { $codexHooks.hooks.PreToolUse[0].hooks[0].command -match 'block-signing-bypass' }
 Check 'Codex hooks: block-antigravity hook registered' { $codexHooks.hooks.PreToolUse[1].hooks[0].command -match 'block-antigravity' }
+Check 'Codex hooks: ja-style hook registered' { $codexHooks.hooks.PostToolUse[0].hooks[0].command -match 'ja-style' }
 
 $agyHooks = Get-Content -Raw (Join-Path $HOME '.gemini\config\hooks.json') | ConvertFrom-Json
 Check 'Antigravity hooks: hook registered' { $agyHooks.'block-signing-bypass'.PreToolUse[0].hooks[0].command -match 'block-signing-bypass' }
+Check 'Antigravity hooks: ja-style hook registered' {
+    ($agyHooks.'ja-style'.PostToolUse[0].hooks[0].command -match 'ja-style') -and
+    ($agyHooks.'ja-style'.PreInvocation[0].command -match 'ja-style')
+}
 
 function Invoke-Hook([string]$Json) {
     $Json | & $GitBash -c $hookCommand

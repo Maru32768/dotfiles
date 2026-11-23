@@ -1,6 +1,8 @@
-{{- $bin := joinPath .chezmoi.homeDir ".agents" "hooks" "block-signing-bypass" -}}
+{{- $signingBin := joinPath .chezmoi.homeDir ".agents" "hooks" "block-signing-bypass" -}}
+{{- $jaStyleBin := joinPath .chezmoi.homeDir ".agents" "hooks" "ja-style" -}}
 {{- if eq .chezmoi.os "windows" -}}
-{{-   $bin = printf "%s.exe" $bin | replace "/" "\\" -}}
+{{-   $signingBin = printf "%s.exe" $signingBin | replace "/" "\\" -}}
+{{-   $jaStyleBin = printf "%s.exe" $jaStyleBin | replace "/" "\\" -}}
 {{- end -}}
 {
   "block-signing-bypass": {
@@ -10,10 +12,31 @@
         "hooks": [
           {
             "type": "command",
-            "command": {{ printf "\"%s\"" $bin | toJson }},
+            "command": {{ printf "\"%s\"" $signingBin | toJson }},
             "timeout": 10
           }
         ]
+      }
+    ]
+  },
+  "ja-style": {
+    "PostToolUse": [
+      {
+        "matcher": "edit_file|write_file|replace_file_content|multi_replace_file_content|write_to_file",
+        "hooks": [
+          {
+            "type": "command",
+            "command": {{ printf "\"%s\"" $jaStyleBin | toJson }},
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": {{ printf "\"%s\"" $jaStyleBin | toJson }},
+        "timeout": 10
       }
     ]
   }

@@ -133,7 +133,9 @@ for name in linux-main windows-main darwin-main; do
   check "$name: Antigravityのskills.jsonが~/.agents/skillsを絶対パスで参照する" 'jq -e --arg p "$agy_skills" ".entries == [{\"path\": \$p}]" "$work/$name/home/.gemini/config/skills.json"'
   check "$name: Antigravityのplugins.jsonがpstackとponytailを参照する" 'jq -e --arg pstack "$agy_pstack" --arg mp "$agy_marketplaces" ".entries == [{\"path\": \$pstack}, {\"path\": \$mp, \"include_only\": [\"ponytail\"]}]" "$work/$name/home/.gemini/config/plugins.json"'
   check "$name: Antigravityのhooks.jsonに署名回避のフックがある" 'jq -e ".\"block-signing-bypass\".PreToolUse[0] | (.matcher | test(\"run_command\")) and (.hooks[0].command | test(\"block-signing-bypass\"))" "$work/$name/home/.gemini/config/hooks.json"'
+  check "$name: Antigravityのhooks.jsonに日本語の表記のフックがある" 'jq -e "(.\"ja-style\".PostToolUse[0] | (.matcher | test(\"edit_file\")) and (.hooks[0].command | test(\"ja-style\"))) and (.\"ja-style\".PreInvocation[0].command | test(\"ja-style\"))" "$work/$name/home/.gemini/config/hooks.json"'
   check "$name: Antigravityのhooks.jsonにはblock-antigravityを入れない" 'jq -e "has(\"block-antigravity\") | not" "$work/$name/home/.gemini/config/hooks.json"'
+  check "$name: AntigravityのAGENTS.mdが共通の指示と一致" 'cmp -s "$work/$name/home/.gemini/config/AGENTS.md" "$root/home/.agent-instructions.md"'
   check "$name: 共通の自作スキルが.agents/skillsと.claude/skillsに同じ内容で置かれる" '(
     count=0
     while IFS= read -r rel; do
@@ -151,9 +153,11 @@ blocked "darwin-main: .codex がない" '[ -e "$work/darwin-main/home/.codex" ]'
 for name in linux-main windows-main; do
   check "$name: Codexのhooks.jsonに署名回避のフックがある" 'jq -e ".hooks.PreToolUse[0] | .matcher == \"Bash|apply_patch\" and (.hooks[0].command | test(\"block-signing-bypass\"))" "$work/$name/home/.codex/hooks.json"'
   check "$name: Codexのhooks.jsonにAntigravity禁止のフックがある" 'jq -e ".hooks.PreToolUse[1] | .matcher == \"Bash\" and (.hooks[0].command | test(\"block-antigravity\"))" "$work/$name/home/.codex/hooks.json"'
+  check "$name: Codexのhooks.jsonに日本語の表記のフックがある" 'jq -e ".hooks.PostToolUse[0] | .matcher == \"apply_patch\" and (.hooks[0].command | test(\"ja-style\"))" "$work/$name/home/.codex/hooks.json"'
+  check "$name: CodexのAGENTS.mdが共通の指示と一致" 'cmp -s "$work/$name/home/.codex/AGENTS.md" "$root/home/.agent-instructions.md"'
 done
-check "windows-main: Codexのhooks.jsonはcmd.exe経由で.exeを呼ぶ" 'jq -e "(.hooks.PreToolUse[0].hooks[0].command | startswith(\"cmd.exe /c \\\"\") and endswith(\"\\\\.agents\\\\hooks\\\\block-signing-bypass.exe\\\"\")) and (.hooks.PreToolUse[1].hooks[0].command | startswith(\"cmd.exe /c \\\"\") and endswith(\"\\\\.agents\\\\hooks\\\\block-antigravity.exe\\\"\"))" "$work/windows-main/home/.codex/hooks.json"'
-check "windows-main: Antigravityのhooks.jsonは.exeを呼ぶ" 'jq -e ".\"block-signing-bypass\".PreToolUse[0].hooks[0].command | startswith(\"\\\"\") and endswith(\"\\\\.agents\\\\hooks\\\\block-signing-bypass.exe\\\"\")" "$work/windows-main/home/.gemini/config/hooks.json"'
+check "windows-main: Codexのhooks.jsonはcmd.exe経由で.exeを呼ぶ" 'jq -e "(.hooks.PreToolUse[0].hooks[0].command | startswith(\"cmd.exe /c \\\"\") and endswith(\"\\\\.agents\\\\hooks\\\\block-signing-bypass.exe\\\"\")) and (.hooks.PreToolUse[1].hooks[0].command | startswith(\"cmd.exe /c \\\"\") and endswith(\"\\\\.agents\\\\hooks\\\\block-antigravity.exe\\\"\")) and (.hooks.PostToolUse[0].hooks[0].command | startswith(\"cmd.exe /c \\\"\") and endswith(\"\\\\.agents\\\\hooks\\\\ja-style.exe\\\"\"))" "$work/windows-main/home/.codex/hooks.json"'
+check "windows-main: Antigravityのhooks.jsonは.exeを呼ぶ" 'jq -e "(.\"block-signing-bypass\".PreToolUse[0].hooks[0].command | startswith(\"\\\"\") and endswith(\"\\\\.agents\\\\hooks\\\\block-signing-bypass.exe\\\"\")) and (.\"ja-style\".PostToolUse[0].hooks[0].command | startswith(\"\\\"\") and endswith(\"\\\\.agents\\\\hooks\\\\ja-style.exe\\\"\"))" "$work/windows-main/home/.gemini/config/hooks.json"'
 # shellcheck disable=SC2034
 codex_json="$(toml_json windows-main "$work/windows-main/home/.codex/config.toml")"
 check "windows-main: Codex の設定が TOML として読める" '[ -n "$codex_json" ]'
@@ -312,7 +316,7 @@ blocked "DOTFILES_HOST で mac は選べない (mac は OS で決まる)" 'DOTFI
 # --- mac ---
 equals "darwin-main: work は false" "$(data_of darwin-main '.work | tojson')" false
 equals "darwin-main: 置かれるファイルは linux-desktop から bash の設定と 1Password･Codex のものを除き、zsh と Karabiner-Elements の設定を足したもの" "$(files_of darwin-main)" \
-  "$({ files_of linux-desktop | tr ' ' '\n' | grep -vxE '\.bashrc|\.bash_profile|\.codex/hooks\.json|\.local/bin/op-run|\.claude/rules/secrets\.md'; printf '%s\n' .config/karabiner/karabiner.json .zprofile .zshrc; } | sort | paste -sd ' ' -)"
+  "$({ files_of linux-desktop | tr ' ' '\n' | grep -vxE '\.bashrc|\.bash_profile|\.codex/AGENTS\.md|\.codex/hooks\.json|\.local/bin/op-run|\.claude/rules/secrets\.md'; printf '%s\n' .config/karabiner/karabiner.json .zprofile .zshrc; } | sort | paste -sd ' ' -)"
 blocked "linux-main と windows-main: Karabiner-Elements の設定がない" '[ -e "$work/linux-main/home/.config/karabiner" ] || [ -e "$work/windows-main/home/.config/karabiner" ]'
 check "darwin-main: karabiner.json が JSON として読める" 'jq -e .profiles "$work/darwin-main/home/.config/karabiner/karabiner.json"'
 check "darwin-main: Karabiner-Elements の設定を、Karabiner-Elements が書くのと同じ 700 と 600 で置く" '[ -n "$(find "$work/darwin-main/home/.config/karabiner" -maxdepth 0 -perm 700)" ] && [ -n "$(find "$work/darwin-main/home/.config/karabiner/karabiner.json" -perm 600)" ]'

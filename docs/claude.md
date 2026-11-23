@@ -6,7 +6,8 @@ Windows と WSL で同じ設定を使うため、共通部分を chezmoi で管�
 |---|---|
 | `home/.claude-settings.json` | 共通の設定 (プラグイン、マーケットプレイス、フックなど) |
 | `home/dot_claude/modify_settings.json` | 共通の設定を `settings.json` へマージする (chezmoi のテンプレートなので両 OS で動く)。review-loopが台帳を置くディレクトリへの許可も足す(「review-loopの台帳の置き場」) |
-| `home/dot_claude/CLAUDE.md` | ユーザー全体の指示。dotfilesで設定を管理していることのほか、日本語の表記、タスクの進め方、コードコメント、コミットとレビューの決まり、技術的な知見の記録を提案する決まりを書く。日本語の表記の一部は、フックが検査してClaudeに報告する(｢日本語の表記を検査するフック｣)。それ以外は指示として読まれるだけで、強制はしない。`agent`には置かない |
+| `home/.agent-instructions.md` | Claude Code(`~/.claude/CLAUDE.md`)、Codex(`~/.codex/AGENTS.md`)、Antigravity(`~/.gemini/config/AGENTS.md`)で共有するユーザー全体の指示の正本。dotfilesでの設定管理、日本語の表記、タスクの進め方、コードコメント、コミットとレビューの決まり、技術的な知見の記録を提案する決まりを書く。`agent`には置かない |
+| `home/dot_claude/CLAUDE.md.tmpl` | `home/.agent-instructions.md`を展開し、末尾に`@~/.claude/pstack-models.md`を足す |
 | `home/dot_claude/rules/` | 環境で変わる指示(「環境で変わる指示」)。`agent`には置かない |
 | `home/dot_claude/pstack-models.md` | pstack のロールごとのモデル。`/setup-pstack` が書き、`CLAUDE.md` の `@` 行で読み込む |
 | `home/dot_claude/skills/` | 自作のスキルのClaude Code側。共通のスキルは`home/dot_agents/skills/`から`include`で展開し、Claude Code専用(`usage-cap`)だけここに直接置く(`docs/skills.md`) |
@@ -183,7 +184,7 @@ cd home/.hooks-src/block-signing-bypass && go test ./...
 
 ## 日本語の表記を検査するフック
 
-`home/.hooks-src/ja-style/`は、EditとWriteの後に動くPostToolUseフック。足した行のうち日本語を含む行を、`home/dot_claude/CLAUDE.md`の｢日本語の表記｣の規則で検査し、違反の`ファイル:行`と直し方をClaudeに返す(exit 2)。
+`home/.hooks-src/ja-style/`は、Claude Code(`Edit`/`Write`の`PostToolUse`)、Codex(`apply_patch`の`PostToolUse`)、Antigravity(ファイル編集ツールの`PostToolUse`と次の`PreInvocation`)で動くフック。バイナリは共通の`~/.agents/hooks/ja-style`(Windowsは`.exe`)に置く。足した行のうち日本語を含む行を、`home/.agent-instructions.md`の｢日本語の表記｣の規則で検査し、違反の`ファイル:行`と直し方をエージェントに返す(Claude Codeはstderr+exit 2、Codexは`additionalContext`、Antigravityは一時ファイル経由で次の`PreInvocation`の`systemMessage`)。
 
 | 検査すること | 例 |
 |---|---|
