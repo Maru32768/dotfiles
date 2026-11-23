@@ -73,6 +73,10 @@ var allowedCommands = []string{
 	"mise ls",
 	"python3 -c 'print(\"antigravity\")'",
 	"git status",
+	"cat <<'EOF'\nagy --help\nEOF",
+	"cat <<EOF\nagy --help\nEOF",
+	"cat <<-\"EOF\" # example\n\t$(agy --help)\n\tEOF",
+	"cat <<'FIRST' <<'SECOND'\nagy --help\nFIRST\nantigravity --help\nSECOND",
 }
 
 func decide(t *testing.T, toolName, command string) bool {

@@ -30,6 +30,64 @@ type parsedLine struct {
 	embedded []string
 }
 
+type heredoc struct {
+	delimiter string
+	quoted    bool
+	stripTabs bool
+}
+
+var heredocStart = regexp.MustCompile("^<<(-)?[ \t]*(?:'([^'\\r\\n]+)'|\"([^\"\\r\\n]+)\"|\\\\([^ \t\\r\\n;&|<>()]+)|([^ \t\\r\\n;&|<>()'\"\\\\]+))")
+
+func readHeredocs(input string, start int, pending []heredoc) (int, []string) {
+	var embedded []string
+	for _, doc := range pending {
+		bodyStart := start
+		for {
+			end := strings.IndexByte(input[start:], '\n')
+			if end < 0 {
+				end = len(input)
+			} else {
+				end += start
+			}
+			line := strings.TrimSuffix(input[start:end], "\r")
+			if doc.stripTabs {
+				line = strings.TrimLeft(line, "\t")
+			}
+			if line == doc.delimiter {
+				if !doc.quoted {
+					embedded = append(embedded, heredocSubstitutions(input[bodyStart:start])...)
+				}
+				start = min(end+1, len(input))
+				break
+			}
+			if end == len(input) {
+				return 0, nil
+			}
+			start = end + 1
+		}
+	}
+	return start, embedded
+}
+
+func heredocSubstitutions(body string) []string {
+	var embedded []string
+	for i := 0; i < len(body); i++ {
+		switch {
+		case body[i] == '\\':
+			i++
+		case strings.HasPrefix(body[i:], "$("):
+			sub, end := extractParenSub(body, i+2)
+			embedded = append(embedded, sub)
+			i = end - 1
+		case body[i] == 0x60:
+			sub, end := extractBacktickSub(body, i+1)
+			embedded = append(embedded, sub)
+			i = end - 1
+		}
+	}
+	return embedded
+}
+
 // parseCommands はシェルコマンド列をクォートを考慮して単純コマンド単位に分解し、
 // $(...) や `...` のコマンド置換の中身も再帰検査用に抜き出す。
 func parseCommands(input string) parsedLine {
@@ -37,6 +95,7 @@ func parseCommands(input string) parsedLine {
 	var curCmd []string
 	var curTok strings.Builder
 	hasTok := false
+	var pending []heredoc
 
 	flushTok := func() {
 		if hasTok {
@@ -103,8 +162,38 @@ func parseCommands(input string) parsedLine {
 		switch ch {
 		case ' ', '\t', '\r':
 			flushTok()
-		case '\n', ';', '(', ')':
+		case '\n':
 			flushCmd()
+			if len(pending) > 0 {
+				if end, embedded := readHeredocs(input, i+1, pending); end > 0 {
+					res.embedded = append(res.embedded, embedded...)
+					i = end - 1
+				}
+				pending = nil
+			}
+		case ';', '(', ')':
+			flushCmd()
+		case '<':
+			if i > 0 && input[i-1] == '<' {
+				curTok.WriteByte(ch)
+				hasTok = true
+				continue
+			}
+			if m := heredocStart.FindStringSubmatch(input[i:]); m != nil {
+				delimiter := m[5]
+				for _, quoted := range m[2:5] {
+					if quoted != "" {
+						delimiter = quoted
+					}
+				}
+				pending = append(pending, heredoc{delimiter: delimiter, quoted: m[5] == "", stripTabs: m[1] == "-"})
+				flushTok()
+				curCmd = append(curCmd, "<<"+delimiter)
+				i += len(m[0]) - 1
+				continue
+			}
+			hasTok = true
+			curTok.WriteByte(ch)
 		case '|', '&':
 			// リダイレクトの一部 (2>&1, &>, |&) はトークンとして残す
 			if ch == '&' && hasTok && strings.HasSuffix(curTok.String(), ">") {
@@ -127,7 +216,7 @@ func parseCommands(input string) parsedLine {
 				for i < n && input[i] != '\n' {
 					i++
 				}
-				flushCmd()
+				i--
 			} else {
 				curTok.WriteByte(ch)
 			}
