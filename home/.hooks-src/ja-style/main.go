@@ -123,6 +123,7 @@ type toolCall struct {
 
 	// Antigravity 形式 (camelCase)
 	HookEventName  string `json:"hookEventName"`
+	InvocationNum  *int   `json:"invocationNum"`
 	ConversationID string `json:"conversationId"`
 	Error          string `json:"error"`
 	ToolCall       *struct {
@@ -378,7 +379,7 @@ func reportAntigravityPostTool(call toolCall) []string {
 
 func runAntigravity(call toolCall, stdout io.Writer) int {
 	queueFile := agyQueuePath(call.ConversationID)
-	if call.HookEventName == "PreInvocation" {
+	if call.isAntigravityPreInvocation() {
 		data, err := os.ReadFile(queueFile)
 		if err != nil || len(bytesTrimSpace(data)) == 0 {
 			_, _ = io.WriteString(stdout, "{}\n")
@@ -417,6 +418,10 @@ func bytesTrimSpace(b []byte) []byte {
 	return []byte(strings.TrimSpace(string(b)))
 }
 
+func (call toolCall) isAntigravityPreInvocation() bool {
+	return call.InvocationNum != nil || call.HookEventName == "PreInvocation"
+}
+
 func run(stdin io.Reader, stdout, stderr io.Writer) int {
 	var call toolCall
 	if err := json.NewDecoder(stdin).Decode(&call); err != nil {
@@ -424,7 +429,7 @@ func run(stdin io.Reader, stdout, stderr io.Writer) int {
 		return 1
 	}
 
-	if call.HookEventName == "PreInvocation" || (call.ToolCall != nil && call.ToolCall.Name != "") {
+	if call.isAntigravityPreInvocation() || (call.ToolCall != nil && call.ToolCall.Name != "") {
 		return runAntigravity(call, stdout)
 	}
 

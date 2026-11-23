@@ -307,8 +307,9 @@ func TestAntigravityPostToolUseQueuesForPreInvocation(t *testing.T) {
 	}
 
 	stdout, stderr, code = runHookAll(t, map[string]any{
-		"hookEventName":  "PreInvocation",
-		"conversationId": "conv-1",
+		"conversationId":  "conv-1",
+		"invocationNum":   1,
+		"initialNumSteps": 2,
 	})
 	if code != 0 || stderr != "" {
 		t.Fatalf("PreInvocation: code %d, stderr %q", code, stderr)
@@ -333,8 +334,9 @@ func TestAntigravityPostToolUseQueuesForPreInvocation(t *testing.T) {
 
 	// 2回目のPreInvocationではキューが空になっている。
 	stdout, _, code = runHookAll(t, map[string]any{
-		"hookEventName":  "PreInvocation",
-		"conversationId": "conv-1",
+		"conversationId":  "conv-1",
+		"invocationNum":   2,
+		"initialNumSteps": 3,
 	})
 	if code != 0 || strings.TrimSpace(stdout) != "{}" {
 		t.Errorf("second PreInvocation: code %d, stdout %q", code, stdout)
