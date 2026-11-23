@@ -275,9 +275,9 @@ func normalizeCodexContext(line string) string {
 	}, strings.TrimSpace(line))
 }
 
-func codexAnchor(lines []string, anchor string, laterAdditions map[string]int) int {
-	// 後続の追加だけでは説明できない一致があれば、その段階の照合が元のファイルでも成立する。
-	firstPossible := len(lines)
+func codexAnchor(lines []string, before int, anchor string, pendingAdditions map[string]int) int {
+	// 見出しは編集候補より前から選ぶ。後ろの一致も数え、追加だけでは説明できるかを判定する。
+	firstPossible := before
 	for _, normalize := range []func(string) string{
 		func(line string) string { return line },
 		func(line string) string { return strings.TrimRightFunc(line, unicode.IsSpace) },
@@ -285,7 +285,7 @@ func codexAnchor(lines []string, anchor string, laterAdditions map[string]int) i
 		normalizeCodexContext,
 	} {
 		wanted := normalize(anchor)
-		firstMatch := len(lines)
+		firstMatch := before
 		matches := make(map[string]int)
 		for i, line := range lines {
 			if normalize(line) != wanted {
@@ -293,13 +293,13 @@ func codexAnchor(lines []string, anchor string, laterAdditions map[string]int) i
 			}
 			firstMatch = min(i, firstMatch)
 			matches[line]++
-			if matches[line] > laterAdditions[line] {
+			if firstMatch < before && matches[line] > pendingAdditions[line] {
 				return min(firstMatch, firstPossible)
 			}
 		}
 		firstPossible = min(firstMatch, firstPossible)
 	}
-	if firstPossible < len(lines) {
+	if firstPossible < before {
 		return firstPossible
 	}
 	return -1
@@ -398,7 +398,7 @@ func reportCodexPatch(call toolCall) []string {
 			var fences []bool
 			first := 0
 			appendAt := len(lines)
-			laterAdditions := make(map[string]int)
+			pendingAdditions := make(map[string]int)
 			if !create {
 				for _, chunk := range chunks {
 					if chunk.oldLines == 0 {
@@ -406,31 +406,29 @@ func reportCodexPatch(call toolCall) []string {
 						continue
 					}
 					for _, offset := range chunk.added {
-						laterAdditions[chunk.lines[offset]]++
+						pendingAdditions[chunk.lines[offset]]++
 					}
 				}
 			}
 			originalRegion := lines[:max(0, appendAt)]
-			for _, chunk := range chunks {
-				if chunk.oldLines > 0 {
-					for _, offset := range chunk.added {
-						laterAdditions[chunk.lines[offset]]--
+			for i, chunk := range chunks {
+				if i > 0 && chunks[i-1].oldLines > 0 {
+					previous := chunks[i-1]
+					for _, offset := range previous.added {
+						pendingAdditions[previous.lines[offset]]--
 					}
 				}
-				if len(chunk.lines) == 0 && chunk.anchor == "" {
+				if len(chunk.lines) == 0 || chunk.oldLines == 0 {
+					if chunk.anchor != "" {
+						if anchor := codexAnchor(originalRegion[first:], len(originalRegion)-first, chunk.anchor, pendingAdditions); anchor >= 0 {
+							first += anchor + 1
+						}
+					}
+				}
+				if len(chunk.lines) == 0 {
 					continue
 				}
-				searchStart := first
-				if chunk.anchor != "" {
-					anchor := codexAnchor(originalRegion[first:], chunk.anchor, laterAdditions)
-					if anchor < 0 && chunk.oldLines > 0 {
-						continue
-					}
-					if anchor >= 0 {
-						searchStart += anchor + 1
-					}
-				}
-				start := searchStart
+				var start int
 				switch {
 				case create:
 					start = 0
@@ -439,13 +437,24 @@ func reportCodexPatch(call toolCall) []string {
 					appendAt += len(chunk.lines)
 				default:
 					locate := func() []int {
-						if chunk.atEnd && len(chunk.lines) <= len(originalRegion)-searchStart {
-							eof := len(originalRegion) - len(chunk.lines)
-							if starts := matchingPatchStarts(originalRegion, chunk.lines, chunk.added, eof); len(starts) > 0 {
-								return starts
-							}
+						starts := matchingPatchStarts(originalRegion, chunk.lines, chunk.added, first)
+						if len(starts) == 0 {
+							return nil
 						}
-						return matchingPatchStarts(originalRegion, chunk.lines, chunk.added, searchStart)
+						lastStart := starts[len(starts)-1]
+						if chunk.anchor != "" {
+							// 現在のチャンクが足した行は、チャンクより前にあるはずの見出しにはなれない。
+							anchor := codexAnchor(originalRegion[first:], lastStart-first, chunk.anchor, pendingAdditions)
+							if anchor < 0 {
+								return nil
+							}
+							at, _ := slices.BinarySearch(starts, first+anchor+1)
+							starts = starts[at:]
+						}
+						if chunk.atEnd && lastStart+len(chunk.lines) == len(originalRegion) {
+							return starts[len(starts)-1:]
+						}
+						return starts
 					}
 					starts := locate()
 					last := len(chunk.lines) - 1
@@ -468,7 +477,7 @@ func reportCodexPatch(call toolCall) []string {
 					}
 				}
 				end := start + len(chunk.lines)
-				if start < searchStart || end > len(lines) {
+				if start < first || end > len(lines) {
 					continue
 				}
 				if (create || chunk.oldLines == 0) && !slices.Equal(lines[start:end], chunk.lines) {
@@ -479,8 +488,6 @@ func reportCodexPatch(call toolCall) []string {
 				}
 				if chunk.oldLines > 0 {
 					first = end
-				} else {
-					first = searchStart
 				}
 			}
 			reports = append(reports, checkLines(path, lines, targets)...)

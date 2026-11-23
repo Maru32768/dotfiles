@@ -563,6 +563,15 @@ func TestCodexPatchIgnoresHeadingIntroducedByLaterChunk(t *testing.T) {
 	}
 }
 
+func TestCodexPatchIgnoresHeadingIntroducedByCurrentChunk(t *testing.T) {
+	path := write(t, "a.md", "  対象の節\n新しい （行）\n対象の節\n")
+	patch := "*** Begin Patch\n*** Update File: a.md\n@@ 対象の節\n-前の行\n+新しい （行）\n+対象の節\n*** End Patch\n"
+	got, stderr, code := runCodexPatch(t, filepath.Dir(path), patch)
+	if code != 0 || stderr != "" || !strings.Contains(got, "a.md:2:") {
+		t.Fatalf("PostToolUse: code %d, output %s, stderr %q", code, got, stderr)
+	}
+}
+
 func TestCodexPatchPrefersUnchangedExactHeadingToIndentedExample(t *testing.T) {
 	const example = "```md\n  対象の節\n新しい （行）\n"
 	const prose = "```\n対象の節\n新しい （行）\n"
