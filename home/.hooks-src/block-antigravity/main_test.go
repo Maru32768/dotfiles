@@ -1,0 +1,142 @@
+package main
+
+import (
+	"bytes"
+	"encoding/json"
+	"strings"
+	"testing"
+)
+
+var deniedCommands = []string{
+	"agy",
+	"agy -p 'fix the test'",
+	"agy --help",
+	"agy.exe -p hi",
+	"agy.cmd -p hi",
+	"/usr/local/bin/agy -p hi",
+	"~/.local/bin/agy -p hi",
+	`C:\Users\maru3\.local\bin\agy.exe -p hi`,
+	"antigravity",
+	"antigravity .",
+	"antigravity-cli -p hello",
+	"/Applications/Antigravity.app/Contents/MacOS/Antigravity",
+	"open -a Antigravity .",
+	`open -a "Antigravity.app" .`,
+	"FOO=1 BAR=2 agy -p hi",
+	"env agy -p hi",
+	"env -i PATH=/usr/bin agy -p hi",
+	`env -S "agy -p hi"`,
+	"command agy -p hi",
+	"exec agy -p hi",
+	"nohup agy -p hi &",
+	"timeout 60 agy -p hi",
+	"sudo -u maru agy -p hi",
+	"cd /tmp && agy -p hi",
+	"ls || antigravity",
+	"echo hello | agy -p",
+	"echo hello | xargs agy -p",
+	"result=$(agy -p hi)",
+	`echo "$(antigravity-cli --version)"`,
+	"result=`agy -p hi`",
+	`bash -c 'agy -p hi'`,
+	`sh -lc "cd /tmp && antigravity"`,
+	`cmd.exe /c "agy.exe -p hi"`,
+	`pwsh -Command "agy -p hi"`,
+	`powershell -c "& C:\Users\maru3\bin\agy.exe"`,
+	"start agy",
+	"Start-Process antigravity",
+	"mise exec -- agy -p hi",
+	"op-run Personal -- agy -p hi",
+	`python3 -c 'from google.antigravity import Agent'`,
+	"python -m google.antigravity",
+	"uv run --with google-antigravity script.py",
+	"uvx google-antigravity",
+}
+
+var allowedCommands = []string{
+	"claude -p 'review this'",
+	"codex review",
+	"codex exec 'check this'",
+	`git commit -m "Antigravityの設定を直す"`,
+	`git commit -m "agyのフックを追加"`,
+	"git log --grep=antigravity",
+	"rg antigravity docs/",
+	"grep -rn agy home/",
+	"ls -la ~/.gemini/antigravity",
+	"cat ~/.gemini/config/hooks.json",
+	"cat ~/.gemini/config/skills.json",
+	"ag pattern src/",
+	`echo "strategy legacy pedagogy agy antigravity"`,
+	"which agy",
+	"command -v agy",
+	"command -V antigravity",
+	"mise ls",
+	"python3 -c 'print(\"antigravity\")'",
+	"git status",
+}
+
+func decide(t *testing.T, toolName, command string) bool {
+	t.Helper()
+	input, err := json.Marshal(map[string]any{
+		"tool_name":  toolName,
+		"tool_input": map[string]string{"command": command},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var stdout bytes.Buffer
+	if err := run(bytes.NewReader(input), &stdout); err != nil {
+		t.Fatal(err)
+	}
+	if stdout.Len() == 0 {
+		return false
+	}
+	var output struct {
+		HookSpecificOutput struct {
+			HookEventName            string `json:"hookEventName"`
+			PermissionDecision       string `json:"permissionDecision"`
+			PermissionDecisionReason string `json:"permissionDecisionReason"`
+		} `json:"hookSpecificOutput"`
+	}
+	if err := json.Unmarshal(stdout.Bytes(), &output); err != nil {
+		t.Fatalf("invalid output %q: %v", stdout.String(), err)
+	}
+	if output.HookSpecificOutput.HookEventName != "PreToolUse" ||
+		output.HookSpecificOutput.PermissionDecision != "deny" ||
+		output.HookSpecificOutput.PermissionDecisionReason == "" {
+		t.Fatalf("unexpected output %q", stdout.String())
+	}
+	return true
+}
+
+func TestDeniedCommands(t *testing.T) {
+	for _, command := range deniedCommands {
+		if !decide(t, "Bash", command) {
+			t.Errorf("should deny: %s", command)
+		}
+	}
+}
+
+func TestAllowedCommands(t *testing.T) {
+	for _, command := range allowedCommands {
+		if decide(t, "Bash", command) {
+			t.Errorf("should allow: %s", command)
+		}
+	}
+}
+
+func TestNonBashToolsAreIgnored(t *testing.T) {
+	if decide(t, "Edit", "agy -p hi") {
+		t.Error("non-Bash tool should be allowed")
+	}
+}
+
+func TestInvalidInputIsAnError(t *testing.T) {
+	var stdout bytes.Buffer
+	if err := run(strings.NewReader("not json"), &stdout); err == nil {
+		t.Error("expected an error")
+	}
+	if stdout.Len() != 0 {
+		t.Errorf("unexpected output %q", stdout.String())
+	}
+}

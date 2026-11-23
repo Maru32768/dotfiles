@@ -10,7 +10,8 @@ Windows と WSL で同じ設定を使うため、共通部分を chezmoi で管�
 | `home/dot_claude/rules/` | 環境で変わる指示(「環境で変わる指示」)。`agent`には置かない |
 | `home/dot_claude/pstack-models.md` | pstack のロールごとのモデル。`/setup-pstack` が書き、`CLAUDE.md` の `@` 行で読み込む |
 | `home/dot_claude/skills/` | 自作のスキルのClaude Code側。共通のスキルは`home/dot_agents/skills/`から`include`で展開し、Claude Code専用(`usage-cap`)だけここに直接置く(`docs/skills.md`) |
-| `home/.hooks-src/block-signing-bypass/` | 署名の回避を止めるフック (Go) |
+| `home/.hooks-src/block-signing-bypass/` | 署名の回避を止めるフック(Go) |
+| `home/.hooks-src/block-antigravity/` | Claude CodeとCodexからAntigravityを呼ぶのを止めるフック(Go) |
 | `home/.hooks-src/ja-style/` | 足した行の日本語の表記を検査するフック(Go) |
 | `home/run_onchange_after_20-build-hooks.*` | フックをテストしてビルドする (`.sh` と `.ps1`) |
 
@@ -170,6 +171,15 @@ cd home/.hooks-src/block-signing-bypass && go test ./...
 ```
 
 止めるコマンドと通すコマンドの一覧は `main_test.go` にある。回避方法を見つけたら、ここにケースを足してからルールを直す。
+
+## Antigravityの呼び出しを止めるフック
+
+`home/.hooks-src/block-antigravity/`は、Claude CodeとCodexの`Bash`の実行前に動き、`agy`･`antigravity`･`antigravity-cli`･`Antigravity.app`･`google.antigravity` SDKを呼び出すコマンドを拒否する。バイナリは`~/.agents/hooks/block-antigravity`(Windowsは`.exe`)に置く。
+
+- 呼び出し方向の方針: AntigravityからClaude Code･Codexを呼ぶこと、Claude CodeからCodexを呼ぶこと、CodexからClaude Codeを呼ぶことは許可する。Antigravityの`hooks.json`には登録しない。
+- コマンド位置にある実行対象(ラッパー、`bash -c`/`cmd /c`/`pwsh -Command`、コマンド置換`$(...)`の中も含む)と、Python/uv経由の`google.antigravity` SDK起動を止める。コミットメッセージや`grep`等の引数に`antigravity`や`agy`が含まれるだけのコマンドや、`command -v agy`は通す。
+
+テストは`cd home/.hooks-src/block-antigravity && go test ./...`で動かす。
 
 ## 日本語の表記を検査するフック
 

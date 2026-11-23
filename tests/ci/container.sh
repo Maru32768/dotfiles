@@ -105,7 +105,7 @@ else
     want "隔離のプロファイルの印が $profile" "[ \"\$(cat /etc/claude-code/isolation-profile)\" = \"\$profile\" ]"
     want "署名の鍵を設定していない" "! git config --global user.signingkey"
     want ".claude の共通設定がない" "[ ! -e ~/.claude/settings.json ]"
-    want "フックをビルドしていない" "[ ! -e ~/.agents/hooks/block-signing-bypass ] && [ ! -e ~/.claude/hooks/block-signing-bypass ] && [ ! -e ~/.claude/hooks/ja-style ]"
+    want "フックをビルドしていない" "[ ! -e ~/.agents/hooks/block-signing-bypass ] && [ ! -e ~/.agents/hooks/block-antigravity ] && [ ! -e ~/.claude/hooks/block-signing-bypass ] && [ ! -e ~/.claude/hooks/ja-style ]"
     want "管理設定が root 所有" "[ \"\$(stat -c %U /etc/claude-code/managed-settings.json)\" = root ]"
     want "管理設定で更新を止めている" "jq -e \".env.DISABLE_AUTOUPDATER == \\\"1\\\"\" /etc/claude-code/managed-settings.json"
     want "起動スクリプトが root 所有" "[ \"\$(stat -c %U /usr/local/bin/\$profile-claude)\" = root ]"

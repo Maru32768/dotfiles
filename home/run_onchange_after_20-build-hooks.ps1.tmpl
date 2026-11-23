@@ -2,6 +2,9 @@
 # {{ include ".hooks-src/block-signing-bypass/main.go" | sha256sum }}
 # {{ include ".hooks-src/block-signing-bypass/main_test.go" | sha256sum }}
 # {{ include ".hooks-src/block-signing-bypass/go.mod" | sha256sum }}
+# {{ include ".hooks-src/block-antigravity/main.go" | sha256sum }}
+# {{ include ".hooks-src/block-antigravity/main_test.go" | sha256sum }}
+# {{ include ".hooks-src/block-antigravity/go.mod" | sha256sum }}
 # {{ include ".hooks-src/ja-style/main.go" | sha256sum }}
 # {{ include ".hooks-src/ja-style/main_test.go" | sha256sum }}
 # {{ include ".hooks-src/ja-style/go.mod" | sha256sum }}
@@ -11,6 +14,7 @@ $ErrorActionPreference = 'Stop'
 
 $targets = @(
     @{ Name = 'block-signing-bypass'; Dest = (Join-Path $HOME '.agents\hooks\block-signing-bypass.exe') }
+    @{ Name = 'block-antigravity'; Dest = (Join-Path $HOME '.agents\hooks\block-antigravity.exe') }
     @{ Name = 'ja-style'; Dest = (Join-Path $HOME '.claude\hooks\ja-style.exe') }
 )
 

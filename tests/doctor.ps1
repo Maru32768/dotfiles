@@ -73,10 +73,13 @@ Check 'op-run on PATH' { Get-Command op-run.cmd -ErrorAction Stop }
 
 $settings = Get-Content -Raw (Join-Path $HOME '.claude\settings.json') | ConvertFrom-Json
 $hookCommand = $settings.hooks.PreToolUse[0].hooks[0].command
+$agyBlockCommand = $settings.hooks.PreToolUse[1].hooks[0].command
 Check 'Claude settings: hook registered' { $hookCommand -match 'block-signing-bypass' }
+Check 'Claude settings: block-antigravity hook registered' { $agyBlockCommand -match 'block-antigravity' }
 
 $codexHooks = Get-Content -Raw (Join-Path $HOME '.codex\hooks.json') | ConvertFrom-Json
 Check 'Codex hooks: hook registered' { $codexHooks.hooks.PreToolUse[0].hooks[0].command -match 'block-signing-bypass' }
+Check 'Codex hooks: block-antigravity hook registered' { $codexHooks.hooks.PreToolUse[1].hooks[0].command -match 'block-antigravity' }
 
 $agyHooks = Get-Content -Raw (Join-Path $HOME '.gemini\config\hooks.json') | ConvertFrom-Json
 Check 'Antigravity hooks: hook registered' { $agyHooks.'block-signing-bypass'.PreToolUse[0].hooks[0].command -match 'block-signing-bypass' }
@@ -95,6 +98,12 @@ Check 'hook denies an Antigravity bypass' {
 }
 Check 'hook allows a normal Antigravity command' {
     (Invoke-Hook '{"toolCall":{"name":"run_command","args":{"CommandLine":"git status"}}}') -eq '{}'
+}
+Check 'block-antigravity hook denies agy' {
+    ('{"tool_name":"Bash","tool_input":{"command":"agy -p hi"}}' | & $GitBash -c $agyBlockCommand) -match 'deny'
+}
+Check 'block-antigravity hook allows codex' {
+    -not ('{"tool_name":"Bash","tool_input":{"command":"codex review"}}' | & $GitBash -c $agyBlockCommand)
 }
 $jaStyleCommand = $settings.hooks.PostToolUse[0].hooks[0].command
 Check 'Claude settings: ja-style hook registered' { $jaStyleCommand -match 'ja-style' }

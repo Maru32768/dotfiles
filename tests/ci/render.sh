@@ -126,6 +126,7 @@ for name in linux-main windows-main darwin-main; do
   equals "$name: どのスキルにも SKILL.md が取れる" "$(actual_skills "$name")" "$expected"
   check "$name: Antigravityのskills.jsonが~/.agents/skillsを参照する" 'jq -e ".entries == [{\"path\": \"~/.agents/skills\"}]" "$work/$name/home/.gemini/config/skills.json"'
   check "$name: Antigravityのhooks.jsonに署名回避のフックがある" 'jq -e ".\"block-signing-bypass\".PreToolUse[0] | (.matcher | test(\"run_command\")) and (.hooks[0].command | test(\"block-signing-bypass\"))" "$work/$name/home/.gemini/config/hooks.json"'
+  check "$name: Antigravityのhooks.jsonにはblock-antigravityを入れない" 'jq -e "has(\"block-antigravity\") | not" "$work/$name/home/.gemini/config/hooks.json"'
   check "$name: 共通の自作スキルが.agents/skillsと.claude/skillsに同じ内容で置かれる" '(
     count=0
     while IFS= read -r rel; do
@@ -142,8 +143,9 @@ blocked "linux-main: .codex/config.toml がない" '[ -e "$work/linux-main/home/
 blocked "darwin-main: .codex がない" '[ -e "$work/darwin-main/home/.codex" ]'
 for name in linux-main windows-main; do
   check "$name: Codexのhooks.jsonに署名回避のフックがある" 'jq -e ".hooks.PreToolUse[0] | .matcher == \"Bash|apply_patch\" and (.hooks[0].command | test(\"block-signing-bypass\"))" "$work/$name/home/.codex/hooks.json"'
+  check "$name: Codexのhooks.jsonにAntigravity禁止のフックがある" 'jq -e ".hooks.PreToolUse[1] | .matcher == \"Bash\" and (.hooks[0].command | test(\"block-antigravity\"))" "$work/$name/home/.codex/hooks.json"'
 done
-check "windows-main: Codexのhooks.jsonはcmd.exe経由で.exeを呼ぶ" 'jq -e ".hooks.PreToolUse[0].hooks[0].command | startswith(\"cmd.exe /c \\\"\") and endswith(\"\\\\.agents\\\\hooks\\\\block-signing-bypass.exe\\\"\")" "$work/windows-main/home/.codex/hooks.json"'
+check "windows-main: Codexのhooks.jsonはcmd.exe経由で.exeを呼ぶ" 'jq -e "(.hooks.PreToolUse[0].hooks[0].command | startswith(\"cmd.exe /c \\\"\") and endswith(\"\\\\.agents\\\\hooks\\\\block-signing-bypass.exe\\\"\")) and (.hooks.PreToolUse[1].hooks[0].command | startswith(\"cmd.exe /c \\\"\") and endswith(\"\\\\.agents\\\\hooks\\\\block-antigravity.exe\\\"\"))" "$work/windows-main/home/.codex/hooks.json"'
 check "windows-main: Antigravityのhooks.jsonは.exeを呼ぶ" 'jq -e ".\"block-signing-bypass\".PreToolUse[0].hooks[0].command | startswith(\"\\\"\") and endswith(\"\\\\.agents\\\\hooks\\\\block-signing-bypass.exe\\\"\")" "$work/windows-main/home/.gemini/config/hooks.json"'
 # shellcheck disable=SC2034
 codex_json="$(toml_json windows-main "$work/windows-main/home/.codex/config.toml")"
@@ -171,6 +173,7 @@ enable-ssh-support
 disable-scdaemon'
 check "linux-main: コミット署名が有効" 'grep -q "gpgsign = true" "$work/linux-main/home/.gitconfig"'
 check "linux-main: Claude の設定にフックがある" 'jq -e ".hooks.PreToolUse[0].hooks[0].command | test(\"block-signing-bypass\")" "$work/linux-main/home/.claude/settings.json"'
+check "linux-main: Claudeの設定にAntigravity禁止のフックがある" 'jq -e ".hooks.PreToolUse[1] | .matcher == \"Bash\" and (.hooks[0].command | test(\"block-antigravity\"))" "$work/linux-main/home/.claude/settings.json"'
 check "linux-main: Claude の設定に日本語の表記のフックがある" 'jq -e ".hooks.PostToolUse[0] | .matcher == \"Edit|Write\" and (.hooks[0].command | test(\"ja-style\"))" "$work/linux-main/home/.claude/settings.json"'
 # 初回は数分かかるので、セッションを待たせないようにバックグラウンドで動かす
 check "linux-main: 開始時に usage-log の collect をバックグラウンドで動かす" 'jq -e ".hooks.SessionStart[0].hooks[0] | .async == true and (.command | test(\"usage-log\\\" collect\"))" "$work/linux-main/home/.claude/settings.json"'

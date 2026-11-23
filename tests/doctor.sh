@@ -119,8 +119,14 @@ check "署名回避のフックが通常のコマンドを通す" "[ -z \"\$(pri
 check "署名回避のフックがAntigravity形式で拒否する" "printf '%s' '$agy_deny_input' | '$hook' | jq -e '.decision == \"deny\"'"
 check "署名回避のフックがAntigravity形式で通常のコマンドを通す" "printf '%s' '$agy_allow_input' | '$hook' | jq -e '. == {}'"
 check "Claude の設定にフックがある" 'jq -e ".hooks.PreToolUse[0].hooks[0].command | test(\"block-signing-bypass\")" ~/.claude/settings.json'
+check "Claude の設定にAntigravity禁止のフックがある" 'jq -e ".hooks.PreToolUse[1].hooks[0].command | test(\"block-antigravity\")" ~/.claude/settings.json'
 check "Antigravity の設定にフックがある" 'jq -e ".\"block-signing-bypass\".PreToolUse[0].hooks[0].command | test(\"block-signing-bypass\")" ~/.gemini/config/hooks.json'
-[ "$host" = mac ] || check "Codex の設定にフックがある" 'jq -e ".hooks.PreToolUse[0].hooks[0].command | test(\"block-signing-bypass\")" ~/.codex/hooks.json'
+[ "$host" = mac ] || check "Codex の設定にフックがある" 'jq -e "(.hooks.PreToolUse[0].hooks[0].command | test(\"block-signing-bypass\")) and (.hooks.PreToolUse[1].hooks[0].command | test(\"block-antigravity\"))" ~/.codex/hooks.json'
+agy_block_hook="$HOME/.agents/hooks/block-antigravity"
+agy_call_input='{"tool_name":"Bash","tool_input":{"command":"agy -p hi"}}'
+codex_call_input='{"tool_name":"Bash","tool_input":{"command":"codex review"}}'
+check "Antigravity禁止のフックがagyを拒否する" "printf '%s' '$agy_call_input' | '$agy_block_hook' | grep -q deny"
+check "Antigravity禁止のフックがcodexを通す" "[ -z \"\$(printf '%s' '$codex_call_input' | '$agy_block_hook')\" ]"
 ja_input='{"tool_input":{"file_path":"/dev/null"},"tool_response":{"structuredPatch":[]}}'
 check "日本語の表記のフックが動く" "printf '%s' '$ja_input' | '$HOME/.claude/hooks/ja-style'"
 check "Claude の設定に日本語の表記のフックがある" 'jq -e ".hooks.PostToolUse[0].hooks[0].command | test(\"ja-style\")" ~/.claude/settings.json'

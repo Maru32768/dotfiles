@@ -1,7 +1,10 @@
-{{- $cmd := printf "\"%s\"" (joinPath .chezmoi.homeDir ".agents" "hooks" "block-signing-bypass") -}}
+{{- $signingCmd := printf "\"%s\"" (joinPath .chezmoi.homeDir ".agents" "hooks" "block-signing-bypass") -}}
+{{- $antigravityCmd := printf "\"%s\"" (joinPath .chezmoi.homeDir ".agents" "hooks" "block-antigravity") -}}
 {{- if eq .chezmoi.os "windows" -}}
-{{-   $bin := printf "%s.exe" (joinPath .chezmoi.homeDir ".agents" "hooks" "block-signing-bypass") | replace "/" "\\" -}}
-{{-   $cmd = printf "cmd.exe /c \"%s\"" $bin -}}
+{{-   $signingBin := printf "%s.exe" (joinPath .chezmoi.homeDir ".agents" "hooks" "block-signing-bypass") | replace "/" "\\" -}}
+{{-   $antigravityBin := printf "%s.exe" (joinPath .chezmoi.homeDir ".agents" "hooks" "block-antigravity") | replace "/" "\\" -}}
+{{-   $signingCmd = printf "cmd.exe /c \"%s\"" $signingBin -}}
+{{-   $antigravityCmd = printf "cmd.exe /c \"%s\"" $antigravityBin -}}
 {{- end -}}
 {
   "hooks": {
@@ -11,7 +14,17 @@
         "hooks": [
           {
             "type": "command",
-            "command": {{ $cmd | toJson }},
+            "command": {{ $signingCmd | toJson }},
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": {{ $antigravityCmd | toJson }},
             "timeout": 10
           }
         ]

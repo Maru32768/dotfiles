@@ -8,7 +8,7 @@ Linux(mainとagent)には、review-loopのcodex reviewに使うCLIだけをmise�
 |---|---|
 | `home/.codex-config.toml` | 共通の設定(Windowsだけ) |
 | `home/dot_codex/modify_config.toml` | 共通の設定を`~/.codex/config.toml`へマージする(Windowsだけ) |
-| `home/dot_codex/hooks.json.tmpl` | コミット署名の回避を止める`PreToolUse`フック(`docs/claude.md`の｢署名回避を止めるフック｣)。`~/.agents/hooks/block-signing-bypass`を呼ぶ |
+| `home/dot_codex/hooks.json.tmpl` | コミット署名の回避を止めるフック(`~/.agents/hooks/block-signing-bypass`)と、Antigravityの呼び出しを止めるフック(`~/.agents/hooks/block-antigravity`)を`PreToolUse`へ登録する(`docs/claude.md`) |
 
 `hooks.json`を初めて置いたときや書き換えたときは、Codex側で信頼(Trust)の確認が出ることがある。確認して許可すると有効になり、そのハッシュが`config.toml`の`hooks.state`に記録される。
 
