@@ -36,7 +36,57 @@ type heredoc struct {
 	stripTabs bool
 }
 
-var heredocStart = regexp.MustCompile("^<<(-)?[ \t]*(?:'([^'\\r\\n]+)'|\"([^\"\\r\\n]+)\"|\\\\([^ \t\\r\\n;&|<>()]+)|([^ \t\\r\\n;&|<>()'\"\\\\]+))")
+func readHeredocDelimiter(input string) (heredoc, int) {
+	var doc heredoc
+	if !strings.HasPrefix(input, "<<") || strings.HasPrefix(input, "<<<") {
+		return doc, 0
+	}
+	i := 2
+	if i < len(input) && input[i] == '-' {
+		doc.stripTabs = true
+		i++
+	}
+	for i < len(input) && (input[i] == ' ' || input[i] == '\t') {
+		i++
+	}
+	start := i
+	var word strings.Builder
+	var quote byte
+	for ; i < len(input); i++ {
+		ch := input[i]
+		switch {
+		case quote == 0 && strings.ContainsRune(" \t\r\n;&|<>()", rune(ch)):
+			doc.delimiter = word.String()
+			if i == start {
+				return doc, 0
+			}
+			return doc, i
+		case quote == 0 && (ch == '\'' || ch == '"'):
+			quote = ch
+			doc.quoted = true
+		case quote == ch:
+			quote = 0
+		case ch == '\\' && quote != '\'' && i+1 < len(input):
+			next := input[i+1]
+			if quote == 0 || strings.ContainsRune("\"\\$\x60\n", rune(next)) {
+				i++
+				if next != '\n' {
+					word.WriteByte(next)
+					doc.quoted = true
+				}
+			} else {
+				word.WriteByte(ch)
+			}
+		default:
+			word.WriteByte(ch)
+		}
+	}
+	if i == start || quote != 0 {
+		return doc, 0
+	}
+	doc.delimiter = word.String()
+	return doc, i
+}
 
 func readHeredocs(input string, start int, pending []heredoc) (int, []string) {
 	var embedded []string
@@ -174,23 +224,14 @@ func parseCommands(input string) parsedLine {
 		case ';', '(', ')':
 			flushCmd()
 		case '<':
-			if i > 0 && input[i-1] == '<' {
-				curTok.WriteByte(ch)
-				hasTok = true
-				continue
-			}
-			if m := heredocStart.FindStringSubmatch(input[i:]); m != nil {
-				delimiter := m[5]
-				for _, quoted := range m[2:5] {
-					if quoted != "" {
-						delimiter = quoted
-					}
+			if i == 0 || input[i-1] != '<' {
+				if doc, next := readHeredocDelimiter(input[i:]); next > 0 {
+					pending = append(pending, doc)
+					curTok.WriteString("<<" + doc.delimiter)
+					hasTok = true
+					i += next - 1
+					continue
 				}
-				pending = append(pending, heredoc{delimiter: delimiter, quoted: m[5] == "", stripTabs: m[1] == "-"})
-				flushTok()
-				curCmd = append(curCmd, "<<"+delimiter)
-				i += len(m[0]) - 1
-				continue
 			}
 			hasTok = true
 			curTok.WriteByte(ch)
