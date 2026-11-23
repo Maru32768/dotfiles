@@ -250,6 +250,16 @@ func TestCleanEditIsSilent(t *testing.T) {
 	}
 }
 
+func runCodexPatch(t *testing.T, cwd, patch string) (string, string, int) {
+	t.Helper()
+	return runHookAll(t, map[string]any{
+		"cwd":           cwd,
+		"tool_name":     "apply_patch",
+		"tool_input":    map[string]any{"command": patch},
+		"tool_response": "Exit code: 0\nSuccess. Updated the following files:\nM a.md",
+	})
+}
+
 func TestCodexApplyPatchReportsAddedLinesOnly(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "a.md")
@@ -257,12 +267,7 @@ func TestCodexApplyPatchReportsAddedLinesOnly(t *testing.T) {
 		t.Fatal(err)
 	}
 	patch := "*** Begin Patch\n*** Update File: a.md\n@@\n 古い （行）\n+新しい （行）\n ```\n+「コード」\n ```\n*** End Patch\n"
-	stdout, stderr, code := runHookAll(t, map[string]any{
-		"cwd":           dir,
-		"tool_name":     "apply_patch",
-		"tool_input":    map[string]any{"command": patch},
-		"tool_response": "Exit code: 0\nSuccess. Updated the following files:\nM a.md",
-	})
+	stdout, stderr, code := runCodexPatch(t, dir, patch)
 	if code != 0 || stderr != "" {
 		t.Fatalf("code %d, stderr %q", code, stderr)
 	}
@@ -507,10 +512,7 @@ func TestAntigravityInlineDeletionKeepsFollowingChunkOnSameLine(t *testing.T) {
 func TestCodexPatchUsesContextToLocateDuplicateLine(t *testing.T) {
 	path := write(t, "a.md", "新しい （行）\n\n対象の節\n新しい （行）\n最後の行\n")
 	patch := "*** Begin Patch\n*** Update File: a.md\n@@ 対象の節\n-前の行\n+新しい （行）\n*** End Patch\n"
-	got, stderr, code := runHookAll(t, map[string]any{
-		"cwd": filepath.Dir(path), "tool_name": "apply_patch", "tool_input": map[string]any{"command": patch},
-		"tool_response": "Exit code: 0\nSuccess. Updated the following files:\nM a.md",
-	})
+	got, stderr, code := runCodexPatch(t, filepath.Dir(path), patch)
 	if code != 0 || stderr != "" || !strings.Contains(got, "a.md:4:") || strings.Contains(got, "a.md:1:") {
 		t.Fatalf("PostToolUse: code %d, output %s, stderr %q", code, got, stderr)
 	}
@@ -519,10 +521,7 @@ func TestCodexPatchUsesContextToLocateDuplicateLine(t *testing.T) {
 func TestCodexPatchReportsEveryAppendChunk(t *testing.T) {
 	path := write(t, "a.md", "最初の行\n追加した （行）\n「新しい行」\n")
 	patch := "*** Begin Patch\n*** Update File: a.md\n@@\n+追加した （行）\n@@\n+「新しい行」\n*** End Patch\n"
-	got, stderr, code := runHookAll(t, map[string]any{
-		"cwd": filepath.Dir(path), "tool_name": "apply_patch", "tool_input": map[string]any{"command": patch},
-		"tool_response": "Exit code: 0\nSuccess. Updated the following files:\nM a.md",
-	})
+	got, stderr, code := runCodexPatch(t, filepath.Dir(path), patch)
 	if code != 0 || stderr != "" || !strings.Contains(got, "a.md:2:") || !strings.Contains(got, "a.md:3:") {
 		t.Fatalf("PostToolUse: code %d, output %s, stderr %q", code, got, stderr)
 	}
@@ -531,10 +530,7 @@ func TestCodexPatchReportsEveryAppendChunk(t *testing.T) {
 func TestCodexPatchEndOfFileReplacementBeforeAppend(t *testing.T) {
 	path := write(t, "a.md", "最初の行\n新しい （行）\n新しい （行）\n")
 	patch := "*** Begin Patch\n*** Update File: a.md\n@@\n-前の末尾\n+新しい （行）\n*** End of File\n@@\n+新しい （行）\n*** End Patch\n"
-	got, stderr, code := runHookAll(t, map[string]any{
-		"cwd": filepath.Dir(path), "tool_name": "apply_patch", "tool_input": map[string]any{"command": patch},
-		"tool_response": "Exit code: 0\nSuccess. Updated the following files:\nM a.md",
-	})
+	got, stderr, code := runCodexPatch(t, filepath.Dir(path), patch)
 	if code != 0 || stderr != "" || !strings.Contains(got, "a.md:2:") || !strings.Contains(got, "a.md:3:") {
 		t.Fatalf("PostToolUse: code %d, output %s, stderr %q", code, got, stderr)
 	}
@@ -543,10 +539,7 @@ func TestCodexPatchEndOfFileReplacementBeforeAppend(t *testing.T) {
 func TestCodexPatchWithFinalNewlineContext(t *testing.T) {
 	path := write(t, "a.md", "新しい （行）\n")
 	patch := "*** Begin Patch\n*** Update File: a.md\n@@\n-前の行\n+新しい （行）\n \n*** End of File\n*** End Patch\n"
-	got, stderr, code := runHookAll(t, map[string]any{
-		"cwd": filepath.Dir(path), "tool_name": "apply_patch", "tool_input": map[string]any{"command": patch},
-		"tool_response": "Exit code: 0\nSuccess. Updated the following files:\nM a.md",
-	})
+	got, stderr, code := runCodexPatch(t, filepath.Dir(path), patch)
 	if code != 0 || stderr != "" || !strings.Contains(got, "a.md:1:") {
 		t.Fatalf("PostToolUse: code %d, output %s, stderr %q", code, got, stderr)
 	}
@@ -555,10 +548,7 @@ func TestCodexPatchWithFinalNewlineContext(t *testing.T) {
 func TestCodexPatchAcceptsEquivalentContext(t *testing.T) {
 	path := write(t, "a.md", "  見出し\n  文脈\n追加した （行）\n“表示”を選ぶ\n値—1\n追加した （項目）\n")
 	patch := "*** Begin Patch\n*** Update File: a.md\n@@ 見出し\n 文脈\n+追加した （行）\n@@ \"表示\"を選ぶ\n 値-1\n+追加した （項目）\n*** End Patch\n"
-	got, stderr, code := runHookAll(t, map[string]any{
-		"cwd": filepath.Dir(path), "tool_name": "apply_patch", "tool_input": map[string]any{"command": patch},
-		"tool_response": "Exit code: 0\nSuccess. Updated the following files:\nM a.md",
-	})
+	got, stderr, code := runCodexPatch(t, filepath.Dir(path), patch)
 	if code != 0 || stderr != "" || !strings.Contains(got, "a.md:3:") || !strings.Contains(got, "a.md:6:") {
 		t.Fatalf("PostToolUse: code %d, output %s, stderr %q", code, got, stderr)
 	}
@@ -567,10 +557,7 @@ func TestCodexPatchAcceptsEquivalentContext(t *testing.T) {
 func TestCodexPatchIgnoresHeadingIntroducedByLaterChunk(t *testing.T) {
 	path := write(t, "a.md", "  対象の節\n新しい （行）\n境目\n対象の節\n")
 	patch := "*** Begin Patch\n*** Update File: a.md\n@@ 対象の節\n-前の行\n+新しい （行）\n@@ 境目\n-別の見出し\n+対象の節\n*** End Patch\n"
-	got, stderr, code := runHookAll(t, map[string]any{
-		"cwd": filepath.Dir(path), "tool_name": "apply_patch", "tool_input": map[string]any{"command": patch},
-		"tool_response": "Exit code: 0\nSuccess. Updated the following files:\nM a.md",
-	})
+	got, stderr, code := runCodexPatch(t, filepath.Dir(path), patch)
 	if code != 0 || stderr != "" || !strings.Contains(got, "a.md:2:") {
 		t.Fatalf("PostToolUse: code %d, output %s, stderr %q", code, got, stderr)
 	}
@@ -579,10 +566,7 @@ func TestCodexPatchIgnoresHeadingIntroducedByLaterChunk(t *testing.T) {
 func TestCodexPatchWithIndistinguishableLinesOmitsLineNumber(t *testing.T) {
 	path := write(t, "a.md", "新しい （行）\n\n新しい （行）\n")
 	patch := "*** Begin Patch\n*** Update File: a.md\n@@\n-前の行\n+新しい （行）\n*** End Patch\n"
-	got, stderr, code := runHookAll(t, map[string]any{
-		"cwd": filepath.Dir(path), "tool_name": "apply_patch", "tool_input": map[string]any{"command": patch},
-		"tool_response": "Exit code: 0\nSuccess. Updated the following files:\nM a.md",
-	})
+	got, stderr, code := runCodexPatch(t, filepath.Dir(path), patch)
 	if code != 0 || stderr != "" || !strings.Contains(got, "a.md: ") ||
 		strings.Contains(got, "a.md:1:") || strings.Contains(got, "a.md:3:") {
 		t.Fatalf("PostToolUse: code %d, output %s, stderr %q", code, got, stderr)
