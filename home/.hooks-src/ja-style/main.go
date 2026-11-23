@@ -18,6 +18,7 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"unicode"
 )
 
 const (
@@ -274,10 +275,30 @@ func normalizeCodexContext(line string) string {
 	}, strings.TrimSpace(line))
 }
 
-func codexAnchor(lines []string, anchor string) int {
-	// 適用後のファイルには後続チャンクが足した見出しもあるため、完全一致を優先すると先の編集を飛ばしうる。
-	wanted := normalizeCodexContext(anchor)
-	return slices.IndexFunc(lines, func(line string) bool { return normalizeCodexContext(line) == wanted })
+func codexAnchor(lines []string, anchor string, possiblyAdded map[string]struct{}) int {
+	// 後続チャンクが足した見出しは元のファイルでは照合できないため、別の候補も残す。
+	firstPossible := len(lines)
+	for _, normalize := range []func(string) string{
+		func(line string) string { return line },
+		func(line string) string { return strings.TrimRightFunc(line, unicode.IsSpace) },
+		strings.TrimSpace,
+		normalizeCodexContext,
+	} {
+		wanted := normalize(anchor)
+		for i, line := range lines {
+			if normalize(line) != wanted {
+				continue
+			}
+			if _, added := possiblyAdded[line]; !added {
+				return min(i, firstPossible)
+			}
+			firstPossible = min(i, firstPossible)
+		}
+	}
+	if firstPossible < len(lines) {
+		return firstPossible
+	}
+	return -1
 }
 
 func matchingPatchStarts(lines, wanted []string, added []int, first int) []int {
@@ -373,10 +394,14 @@ func reportCodexPatch(call toolCall) []string {
 			var fences []bool
 			first := 0
 			appendAt := len(lines)
+			possiblyAdded := make(map[string]struct{})
 			if !create {
 				for _, chunk := range chunks {
 					if chunk.oldLines == 0 {
 						appendAt -= len(chunk.lines)
+					}
+					for _, offset := range chunk.added {
+						possiblyAdded[chunk.lines[offset]] = struct{}{}
 					}
 				}
 			}
@@ -387,7 +412,7 @@ func reportCodexPatch(call toolCall) []string {
 				}
 				searchStart := first
 				if chunk.anchor != "" {
-					anchor := codexAnchor(originalRegion[first:], chunk.anchor)
+					anchor := codexAnchor(originalRegion[first:], chunk.anchor, possiblyAdded)
 					if anchor < 0 && chunk.oldLines > 0 {
 						continue
 					}
