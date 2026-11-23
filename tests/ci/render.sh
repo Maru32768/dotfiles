@@ -124,7 +124,14 @@ for name in linux-main windows-main darwin-main; do
   expected="$(expected_skills "$name")"
   check "$name: 置くスキルがある" '[ -n "$expected" ]'
   equals "$name: どのスキルにも SKILL.md が取れる" "$(actual_skills "$name")" "$expected"
-  check "$name: Antigravityのskills.jsonが~/.agents/skillsを参照する" 'jq -e ".entries == [{\"path\": \"~/.agents/skills\"}]" "$work/$name/home/.gemini/config/skills.json"'
+  # shellcheck disable=SC2034
+  agy_skills="$(cm "$name" execute-template '{{ joinPath .chezmoi.homeDir ".agents" "skills" }}')"
+  # shellcheck disable=SC2034
+  agy_pstack="$(cm "$name" execute-template '{{ joinPath .chezmoi.homeDir ".claude" "plugins" "marketplaces" "pstack-claude" "plugins" }}')"
+  # shellcheck disable=SC2034
+  agy_marketplaces="$(cm "$name" execute-template '{{ joinPath .chezmoi.homeDir ".claude" "plugins" "marketplaces" }}')"
+  check "$name: Antigravityのskills.jsonが~/.agents/skillsを絶対パスで参照する" 'jq -e --arg p "$agy_skills" ".entries == [{\"path\": \$p}]" "$work/$name/home/.gemini/config/skills.json"'
+  check "$name: Antigravityのplugins.jsonがpstackとponytailを参照する" 'jq -e --arg pstack "$agy_pstack" --arg mp "$agy_marketplaces" ".entries == [{\"path\": \$pstack}, {\"path\": \$mp, \"include_only\": [\"ponytail\"]}]" "$work/$name/home/.gemini/config/plugins.json"'
   check "$name: Antigravityのhooks.jsonに署名回避のフックがある" 'jq -e ".\"block-signing-bypass\".PreToolUse[0] | (.matcher | test(\"run_command\")) and (.hooks[0].command | test(\"block-signing-bypass\"))" "$work/$name/home/.gemini/config/hooks.json"'
   check "$name: Antigravityのhooks.jsonにはblock-antigravityを入れない" 'jq -e "has(\"block-antigravity\") | not" "$work/$name/home/.gemini/config/hooks.json"'
   check "$name: 共通の自作スキルが.agents/skillsと.claude/skillsに同じ内容で置かれる" '(

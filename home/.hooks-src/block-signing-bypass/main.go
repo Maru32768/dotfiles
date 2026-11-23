@@ -162,9 +162,9 @@ func run(stdin io.Reader, stdout io.Writer) error {
 			problem = fileProblem(firstNonEmpty(call.ToolCall.Args.Path, call.ToolCall.Args.TargetFile, call.ToolCall.Args.FilePath))
 		}
 		if problem == "" {
-			// Antigravity の PreToolUse は JSON オブジェクトを要求する。
-			// "allow" を返すと確認プロンプトを飛ばすため、介入しないときは空オブジェクトを返す。
-			_, err := io.WriteString(stdout, "{}\n")
+			// Antigravity の PreToolUse は decision を必須とし、空オブジェクト "{}" は拒否扱いになる。
+			// "allow" は確認プロンプトを飛ばすため、通常の権限判定(Always Allow を含む)へ委ねる "ask" を返す。
+			_, err := io.WriteString(stdout, "{\"decision\":\"ask\"}\n")
 			return err
 		}
 		return json.NewEncoder(stdout).Encode(map[string]string{

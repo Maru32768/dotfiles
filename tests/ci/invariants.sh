@@ -65,7 +65,7 @@ else
   pass "GPG の鍵の指定が揃っている"
 fi
 
-for file in home/.claude-settings.json home/dot_gemini/config/skills.json provision/agent/managed-settings.json provision/research/managed-settings.json packages/winget.json; do
+for file in home/.claude-settings.json provision/agent/managed-settings.json provision/research/managed-settings.json packages/winget.json; do
   if jq empty "$file" 2>/dev/null; then pass "JSON: $file"; else fail "JSON が壊れている: $file"; fi
 done
 

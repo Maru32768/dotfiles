@@ -8,7 +8,8 @@ GitHub で公開されているスキルを、Windows と `dev` に同じ版で�
 | `home/.chezmoiexternals/skills.toml.tmpl` | 一覧からchezmoiのexternalを作る。GitHubのアーカイブから、そのスキルのディレクトリだけを取り出す |
 | `home/dot_agents/skills/` | 共通で使う自作のスキルの正本 |
 | `home/dot_claude/skills/` | 共通の自作スキルをClaude Codeへ展開する`include`テンプレートと、Claude Code専用の自作スキル(`usage-cap`) |
-| `home/dot_gemini/config/skills.json` | Antigravityに`~/.agents/skills`を読ませる設定 |
+| `home/dot_gemini/config/skills.json.tmpl` | Antigravityに`~/.agents/skills`を読ませる設定(Windowsでは`~/`が展開されないため絶対パスで書く) |
+| `home/dot_gemini/config/plugins.json.tmpl` | Antigravityに`pstack`と`ponytail`のプラグインを読ませる設定(Claude Codeのマーケットプレイスを参照) |
 | `provision/update-skills.sh` | スキルと、コミットに固定したプラグインのマーケットプレイスを、最新のコミットに上げる |
 
 置く先は2つあり、既定では両方に置く。Antigravityは`~/.gemini/config/skills.json`で`~/.agents/skills`を参照するので、複製もシンボリックリンクも増やさずに同じスキルを読める。

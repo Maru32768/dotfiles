@@ -1,0 +1,13 @@
+{
+  "entries": [
+    {
+      "path": {{ joinPath .chezmoi.homeDir ".claude" "plugins" "marketplaces" "pstack-claude" "plugins" | toJson }}
+    },
+    {
+      "path": {{ joinPath .chezmoi.homeDir ".claude" "plugins" "marketplaces" | toJson }},
+      "include_only": [
+        "ponytail"
+      ]
+    }
+  ]
+}
