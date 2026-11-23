@@ -18,6 +18,7 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"unicode"
 )
 
 const (
@@ -234,8 +235,37 @@ func editedFileLines(cwd, path string) []string {
 	return textLines(string(data))
 }
 
-func codexContextEqual(actual, expected string) bool {
-	return strings.TrimSpace(actual) == strings.TrimSpace(expected)
+func normalizeCodexContext(line string) string {
+	return strings.Map(func(r rune) rune {
+		switch r {
+		case '\u2010', '\u2011', '\u2012', '\u2013', '\u2014', '\u2015', '\u2212':
+			return '-'
+		case '\u2018', '\u2019', '\u201a', '\u201b':
+			return '\''
+		case '\u201c', '\u201d', '\u201e', '\u201f':
+			return '"'
+		case '\u00a0', '\u2002', '\u2003', '\u2004', '\u2005', '\u2006', '\u2007',
+			'\u2008', '\u2009', '\u200a', '\u202f', '\u205f', '\u3000':
+			return ' '
+		default:
+			return r
+		}
+	}, strings.TrimSpace(line))
+}
+
+func codexAnchor(lines []string, anchor string) int {
+	for _, normalize := range []func(string) string{
+		func(line string) string { return line },
+		func(line string) string { return strings.TrimRightFunc(line, unicode.IsSpace) },
+		strings.TrimSpace,
+		normalizeCodexContext,
+	} {
+		wanted := normalize(anchor)
+		if i := slices.IndexFunc(lines, func(line string) bool { return normalize(line) == wanted }); i >= 0 {
+			return i
+		}
+	}
+	return -1
 }
 
 func matchingPatchStarts(lines, wanted []string, added []int, first int) []int {
@@ -244,7 +274,7 @@ func matchingPatchStarts(lines, wanted []string, added []int, first int) []int {
 		matches := true
 		for j, line := range wanted {
 			actual := lines[i+j]
-			if line != actual && (slices.Contains(added, j) || !codexContextEqual(actual, line)) {
+			if line != actual && (slices.Contains(added, j) || normalizeCodexContext(actual) != normalizeCodexContext(line)) {
 				matches = false
 				break
 			}
@@ -343,12 +373,7 @@ func reportCodexPatch(call toolCall) []string {
 					continue
 				}
 				if chunk.anchor != "" {
-					anchor := slices.Index(lines[first:], chunk.anchor)
-					if anchor < 0 {
-						anchor = slices.IndexFunc(lines[first:], func(line string) bool {
-							return codexContextEqual(line, chunk.anchor)
-						})
-					}
+					anchor := codexAnchor(lines[first:], chunk.anchor)
 					if anchor < 0 {
 						break
 					}
