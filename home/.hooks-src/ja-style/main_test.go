@@ -382,3 +382,15 @@ func TestCodexPatchUsesContextToLocateDuplicateLine(t *testing.T) {
 		t.Fatalf("PostToolUse: code %d, output %s, stderr %q", code, got, stderr)
 	}
 }
+
+func TestCodexPatchReportsEveryAppendChunk(t *testing.T) {
+	path := write(t, "a.md", "最初の行\n追加した （行）\n「新しい行」\n")
+	patch := "*** Begin Patch\n*** Update File: a.md\n@@\n+追加した （行）\n@@\n+「新しい行」\n*** End Patch\n"
+	got, stderr, code := runHookAll(t, map[string]any{
+		"cwd": filepath.Dir(path), "tool_name": "apply_patch", "tool_input": map[string]any{"command": patch},
+		"tool_response": "Exit code: 0\nSuccess. Updated the following files:\nM a.md",
+	})
+	if code != 0 || stderr != "" || !strings.Contains(got, "a.md:2:") || !strings.Contains(got, "a.md:3:") {
+		t.Fatalf("PostToolUse: code %d, output %s, stderr %q", code, got, stderr)
+	}
+}

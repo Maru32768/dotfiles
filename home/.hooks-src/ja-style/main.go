@@ -320,6 +320,14 @@ func reportCodexPatch(call toolCall) []string {
 			lines := editedFileLines(call.Cwd, path)
 			var targets []int
 			first := 0
+			appendAt := len(lines)
+			if !create {
+				for _, chunk := range chunks {
+					if chunk.oldLines == 0 {
+						appendAt -= len(chunk.lines)
+					}
+				}
+			}
 			for _, chunk := range chunks {
 				if len(chunk.lines) == 0 && chunk.anchor == "" {
 					continue
@@ -336,7 +344,8 @@ func reportCodexPatch(call toolCall) []string {
 				case create:
 					start = 0
 				case chunk.oldLines == 0:
-					start = len(lines) - len(chunk.lines)
+					start = appendAt
+					appendAt += len(chunk.lines)
 				case chunk.atEnd && len(chunk.lines) <= len(lines) && slices.Equal(lines[len(lines)-len(chunk.lines):], chunk.lines):
 					start = len(lines) - len(chunk.lines)
 				default:
@@ -354,7 +363,9 @@ func reportCodexPatch(call toolCall) []string {
 				for _, offset := range chunk.added {
 					targets = append(targets, start+offset+1)
 				}
-				first = end
+				if chunk.oldLines > 0 {
+					first = end
+				}
 			}
 			reports = append(reports, checkLines(path, lines, targets)...)
 		}
