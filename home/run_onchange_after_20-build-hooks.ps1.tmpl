@@ -9,9 +9,15 @@
 # old binary open for a moment, so the rename is retried.
 $ErrorActionPreference = 'Stop'
 
-foreach ($hook in 'block-signing-bypass', 'ja-style') {
+$targets = @(
+    @{ Name = 'block-signing-bypass'; Dest = (Join-Path $HOME '.agents\hooks\block-signing-bypass.exe') }
+    @{ Name = 'ja-style'; Dest = (Join-Path $HOME '.claude\hooks\ja-style.exe') }
+)
+
+foreach ($target in $targets) {
+    $hook = $target.Name
+    $dst = $target.Dest
     Set-Location (Join-Path {{ joinPath .chezmoi.sourceDir ".hooks-src" | quote }} $hook)
-    $dst = Join-Path $HOME ".claude\hooks\$hook.exe"
 
     & mise exec go -- go test ./...
     if ($LASTEXITCODE -ne 0) { throw "$hook tests failed: $LASTEXITCODE" }
@@ -30,3 +36,5 @@ foreach ($hook in 'block-signing-bypass', 'ja-style') {
         }
     }
 }
+
+Remove-Item -Force -ErrorAction SilentlyContinue (Join-Path $HOME '.claude\hooks\block-signing-bypass.exe')

@@ -2,12 +2,15 @@
 
 Codex は今のところ Windows で使う。Windows の CLI は Codex のアプリが入れる。
 
-Linux (main と agent) には、review-loop の codex review に使う CLI だけを mise で入れる。`~/.codex` の設定は管理しない。使う前に、main で 1 度 `codex login` する。agent ではログインしないので、CLI があっても動かない。
+Linux(mainとagent)には、review-loopのcodex reviewに使うCLIだけをmiseで入れる。`~/.codex/config.toml`はWindowsだけで管理し、`~/.codex/hooks.json`はWindowsとLinuxのmainに置く(`agent`とmacには置かない)。使う前に、mainで1度`codex login`する。agentではログインしないので、CLIがあっても動かない。
 
 | ファイル | 内容 |
 |---|---|
-| `home/.codex-config.toml` | 共通の設定 |
-| `home/dot_codex/modify_config.toml` | 共通の設定を `~/.codex/config.toml` へマージする |
+| `home/.codex-config.toml` | 共通の設定(Windowsだけ) |
+| `home/dot_codex/modify_config.toml` | 共通の設定を`~/.codex/config.toml`へマージする(Windowsだけ) |
+| `home/dot_codex/hooks.json.tmpl` | コミット署名の回避を止める`PreToolUse`フック(`docs/claude.md`の｢署名回避を止めるフック｣)。`~/.agents/hooks/block-signing-bypass`を呼ぶ |
+
+`hooks.json`を初めて置いたときや書き換えたときは、Codex側で信頼(Trust)の確認が出ることがある。確認して許可すると有効になり、そのハッシュが`config.toml`の`hooks.state`に記録される。
 
 `config.toml` は Codex 自身も書き換えるので、Claude Code の `settings.json` と同じく、丸ごと置き換えずにマージする (`docs/claude.md`)。
 

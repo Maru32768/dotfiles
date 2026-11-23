@@ -16,8 +16,7 @@
 .wslconfig
 OneDrive
 OneDrive/**
-.codex
-.codex/**
+.codex/config.toml
 .local/bin/plamo-server.cmd
 .claude/rules/plamo.md
 .local/bin/op-run.ps1
@@ -37,7 +36,9 @@ OneDrive/**
 # mac のシェルは zsh
 .bashrc
 .bash_profile
-# mac では 1Password を使わない
+# mac では 1Password と Codex を使わない
+.codex
+.codex/**
 .local/bin/op-run
 .claude/rules/secrets.md
 {{ else }}
@@ -58,6 +59,8 @@ OneDrive/**
 .claude/**
 .agents
 .agents/**
+.codex
+.codex/**
 .gemini
 .gemini/**
 .local/bin/op-run

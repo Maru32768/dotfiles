@@ -109,12 +109,18 @@ else
   fi
 fi
 
-hook="$HOME/.claude/hooks/block-signing-bypass"
+hook="$HOME/.agents/hooks/block-signing-bypass"
 deny_input='{"tool_name":"Bash","tool_input":{"command":"git commit --no-gpg-sign"}}'
 allow_input='{"tool_name":"Bash","tool_input":{"command":"git status"}}'
+agy_deny_input='{"toolCall":{"name":"run_command","args":{"CommandLine":"git commit --no-gpg-sign"}}}'
+agy_allow_input='{"toolCall":{"name":"run_command","args":{"CommandLine":"git status"}}}'
 check "署名回避のフックが拒否する" "printf '%s' '$deny_input' | '$hook' | grep -q deny"
 check "署名回避のフックが通常のコマンドを通す" "[ -z \"\$(printf '%s' '$allow_input' | '$hook')\" ]"
+check "署名回避のフックがAntigravity形式で拒否する" "printf '%s' '$agy_deny_input' | '$hook' | jq -e '.decision == \"deny\"'"
+check "署名回避のフックがAntigravity形式で通常のコマンドを通す" "printf '%s' '$agy_allow_input' | '$hook' | jq -e '. == {}'"
 check "Claude の設定にフックがある" 'jq -e ".hooks.PreToolUse[0].hooks[0].command | test(\"block-signing-bypass\")" ~/.claude/settings.json'
+check "Antigravity の設定にフックがある" 'jq -e ".\"block-signing-bypass\".PreToolUse[0].hooks[0].command | test(\"block-signing-bypass\")" ~/.gemini/config/hooks.json'
+[ "$host" = mac ] || check "Codex の設定にフックがある" 'jq -e ".hooks.PreToolUse[0].hooks[0].command | test(\"block-signing-bypass\")" ~/.codex/hooks.json'
 ja_input='{"tool_input":{"file_path":"/dev/null"},"tool_response":{"structuredPatch":[]}}'
 check "日本語の表記のフックが動く" "printf '%s' '$ja_input' | '$HOME/.claude/hooks/ja-style'"
 check "Claude の設定に日本語の表記のフックがある" 'jq -e ".hooks.PostToolUse[0].hooks[0].command | test(\"ja-style\")" ~/.claude/settings.json'

@@ -75,6 +75,12 @@ $settings = Get-Content -Raw (Join-Path $HOME '.claude\settings.json') | Convert
 $hookCommand = $settings.hooks.PreToolUse[0].hooks[0].command
 Check 'Claude settings: hook registered' { $hookCommand -match 'block-signing-bypass' }
 
+$codexHooks = Get-Content -Raw (Join-Path $HOME '.codex\hooks.json') | ConvertFrom-Json
+Check 'Codex hooks: hook registered' { $codexHooks.hooks.PreToolUse[0].hooks[0].command -match 'block-signing-bypass' }
+
+$agyHooks = Get-Content -Raw (Join-Path $HOME '.gemini\config\hooks.json') | ConvertFrom-Json
+Check 'Antigravity hooks: hook registered' { $agyHooks.'block-signing-bypass'.PreToolUse[0].hooks[0].command -match 'block-signing-bypass' }
+
 function Invoke-Hook([string]$Json) {
     $Json | & $GitBash -c $hookCommand
 }
@@ -83,6 +89,12 @@ Check 'hook denies a bypass' {
 }
 Check 'hook allows a normal command' {
     -not (Invoke-Hook '{"tool_name":"Bash","tool_input":{"command":"git status"}}')
+}
+Check 'hook denies an Antigravity bypass' {
+    (Invoke-Hook '{"toolCall":{"name":"run_command","args":{"CommandLine":"git commit --no-gpg-sign"}}}') -match '"decision":"deny"'
+}
+Check 'hook allows a normal Antigravity command' {
+    (Invoke-Hook '{"toolCall":{"name":"run_command","args":{"CommandLine":"git status"}}}') -eq '{}'
 }
 $jaStyleCommand = $settings.hooks.PostToolUse[0].hooks[0].command
 Check 'Claude settings: ja-style hook registered' { $jaStyleCommand -match 'ja-style' }

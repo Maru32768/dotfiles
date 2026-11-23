@@ -109,6 +109,7 @@ equals "linux-agent: 置かれるファイルが許可した一覧と一致" "$(
 blocked "linux-agent: 署名の設定がない" 'grep -qE "signingkey|gpgsign" "$work/linux-agent/home/.gitconfig"'
 equals "linux-agent: 実行するスクリプト" "$(scripts_of linux-agent)" "10-mise-install.sh 40-claude-code.sh"
 blocked "linux-agent: review-loop の台帳の置き場を作らない" '[ -e "$work/linux-agent/home/.local/state" ]'
+blocked "linux-agent: .codex がない" '[ -e "$work/linux-agent/home/.codex" ]'
 blocked "linux-agent: .gemini がない" '[ -e "$work/linux-agent/home/.gemini" ]'
 equals "linux-agent: external がない (スキルを置かない)" "$(externals_of linux-agent | paste -sd ' ' -)" ""
 
@@ -124,6 +125,7 @@ for name in linux-main windows-main darwin-main; do
   check "$name: 置くスキルがある" '[ -n "$expected" ]'
   equals "$name: どのスキルにも SKILL.md が取れる" "$(actual_skills "$name")" "$expected"
   check "$name: Antigravityのskills.jsonが~/.agents/skillsを参照する" 'jq -e ".entries == [{\"path\": \"~/.agents/skills\"}]" "$work/$name/home/.gemini/config/skills.json"'
+  check "$name: Antigravityのhooks.jsonに署名回避のフックがある" 'jq -e ".\"block-signing-bypass\".PreToolUse[0] | (.matcher | test(\"run_command\")) and (.hooks[0].command | test(\"block-signing-bypass\"))" "$work/$name/home/.gemini/config/hooks.json"'
   check "$name: 共通の自作スキルが.agents/skillsと.claude/skillsに同じ内容で置かれる" '(
     count=0
     while IFS= read -r rel; do
@@ -135,8 +137,14 @@ for name in linux-main windows-main darwin-main; do
   check "$name: usage-capは.claude/skillsにだけ置く" '[ -f "$work/$name/home/.claude/skills/usage-cap/SKILL.md" ] && [ ! -e "$work/$name/home/.agents/skills/usage-cap" ]'
 done
 
-# --- Codex (Windows だけ) ---
-blocked "linux-main: .codex がない" '[ -e "$work/linux-main/home/.codex" ]'
+# --- Codex (config.tomlはWindowsだけ、hooks.jsonはWindowsとLinux) ---
+blocked "linux-main: .codex/config.toml がない" '[ -e "$work/linux-main/home/.codex/config.toml" ]'
+blocked "darwin-main: .codex がない" '[ -e "$work/darwin-main/home/.codex" ]'
+for name in linux-main windows-main; do
+  check "$name: Codexのhooks.jsonに署名回避のフックがある" 'jq -e ".hooks.PreToolUse[0] | .matcher == \"Bash|apply_patch\" and (.hooks[0].command | test(\"block-signing-bypass\"))" "$work/$name/home/.codex/hooks.json"'
+done
+check "windows-main: Codexのhooks.jsonはcmd.exe経由で.exeを呼ぶ" 'jq -e ".hooks.PreToolUse[0].hooks[0].command | startswith(\"cmd.exe /c \\\"\") and endswith(\"\\\\.agents\\\\hooks\\\\block-signing-bypass.exe\\\"\")" "$work/windows-main/home/.codex/hooks.json"'
+check "windows-main: Antigravityのhooks.jsonは.exeを呼ぶ" 'jq -e ".\"block-signing-bypass\".PreToolUse[0].hooks[0].command | startswith(\"\\\"\") and endswith(\"\\\\.agents\\\\hooks\\\\block-signing-bypass.exe\\\"\")" "$work/windows-main/home/.gemini/config/hooks.json"'
 # shellcheck disable=SC2034
 codex_json="$(toml_json windows-main "$work/windows-main/home/.codex/config.toml")"
 check "windows-main: Codex の設定が TOML として読める" '[ -n "$codex_json" ]'
@@ -293,8 +301,8 @@ blocked "DOTFILES_HOST で mac は選べない (mac は OS で決まる)" 'DOTFI
 
 # --- mac ---
 equals "darwin-main: work は false" "$(data_of darwin-main '.work | tojson')" false
-equals "darwin-main: 置かれるファイルは linux-desktop から bash の設定と 1Password のものを除き、zsh と Karabiner-Elements の設定を足したもの" "$(files_of darwin-main)" \
-  "$({ files_of linux-desktop | tr ' ' '\n' | grep -vxE '\.bashrc|\.bash_profile|\.local/bin/op-run|\.claude/rules/secrets\.md'; printf '%s\n' .config/karabiner/karabiner.json .zprofile .zshrc; } | sort | paste -sd ' ' -)"
+equals "darwin-main: 置かれるファイルは linux-desktop から bash の設定と 1Password･Codex のものを除き、zsh と Karabiner-Elements の設定を足したもの" "$(files_of darwin-main)" \
+  "$({ files_of linux-desktop | tr ' ' '\n' | grep -vxE '\.bashrc|\.bash_profile|\.codex/hooks\.json|\.local/bin/op-run|\.claude/rules/secrets\.md'; printf '%s\n' .config/karabiner/karabiner.json .zprofile .zshrc; } | sort | paste -sd ' ' -)"
 blocked "linux-main と windows-main: Karabiner-Elements の設定がない" '[ -e "$work/linux-main/home/.config/karabiner" ] || [ -e "$work/windows-main/home/.config/karabiner" ]'
 check "darwin-main: karabiner.json が JSON として読める" 'jq -e .profiles "$work/darwin-main/home/.config/karabiner/karabiner.json"'
 check "darwin-main: Karabiner-Elements の設定を、Karabiner-Elements が書くのと同じ 700 と 600 で置く" '[ -n "$(find "$work/darwin-main/home/.config/karabiner" -maxdepth 0 -perm 700)" ] && [ -n "$(find "$work/darwin-main/home/.config/karabiner/karabiner.json" -perm 600)" ]'

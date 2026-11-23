@@ -122,7 +122,13 @@ compactが増えると、序盤の細かい指示が要約で落ちやすくな�
 
 ## 署名回避を止めるフック
 
-Bash / Edit / Write の実行前に動き、コミット署名を回避する操作を拒否する。
+Claude Code(`Bash`/`Edit`/`Write`)、Codex(`Bash`/`apply_patch`)、Antigravity(`run_command`とファイル編集ツール)の`PreToolUse`で動き、コミット署名を回避する操作を拒否する。バイナリは共通の`~/.agents/hooks/block-signing-bypass`(Windowsは`.exe`)に置き、入力JSONの形からClaude Code･Codex形式とAntigravity形式を判別する。
+
+| エージェント | 登録ファイル | 対象ツール |
+|---|---|---|
+| Claude Code | `~/.claude/settings.json`(`home/.claude-settings.json`) | `Bash`、`Edit`、`Write` |
+| Codex | `~/.codex/hooks.json`(`home/dot_codex/hooks.json.tmpl`) | `Bash`、`apply_patch` |
+| Antigravity | `~/.gemini/config/hooks.json`(`home/dot_gemini/config/hooks.json.tmpl`) | `run_command`、`edit_file`、`write_file`、`replace_file_content`、`multi_replace_file_content`、`write_to_file` |
 
 | 種類 | 例 |
 |---|---|
@@ -146,8 +152,8 @@ true # hook test: --no-gpg-sign
 - コマンド文字列の照合なので、スクリプトファイルに書いて実行するなどの方法はすり抜ける。
 - 禁止フラグに言及しただけのコマンド (コミットメッセージや `grep`) も拒否される。
 - フックの起動に失敗すると、エラーを報告してコマンドは実行される。
-- Windows ではコマンドの書き方が Git Bash 前提で、PowerShell では動かない。Claude Code は Git Bash があればそれを使う。
-- Claude がフック自体や `settings.json` を書き換えることは止めていない。
+- Claude CodeのWindows環境ではコマンドの書き方がGit Bash前提で、PowerShellでは動かない。Claude CodeはGit Bashがあればそれを使う。CodexとAntigravityの`hooks.json`は、`chezmoi`がOSごとの絶対パスで書き出す。
+- エージェントがフック自体や`settings.json`･`hooks.json`を書き換えることは止めていない。
 
 確実に止めるには、GitHub のブランチ保護で署名を必須にする。
 

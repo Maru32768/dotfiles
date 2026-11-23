@@ -1,0 +1,20 @@
+{{- $bin := joinPath .chezmoi.homeDir ".agents" "hooks" "block-signing-bypass" -}}
+{{- if eq .chezmoi.os "windows" -}}
+{{-   $bin = printf "%s.exe" $bin | replace "/" "\\" -}}
+{{- end -}}
+{
+  "block-signing-bypass": {
+    "PreToolUse": [
+      {
+        "matcher": "run_command|edit_file|write_file|replace_file_content|multi_replace_file_content|write_to_file",
+        "hooks": [
+          {
+            "type": "command",
+            "command": {{ printf "\"%s\"" $bin | toJson }},
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

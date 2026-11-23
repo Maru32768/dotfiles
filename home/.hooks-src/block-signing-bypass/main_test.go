@@ -105,12 +105,9 @@ var allowedFiles = []string{
 	"/home/maru/.gitconfig.bak",
 }
 
-func decide(t *testing.T, toolName, field, value string) bool {
+func decidePayload(t *testing.T, payload any) bool {
 	t.Helper()
-	input, err := json.Marshal(map[string]any{
-		"tool_name":  toolName,
-		"tool_input": map[string]string{field: value},
-	})
+	input, err := json.Marshal(payload)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -139,6 +136,44 @@ func decide(t *testing.T, toolName, field, value string) bool {
 	return true
 }
 
+func decide(t *testing.T, toolName, field, value string) bool {
+	t.Helper()
+	return decidePayload(t, map[string]any{
+		"tool_name":  toolName,
+		"tool_input": map[string]string{field: value},
+	})
+}
+
+func decideAntigravity(t *testing.T, toolName, field, value string) bool {
+	t.Helper()
+	input, err := json.Marshal(map[string]any{
+		"hookEventName": "PreToolUse",
+		"toolCall": map[string]any{
+			"id":   "toolu_01",
+			"name": toolName,
+			"args": map[string]string{field: value},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var stdout bytes.Buffer
+	if err := run(bytes.NewReader(input), &stdout); err != nil {
+		t.Fatal(err)
+	}
+	var output map[string]string
+	if err := json.Unmarshal(stdout.Bytes(), &output); err != nil {
+		t.Fatalf("invalid Antigravity output %q: %v", stdout.String(), err)
+	}
+	if len(output) == 0 {
+		return false
+	}
+	if output["decision"] != "deny" || output["reason"] == "" {
+		t.Fatalf("unexpected Antigravity output %q", stdout.String())
+	}
+	return true
+}
+
 func TestCommands(t *testing.T) {
 	for _, command := range deniedCommands {
 		if !decide(t, "Bash", "command", command) {
@@ -162,6 +197,74 @@ func TestFiles(t *testing.T) {
 		for _, path := range allowedFiles {
 			if decide(t, tool, "file_path", path) {
 				t.Errorf("%s should allow: %s", tool, path)
+			}
+		}
+	}
+}
+
+func TestCodexApplyPatch(t *testing.T) {
+	headers := []string{"Update File", "Add File", "Delete File", "Move to"}
+	for _, header := range headers {
+		for _, path := range deniedFiles {
+			patch := "*** Begin Patch\n*** " + header + ": " + path + "\n*** End Patch\n"
+			if !decidePayload(t, map[string]any{
+				"tool_name":  "apply_patch",
+				"tool_input": map[string]any{"cmd": []string{"apply_patch", patch}},
+			}) {
+				t.Errorf("apply_patch cmd should deny (%s): %s", header, path)
+			}
+			if !decidePayload(t, map[string]any{
+				"tool_name":  "apply_patch",
+				"tool_input": map[string]any{"input": patch},
+			}) {
+				t.Errorf("apply_patch input should deny (%s): %s", header, path)
+			}
+		}
+	}
+	for _, path := range allowedFiles {
+		patch := "*** Begin Patch\n*** Update File: " + path + "\n@@\n-a\n+b\n*** End Patch\n"
+		if decidePayload(t, map[string]any{
+			"tool_name":  "apply_patch",
+			"tool_input": map[string]any{"cmd": []string{"apply_patch", patch}},
+		}) {
+			t.Errorf("apply_patch should allow: %s", path)
+		}
+	}
+}
+
+func TestAntigravityCommands(t *testing.T) {
+	for _, command := range deniedCommands {
+		if !decideAntigravity(t, "run_command", "CommandLine", command) {
+			t.Errorf("Antigravity should deny: %s", command)
+		}
+	}
+	for _, command := range allowedCommands {
+		if decideAntigravity(t, "run_command", "CommandLine", command) {
+			t.Errorf("Antigravity should allow: %s", command)
+		}
+	}
+}
+
+func TestAntigravityFiles(t *testing.T) {
+	cases := []struct {
+		tool  string
+		field string
+	}{
+		{"edit_file", "Path"},
+		{"write_file", "Path"},
+		{"replace_file_content", "TargetFile"},
+		{"multi_replace_file_content", "TargetFile"},
+		{"write_to_file", "TargetFile"},
+	}
+	for _, tc := range cases {
+		for _, path := range deniedFiles {
+			if !decideAntigravity(t, tc.tool, tc.field, path) {
+				t.Errorf("Antigravity %s should deny: %s", tc.tool, path)
+			}
+		}
+		for _, path := range allowedFiles {
+			if decideAntigravity(t, tc.tool, tc.field, path) {
+				t.Errorf("Antigravity %s should allow: %s", tc.tool, path)
 			}
 		}
 	}

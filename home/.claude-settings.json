@@ -69,7 +69,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$HOME/.claude/hooks/block-signing-bypass\"",
+            "command": "\"$HOME/.agents/hooks/block-signing-bypass\"",
             "timeout": 10
           }
         ]

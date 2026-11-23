@@ -10,11 +10,15 @@
 set -euo pipefail
 
 mise="$HOME/.local/bin/mise"
-for hook in block-signing-bypass ja-style; do
+build_hook() {
+  local hook="$1" dst="$2"
   cd {{ joinPath .chezmoi.sourceDir ".hooks-src" | quote }}/"$hook"
-  dst="$HOME/.claude/hooks/$hook"
   "$mise" exec go -- go test ./...
   mkdir -p "$(dirname "$dst")"
   "$mise" exec go -- go build -o "$dst.tmp" .
   mv -f "$dst.tmp" "$dst"
-done
+}
+
+build_hook block-signing-bypass "$HOME/.agents/hooks/block-signing-bypass"
+build_hook ja-style "$HOME/.claude/hooks/ja-style"
+rm -f "$HOME/.claude/hooks/block-signing-bypass"
