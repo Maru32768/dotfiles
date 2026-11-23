@@ -258,9 +258,10 @@ func TestCodexApplyPatchReportsAddedLinesOnly(t *testing.T) {
 	}
 	patch := "*** Begin Patch\n*** Update File: a.md\n@@\n 古い （行）\n+新しい （行）\n ```\n+「コード」\n ```\n*** End Patch\n"
 	stdout, stderr, code := runHookAll(t, map[string]any{
-		"cwd":        dir,
-		"tool_name":  "apply_patch",
-		"tool_input": map[string]any{"input": patch},
+		"cwd":           dir,
+		"tool_name":     "apply_patch",
+		"tool_input":    map[string]any{"command": patch},
+		"tool_response": "Exit code: 0\nSuccess. Updated the following files:\nM a.md",
 	})
 	if code != 0 || stderr != "" {
 		t.Fatalf("code %d, stderr %q", code, stderr)

@@ -119,10 +119,7 @@ type toolCall struct {
 		Patch    string          `json:"patch"`
 		Cmd      json.RawMessage `json:"cmd"`
 	} `json:"tool_input"`
-	ToolResponse struct {
-		Type            string `json:"type"`
-		StructuredPatch []hunk `json:"structuredPatch"`
-	} `json:"tool_response"`
+	ToolResponse json.RawMessage `json:"tool_response"`
 
 	// Antigravity 形式 (camelCase)
 	HookEventName  string `json:"hookEventName"`
@@ -239,8 +236,17 @@ func checkMatchingLines(displayPath, diskPath string, addedTexts []string) []str
 }
 
 func report(call toolCall) ([]string, error) {
-	create := call.ToolResponse.Type == "create"
-	targets := addedLines(call.ToolResponse.StructuredPatch)
+	var response struct {
+		Type            string `json:"type"`
+		StructuredPatch []hunk `json:"structuredPatch"`
+	}
+	if len(call.ToolResponse) > 0 {
+		if err := json.Unmarshal(call.ToolResponse, &response); err != nil {
+			return nil, err
+		}
+	}
+	create := response.Type == "create"
+	targets := addedLines(response.StructuredPatch)
 	if !create && len(targets) == 0 {
 		return nil, nil
 	}
