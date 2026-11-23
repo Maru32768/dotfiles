@@ -9,7 +9,7 @@ Windows と WSL で同じ設定を使うため、共通部分を chezmoi で管�
 | `home/dot_claude/CLAUDE.md` | ユーザー全体の指示。dotfilesで設定を管理していることのほか、日本語の表記、タスクの進め方、コードコメント、コミットとレビューの決まり、技術的な知見の記録を提案する決まりを書く。日本語の表記の一部は、フックが検査してClaudeに報告する(｢日本語の表記を検査するフック｣)。それ以外は指示として読まれるだけで、強制はしない。`agent`には置かない |
 | `home/dot_claude/rules/` | 環境で変わる指示(「環境で変わる指示」)。`agent`には置かない |
 | `home/dot_claude/pstack-models.md` | pstack のロールごとのモデル。`/setup-pstack` が書き、`CLAUDE.md` の `@` 行で読み込む |
-| `home/dot_claude/skills/` | 自分で書いたスキル (`docs/skills.md`) |
+| `home/dot_claude/skills/` | 自作のスキルのClaude Code側。共通のスキルは`home/dot_agents/skills/`から`include`で展開し、Claude Code専用(`usage-cap`)だけここに直接置く(`docs/skills.md`) |
 | `home/.hooks-src/block-signing-bypass/` | 署名の回避を止めるフック (Go) |
 | `home/.hooks-src/ja-style/` | 足した行の日本語の表記を検査するフック(Go) |
 | `home/run_onchange_after_20-build-hooks.*` | フックをテストしてビルドする (`.sh` と `.ps1`) |
@@ -86,7 +86,7 @@ compactが増えると、序盤の細かい指示が要約で落ちやすくな�
 
 ## review-loopの台帳の置き場
 
-`modify_settings.json`が`permissions.additionalDirectories`に`<ホーム>/.local/state/review-loop`を足す。review-loopは台帳をここに置く(`home/dot_claude/skills/review-loop/SKILL.md`の0)。このディレクトリは作業ディレクトリと同じ扱いになり、読むときに確認が出ない。書き込みの確認は今の権限モードに従い、`acceptEdits`では出ない。
+`modify_settings.json`が`permissions.additionalDirectories`に`<ホーム>/.local/state/review-loop`を足す。review-loopは台帳をここに置く(`home/dot_agents/skills/review-loop/SKILL.md`の0)。このディレクトリは作業ディレクトリと同じ扱いになり、読むときに確認が出ない。書き込みの確認は今の権限モードに従い、`acceptEdits`では出ない。
 
 - ほかの置き場は向かない。セッションのscratchpadは、セッションが終わると消えることがあり、別のセッションからは見つからない。リポジトリの`.git`と`.claude`はClaude Codeの保護パスで、書き込みのたびに確認が出る。作業ツリーに置くと、リポジトリごとに無視の規則を足さない限り、台帳が`evidence.sh`の指紋に入る。
 - 足すパスはchezmoiの`.chezmoi.homeDir`から作った絶対パスにする。`~`で書いたパスをClaude Codeが展開するかは、公式の文書に書かれていない。

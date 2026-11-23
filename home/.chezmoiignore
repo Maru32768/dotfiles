@@ -37,9 +37,7 @@ OneDrive/**
 # mac のシェルは zsh
 .bashrc
 .bash_profile
-# mac では Codex と 1Password を使わない
-.agents
-.agents/**
+# mac では 1Password を使わない
 .local/bin/op-run
 .claude/rules/secrets.md
 {{ else }}
@@ -60,6 +58,8 @@ OneDrive/**
 .claude/**
 .agents
 .agents/**
+.gemini
+.gemini/**
 .local/bin/op-run
 .local/bin/split-pdf
 .local/bin/usage-log

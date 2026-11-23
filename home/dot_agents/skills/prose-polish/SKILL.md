@@ -28,7 +28,7 @@ description: 日本語と英語の文書を、意味を保ったまま推敲す�
 - Skill ツールに渡す名前は、使えるスキルの一覧の表記に合わせる（`anthropic-skills:explain-before-shorten`、`pstack:technical-writing` のように接頭辞が付くことがある）。
 - `explain-before-shorten` は日本語向けに書かれている。英語の文には、その手順をそのまま当てはめる。
 - yomiyasu の `--doc-type` は、PR/MR 本文が `pr`、手順書・README が `manual`、設計書・仕様書が `formal`。当てはまらなければ指定しない。読者は `expert`。
-- Vale は、対象のリポジトリに `.vale.ini` があればそれを使う。無ければ `--config ~/.claude/skills/prose-polish/vale.ini` を付け、最初に1回 `vale --config ~/.claude/skills/prose-polish/vale.ini sync` でスタイルを取る。
+- Valeは、対象のリポジトリに`.vale.ini`があればそれを使う。無ければ`--config <このスキルのディレクトリ>/vale.ini`を付け、最初に1回`vale --config <このスキルのディレクトリ>/vale.ini sync`でスタイルを取る。
 
 ## 手順
 
@@ -43,10 +43,10 @@ description: 日本語と英語の文書を、意味を保ったまま推敲す�
      - 日本語: `<work>`で実行し、ファイルは`<work>`からの相対パスで渡す。yomiyasuは、実行したディレクトリの外のファイルと、そこからの道筋に点で始まる部分があるパスを読まずに、終了コード2で止まる。語の一覧は`<work>`から上のgitのリポジトリの`.yomiyasu-words/`しか探さないので、対象のリポジトリの最上位に`.yomiyasu-words/`があれば、`--words <その絶対パス>`を足す。
 
        ```bash
-       cd <work> && python3 ~/.claude/skills/yomiyasu/scripts/yomiyasu_check.py run \
+       cd <work> && python3 <このスキルのディレクトリ>/../yomiyasu/scripts/yomiyasu_check.py run \
          --source <退避した原文> --final <推敲稿> --doc-type <種類> --reader expert \
          --fail-on meaning-risk --fact-gaps --state-dir .yomiyasu
-       cd <work> && python3 ~/.claude/skills/yomiyasu/scripts/yomiyasu_check.py verify \
+       cd <work> && python3 <このスキルのディレクトリ>/../yomiyasu/scripts/yomiyasu_check.py verify \
          --final <推敲稿> --state-dir .yomiyasu
        ```
 

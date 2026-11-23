@@ -4,10 +4,10 @@
 
 # view.shをブラウザで確かめる入力
 
-`home/dot_claude/skills/docs-overview/scripts/view.sh`が作るHTMLの、ブラウザの中の動きは、CIでは確かめられない。インラインのスクリプトか、`marked`と`mermaid`の版を変えたら、このファイルをHTMLに包んでブラウザで開き、下の結果になることを確かめる。そのうえで、`tests/ci/docs-overview-test.sh`が固定しているハッシュを直す。
+`home/dot_agents/skills/docs-overview/scripts/view.sh`が作るHTMLの、ブラウザの中の動きは、CIでは確かめられない。インラインのスクリプトか、`marked`と`mermaid`の版を変えたら、このファイルをHTMLに包んでブラウザで開き、下の結果になることを確かめる。そのうえで、`tests/ci/docs-overview-test.sh`が固定しているハッシュを直す。
 
 ```bash
-bash home/dot_claude/skills/docs-overview/scripts/view.sh tests/ci/docs-overview-browser-check.md > /tmp/docs-overview-check.html
+bash home/dot_agents/skills/docs-overview/scripts/view.sh tests/ci/docs-overview-browser-check.md > /tmp/docs-overview-check.html
 ```
 
 このファイルには、ページを別のサイト(example.org)へ移動させようとする入力と、スクリプトを動かそうとする入力を、わざと入れてある。先頭の3行もその1つ。穴を見つけたら、その入力をここに足す。

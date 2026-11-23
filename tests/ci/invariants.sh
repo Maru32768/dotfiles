@@ -65,9 +65,32 @@ else
   pass "GPG の鍵の指定が揃っている"
 fi
 
-for file in home/.claude-settings.json provision/agent/managed-settings.json provision/research/managed-settings.json packages/winget.json; do
+for file in home/.claude-settings.json home/dot_gemini/config/skills.json provision/agent/managed-settings.json provision/research/managed-settings.json packages/winget.json; do
   if jq empty "$file" 2>/dev/null; then pass "JSON: $file"; else fail "JSON が壊れている: $file"; fi
 done
+
+# 共通の自作スキルはhome/dot_agents/skills/を正本にし、home/dot_claude/skills/からは1行のincludeテンプレートで展開する
+skill_mirror_errors=""
+while IFS= read -r rel; do
+  tmpl="home/dot_claude/skills/${rel}.tmpl"
+  want="$(printf '{{- include "dot_agents/skills/%s" -}}' "$rel")"
+  if [ ! -f "$tmpl" ]; then
+    skill_mirror_errors+=$'\n'"missing: $tmpl"
+  elif [ "$(cat "$tmpl")" != "$want" ]; then
+    skill_mirror_errors+=$'\n'"mismatch: $tmpl"
+  fi
+done < <(cd home/dot_agents/skills && find . -type f | sed 's|^\./||' | sort)
+while IFS= read -r rel; do
+  src="home/dot_agents/skills/${rel%.tmpl}"
+  if [ ! -f "$src" ]; then
+    skill_mirror_errors+=$'\n'"orphan: home/dot_claude/skills/$rel"
+  fi
+done < <(cd home/dot_claude/skills && find . -type f -name '*.tmpl' | sed 's|^\./||' | sort)
+if [ -z "$skill_mirror_errors" ]; then
+  pass "共通の自作スキルがhome/dot_claude/skills/のincludeテンプレートと一致"
+else
+  fail "共通の自作スキルとhome/dot_claude/skills/のincludeテンプレートが食い違っている:$skill_mirror_errors"
+fi
 
 # research の管理設定は agent のものと、Web のツール、Bash の通信先と書き込み先、隠す環境変数だけが違う。
 # agent に足した拒否ルールなどを research に足し忘れないように

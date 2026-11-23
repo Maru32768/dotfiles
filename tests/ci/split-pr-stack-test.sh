@@ -1,12 +1,12 @@
 #!/bin/bash
-# split-pr-stackのスクリプト(home/dot_claude/skills/split-pr-stack/scripts)を、使い捨てのリポジトリで試す。
+# split-pr-stackのスクリプト(home/dot_agents/skills/split-pr-stack/scripts)を、使い捨てのリポジトリで試す。
 # publish.shは、PRを手元のJSONに記録する偽のghで試す。偽のghの--jqには、miseで取得したjqを使う
 # checkに渡す文字列の中で変数を展開するので、SC2016とSC2034を抑える
 # shellcheck disable=SC2016,SC2034
 set -uo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-scripts="$root/home/dot_claude/skills/split-pr-stack/scripts"
+scripts="$root/home/dot_agents/skills/split-pr-stack/scripts"
 work="$(mktemp -d)"
 # 落ちたときは、ログと記録を調べられるよう作業ディレクトリを残す
 trap '[ $? -eq 0 ] && rm -rf "$work" || printf "作業ディレクトリを残した: %s\n" "$work"' EXIT

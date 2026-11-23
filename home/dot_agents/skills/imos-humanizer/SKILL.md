@@ -22,7 +22,7 @@ description: いもすさんの humanizer ルール（https://imoz.jp/humanizer.
 1. **ルールを取る。** 使う言語の分だけ取る。
 
    ```bash
-   bash ~/.claude/skills/imos-humanizer/scripts/fetch-rules.sh <ja|en> <work>/humanizer.<ja|en>.txt
+   bash <このスキルのディレクトリ>/scripts/fetch-rules.sh <ja|en> <work>/humanizer.<ja|en>.txt
    ```
 
    ルールの本文はライセンスが分からないので、dotfiles には sha256 だけを固定している（`rules.sha256`）。上流が更新されて一致しないと、このスクリプトは失敗する。そのときは 2 以降を飛ばし、「humanizer ルールが固定した版と違うので飛ばした。`fetch-rules.sh --check` で差分を見て `rules.sha256` を更新する」と報告する。サブエージェントには URL ではなく取得したパスを渡し、Read で読ませる。WebFetch は長いページを要約して返すので、ルールの後半が落ちる。
@@ -40,10 +40,10 @@ description: いもすさんの humanizer ルール（https://imoz.jp/humanizer.
    - 変更があれば `<path>.h<N>`（PR/MR 本文は `pr-body.h<N>.md`）に書き、検査を通せ。`--source` は前のパスの出力ではなく**推敲前の退避**を渡す。パスごとの小さなずれの積み重ねを、原文との比較で捕まえるため。このパスで変えていない行の指摘は前の段で扱い済みなので無視してよい。日本語の検査は、`<work>`で実行し、ファイルは`<work>`からの相対パスで渡す。yomiyasuは、実行したディレクトリの外のファイルと、そこからの道筋に点で始まる部分があるパスを読まずに、終了コード2で止まる。語の一覧は`<work>`から上のgitのリポジトリの`.yomiyasu-words/`しか探さないので、対象のリポジトリの最上位に`.yomiyasu-words/`があれば、`--words <その絶対パス>`を足す。
 
      ```bash
-     cd <work> && python3 ~/.claude/skills/yomiyasu/scripts/yomiyasu_check.py run \
+     cd <work> && python3 <このスキルのディレクトリ>/../yomiyasu/scripts/yomiyasu_check.py run \
        --source <退避した原文> --final <推敲稿> --doc-type <種類> --reader expert \
        --fail-on meaning-risk --fact-gaps --state-dir .yomiyasu
-     cd <work> && python3 ~/.claude/skills/yomiyasu/scripts/yomiyasu_check.py verify \
+     cd <work> && python3 <このスキルのディレクトリ>/../yomiyasu/scripts/yomiyasu_check.py verify \
        --final <推敲稿> --state-dir .yomiyasu
      ```
 
@@ -78,10 +78,10 @@ description: いもすさんの humanizer ルール（https://imoz.jp/humanizer.
 
 ## ルールの更新
 
-上流が更新されると 1 で止まる。差分を読んでから、dotfiles の `home/dot_claude/skills/imos-humanizer/rules.sha256` を書き換える。
+上流が更新されると1で止まる。差分を読んでから、dotfilesの`home/dot_agents/skills/imos-humanizer/rules.sha256`を書き換える。
 
 ```bash
-bash ~/.claude/skills/imos-humanizer/scripts/fetch-rules.sh --check
+bash ~/.agents/skills/imos-humanizer/scripts/fetch-rules.sh --check
 ```
 
 差分は、前に照合した版の控え（`~/.cache/imos-humanizer/`）と比べる。控えが無い端末では差分を出せないので、控えのある端末で確かめる。

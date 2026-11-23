@@ -44,7 +44,7 @@ targets = ["claude"]
 repo = "o/stale"
 path = "skills/stale"
 commit = "$old"
-targets = ["claude", "codex"]
+targets = ["claude", "agents"]
 EOF
 # sameはmarketと同じ古いコミットに固定した、最新のマーケットプレイス。giturlの1行の書き方はjqで書き直すと崩れる
 cat >"$settings.orig" <<EOF

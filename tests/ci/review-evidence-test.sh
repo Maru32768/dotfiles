@@ -1,11 +1,11 @@
 #!/bin/bash
-# review-loopのevidence.sh(home/dot_claude/skills/review-loop/scripts)を、使い捨てのリポジトリで試す
+# review-loopのevidence.sh(home/dot_agents/skills/review-loop/scripts)を、使い捨てのリポジトリで試す
 # checkに渡す文字列の中で変数を展開するので、SC2016とSC2034を抑える
 # shellcheck disable=SC2016,SC2034
 set -uo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-ev="$root/home/dot_claude/skills/review-loop/scripts/evidence.sh"
+ev="$root/home/dot_agents/skills/review-loop/scripts/evidence.sh"
 work="$(mktemp -d)"
 # 落ちたときは、記録を調べられるよう作業ディレクトリを残す
 trap '[ $? -eq 0 ] && rm -rf "$work" || printf "作業ディレクトリを残した: %s\n" "$work"' EXIT

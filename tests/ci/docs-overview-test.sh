@@ -1,10 +1,10 @@
 #!/bin/bash
-# docs-overviewのview.sh(home/dot_claude/skills/docs-overview/scripts)を、使い捨ての概観で試す。ブラウザでの
+# docs-overviewのview.sh(home/dot_agents/skills/docs-overview/scripts)を、使い捨ての概観で試す。ブラウザでの
 # 動き(図の描画、CSPでスクリプトが止まるか)は確かめない
 set -uo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-view="$root/home/dot_claude/skills/docs-overview/scripts/view.sh"
+view="$root/home/dot_agents/skills/docs-overview/scripts/view.sh"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 

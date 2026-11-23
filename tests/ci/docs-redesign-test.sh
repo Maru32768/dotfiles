@@ -1,12 +1,12 @@
 #!/bin/bash
-# docs-redesignのlost.shとoutline.sh(home/dot_claude/skills/docs-redesign/scripts)を、使い捨ての文書で試す
+# docs-redesignのlost.shとoutline.sh(home/dot_agents/skills/docs-redesign/scripts)を、使い捨ての文書で試す
 # テストの入力にMarkdownのバッククォートを書く
 # shellcheck disable=SC2016
 set -uo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-lost="$root/home/dot_claude/skills/docs-redesign/scripts/lost.sh"
-outline="$root/home/dot_claude/skills/docs-redesign/scripts/outline.sh"
+lost="$root/home/dot_agents/skills/docs-redesign/scripts/lost.sh"
+outline="$root/home/dot_agents/skills/docs-redesign/scripts/outline.sh"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 

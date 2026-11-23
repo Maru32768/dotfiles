@@ -1,14 +1,19 @@
-{{- /* スキルを .chezmoidata/skills.toml の一覧から置く。exact なので、上流で消えたファイルは手元からも消える */ -}}
-{{- $dirs := dict "claude" ".claude/skills" "codex" ".agents/skills" -}}
+{{- /* スキルを.chezmoidata/skills.tomlの一覧から置く。exactなので、上流で消えたファイルは手元からも消える */ -}}
+{{- $dirs := dict "claude" ".claude/skills" "agents" ".agents/skills" -}}
+{{- $defaultTargets := list "claude" "agents" -}}
 {{- range $name, $s := .skills }}
 {{-   $strip := 1 }}
 {{-   if $s.path }}
 {{-     $strip = add 1 (len (splitList "/" $s.path)) }}
 {{-   end }}
-{{-   range $s.targets }}
+{{-   $targets := $defaultTargets }}
+{{-   if hasKey $s "targets" }}
+{{-     $targets = $s.targets }}
+{{-   end }}
+{{-   range $targets }}
 {{-     $dir := get $dirs . }}
 {{-     if not $dir }}
-{{-       fail (printf "skills.%s: 置く先 %q は claude か codex にする" $name .) }}
+{{-       fail (printf "skills.%s: 置く先%qはclaudeかagentsにする" $name .) }}
 {{-     end }}
 
 [{{ printf "%s/%s" $dir $name | quote }}]

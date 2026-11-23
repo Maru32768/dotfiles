@@ -99,7 +99,7 @@ toml_json() { cm "$1" execute-template --with-stdin '{{ .chezmoi.stdin | fromTom
 # external はアーカイブを取ってきて中身まで並べるので、ここだけネットワークを使う
 externals_of() { cm "$1" managed --include externals; }
 expected_skills() {
-  cm "$1" execute-template '{{ $d := dict "claude" ".claude/skills" "codex" ".agents/skills" }}{{ range $n, $s := .skills }}{{ range $s.targets }}{{ printf "%s/%s/SKILL.md\n" (get $d .) $n }}{{ end }}{{ end }}' | sort | paste -sd ' ' -
+  cm "$1" execute-template '{{ $d := dict "claude" ".claude/skills" "agents" ".agents/skills" }}{{ $def := list "claude" "agents" }}{{ range $n, $s := .skills }}{{ $t := $def }}{{ if hasKey $s "targets" }}{{ $t = $s.targets }}{{ end }}{{ range $t }}{{ printf "%s/%s/SKILL.md\n" (get $d .) $n }}{{ end }}{{ end }}' | sort | paste -sd ' ' -
 }
 actual_skills() { externals_of "$1" | grep -E '^\.(claude|agents)/skills/[^/]+/SKILL\.md$' | sort | paste -sd ' ' -; }
 
@@ -109,6 +109,7 @@ equals "linux-agent: 置かれるファイルが許可した一覧と一致" "$(
 blocked "linux-agent: 署名の設定がない" 'grep -qE "signingkey|gpgsign" "$work/linux-agent/home/.gitconfig"'
 equals "linux-agent: 実行するスクリプト" "$(scripts_of linux-agent)" "10-mise-install.sh 40-claude-code.sh"
 blocked "linux-agent: review-loop の台帳の置き場を作らない" '[ -e "$work/linux-agent/home/.local/state" ]'
+blocked "linux-agent: .gemini がない" '[ -e "$work/linux-agent/home/.gemini" ]'
 equals "linux-agent: external がない (スキルを置かない)" "$(externals_of linux-agent | paste -sd ' ' -)" ""
 
 # --- スキル (home/.chezmoidata/skills.toml) ---
@@ -118,10 +119,20 @@ skills_json="$(cm linux-main execute-template '{{ .skills | toJson }}')"
 check "スキル: commit が 40 桁のハッシュ" 'jq -e "all(.[]; .commit | test(\"^[0-9a-f]{40}$\"))" <<<"$skills_json"'
 check "スキル: repo が owner/name" 'jq -e "all(.[]; .repo | test(\"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$\"))" <<<"$skills_json"'
 check "スキル: path の前後に / がない" 'jq -e "all(.[]; .path | test(\"^/|/$\") | not)" <<<"$skills_json"'
-for name in linux-main windows-main; do
+for name in linux-main windows-main darwin-main; do
   expected="$(expected_skills "$name")"
   check "$name: 置くスキルがある" '[ -n "$expected" ]'
   equals "$name: どのスキルにも SKILL.md が取れる" "$(actual_skills "$name")" "$expected"
+  check "$name: Antigravityのskills.jsonが~/.agents/skillsを参照する" 'jq -e ".entries == [{\"path\": \"~/.agents/skills\"}]" "$work/$name/home/.gemini/config/skills.json"'
+  check "$name: 共通の自作スキルが.agents/skillsと.claude/skillsに同じ内容で置かれる" '(
+    count=0
+    while IFS= read -r rel; do
+      count=$((count + 1))
+      cmp -s "$work/$name/home/.agents/skills/$rel" "$work/$name/home/.claude/skills/$rel" || exit 1
+    done < <(cd "$root/home/dot_agents/skills" && find . -type f | sed "s|^\./||")
+    [ "$count" -gt 0 ]
+  )'
+  check "$name: usage-capは.claude/skillsにだけ置く" '[ -f "$work/$name/home/.claude/skills/usage-cap/SKILL.md" ] && [ ! -e "$work/$name/home/.agents/skills/usage-cap" ]'
 done
 
 # --- Codex (Windows だけ) ---
@@ -288,9 +299,6 @@ blocked "linux-main と windows-main: Karabiner-Elements の設定がない" '[ 
 check "darwin-main: karabiner.json が JSON として読める" 'jq -e .profiles "$work/darwin-main/home/.config/karabiner/karabiner.json"'
 check "darwin-main: Karabiner-Elements の設定を、Karabiner-Elements が書くのと同じ 700 と 600 で置く" '[ -n "$(find "$work/darwin-main/home/.config/karabiner" -maxdepth 0 -perm 700)" ] && [ -n "$(find "$work/darwin-main/home/.config/karabiner/karabiner.json" -perm 600)" ]'
 equals "darwin-main: 実行するスクリプトは linux-desktop と同じ" "$(scripts_of darwin-main)" "$(scripts_of linux-desktop)"
-# files_of は external を含まないので、Codex のスキルを置かないことはここで確かめる
-equals "darwin-main: スキルは Claude のものだけ置く" "$(actual_skills darwin-main)" \
-  "$(expected_skills darwin-main | tr ' ' '\n' | grep -v '^\.agents/' | paste -sd ' ' -)"
 equals "darwin-main: 鍵を渡す前の signingKey は空" "$(data_of darwin-main .signingKey)" ""
 equals "darwin-main: gpg-agent.conf に pinentry-mac を足し、SSH の設定はしない" "$(cat "$work/darwin-main/home/.gnupg/gpg-agent.conf")" 'pinentry-program /opt/homebrew/bin/pinentry-mac
 default-cache-ttl 86400

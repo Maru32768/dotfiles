@@ -1,6 +1,6 @@
 # エージェントの開発の流れ
 
-`home/dot_claude/skills/`の`ship-task`、`review-loop`、`split-pr-stack`が作る開発の流れと、2026-11の見直しで何を測り、何を決めたかを書く。モデル、Claude Code、GitHubは変わり続けるので、「測り直す」に書いた条件が起きたら、同じ手順で測り直す。
+`home/dot_agents/skills/`の`ship-task`、`review-loop`、`split-pr-stack`が作る開発の流れと、2026-11の見直しで何を測り、何を決めたかを書く。モデル、Claude Code、GitHubは変わり続けるので、「測り直す」に書いた条件が起きたら、同じ手順で測り直す。
 
 ## 今の形
 

@@ -48,7 +48,7 @@ if [ ! -f "$cache/$name" ] || [ "$(sha "$cache/$name")" != "$want" ]; then
   curl -fsSL "https://imoz.jp/$name" -o "$tmp"
   if [ "$(sha "$tmp")" != "$want" ]; then
     rm -f "$tmp"
-    echo "$name が固定した版 ($want) と違う。fetch-rules.sh --check で差分を見て、dotfiles の home/dot_claude/skills/imos-humanizer/rules.sha256 を更新する" >&2
+    echo "$name が固定した版 ($want) と違う。fetch-rules.sh --check で差分を見て、dotfiles の home/dot_agents/skills/imos-humanizer/rules.sha256 を更新する" >&2
     exit 1
   fi
   mv "$tmp" "$cache/$name"

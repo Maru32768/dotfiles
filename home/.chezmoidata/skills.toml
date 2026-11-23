@@ -1,54 +1,49 @@
-# エージェントのスキルの出どころ。中身はリポジトリに入れず、chezmoi が固定したコミットの
-# アーカイブから取り出す (home/.chezmoiexternals/skills.toml.tmpl)。更新は provision/update-skills.sh。
+# エージェントのスキルの出どころ。中身はリポジトリに入れず、chezmoiが固定したコミットの
+# アーカイブから取り出す(home/.chezmoiexternals/skills.toml.tmpl)。更新はprovision/update-skills.sh。
 #
-#   repo     GitHub の owner/name
-#   path     スキルのディレクトリ。リポジトリの直下なら ""
-#   commit   固定するコミット (40 桁)
-#   targets  置く先。claude は ~/.claude/skills、codex は ~/.agents/skills
-#   exclude  取り出さないファイル (スキルのディレクトリからの相対パス、省略可)。
-#            シンボリックリンクは、開発者モードでない Windows では作れないので外す
+#   repo     GitHubのowner/name
+#   path     スキルのディレクトリ。リポジトリの直下なら""
+#   commit   固定するコミット(40桁)
+#   targets  置く先(省略可)。既定は["claude", "agents"]。
+#            claudeは~/.claude/skills(Claude Code)、
+#            agentsは~/.agents/skills(Codex、Antigravityは~/.gemini/config/skills.jsonで読む)
+#   exclude  取り出さないファイル(スキルのディレクトリからの相対パス、省略可)。
+#            シンボリックリンクは、開発者モードでないWindowsでは作れないので外す
 
 [skills.agentic-browser-testing]
 repo = "petrkindlmann/qa-skills"
 path = "skills/agentic-browser-testing"
 commit = "5087a3461d49da76b1e794d9b0bfbd23f38dc75b"
-targets = ["claude", "codex"]
 
 [skills.clarity]
 repo = "addyosmani/clarity"
 path = ""
 commit = "e27ceeff60368cf6966b4ea00a5b9b36418ee9a0"
-targets = ["claude", "codex"]
 
 [skills.deploy-to-vercel]
 repo = "vercel-labs/agent-skills"
 path = "skills/deploy-to-vercel"
 commit = "5a37a6329fbad3666c3207392a6a7c0110e92efb"
-targets = ["claude", "codex"]
 
 [skills.exploratory-testing]
 repo = "petrkindlmann/qa-skills"
 path = "skills/exploratory-testing"
 commit = "5087a3461d49da76b1e794d9b0bfbd23f38dc75b"
-targets = ["claude", "codex"]
 
 [skills.find-skills]
 repo = "vercel-labs/skills"
 path = "skills/find-skills"
 commit = "57217cf86ba38148a57af9e90d14a4c049558330"
-targets = ["claude"]
 
 [skills.gh-stack]
 repo = "github/gh-stack"
 path = "skills/gh-stack"
 commit = "80b6d6e910cc1b7eaa26b961d7721ade21084fed"
-targets = ["claude", "codex"]
 
 [skills.rust-skills]
 repo = "leonardomso/rust-skills"
 path = ""
 commit = "fd2a861ab0406a4ac536a55274d14ea6fd1ca9c9"
-targets = ["claude", "codex"]
 # どちらも SKILL.md へのシンボリックリンク
 exclude = ["AGENTS.md", "CLAUDE.md"]
 
@@ -56,58 +51,48 @@ exclude = ["AGENTS.md", "CLAUDE.md"]
 repo = "deusyu/translate-book"
 path = ""
 commit = "1c531b49c688a7e8e601b176ce489790bcd10284"
-targets = ["claude"]
 
 [skills.vercel-cli-with-tokens]
 repo = "vercel-labs/agent-skills"
 path = "skills/vercel-cli-with-tokens"
 commit = "5a37a6329fbad3666c3207392a6a7c0110e92efb"
-targets = ["claude", "codex"]
 
 [skills.vercel-composition-patterns]
 repo = "vercel-labs/agent-skills"
 path = "skills/composition-patterns"
 commit = "5a37a6329fbad3666c3207392a6a7c0110e92efb"
-targets = ["claude", "codex"]
 
 [skills.vercel-optimize]
 repo = "vercel-labs/agent-skills"
 path = "skills/vercel-optimize"
 commit = "5a37a6329fbad3666c3207392a6a7c0110e92efb"
-targets = ["claude", "codex"]
 
 [skills.vercel-react-best-practices]
 repo = "vercel-labs/agent-skills"
 path = "skills/react-best-practices"
 commit = "5a37a6329fbad3666c3207392a6a7c0110e92efb"
-targets = ["claude", "codex"]
 
 [skills.vercel-react-native-skills]
 repo = "vercel-labs/agent-skills"
 path = "skills/react-native-skills"
 commit = "5a37a6329fbad3666c3207392a6a7c0110e92efb"
-targets = ["claude", "codex"]
 
 [skills.vercel-react-view-transitions]
 repo = "vercel-labs/agent-skills"
 path = "skills/react-view-transitions"
 commit = "5a37a6329fbad3666c3207392a6a7c0110e92efb"
-targets = ["claude", "codex"]
 
 [skills.web-design-guidelines]
 repo = "vercel-labs/agent-skills"
 path = "skills/web-design-guidelines"
 commit = "5a37a6329fbad3666c3207392a6a7c0110e92efb"
-targets = ["claude", "codex"]
 
 [skills.writing-guidelines]
 repo = "vercel-labs/agent-skills"
 path = "skills/writing-guidelines"
 commit = "5a37a6329fbad3666c3207392a6a7c0110e92efb"
-targets = ["claude", "codex"]
 
 [skills.yomiyasu]
 repo = "nanaism/yomiyasu"
 path = "skills/yomiyasu"
 commit = "c49d5f1bee91258e33e1febc3569c6c87be7669e"
-targets = ["claude", "codex"]
