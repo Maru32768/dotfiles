@@ -184,7 +184,7 @@ cd home/.hooks-src/block-signing-bypass && go test ./...
 
 ## 日本語の表記を検査するフック
 
-`home/.hooks-src/ja-style/`は、Claude Code(`Edit`/`Write`の`PostToolUse`)、Codex(`apply_patch`の`PostToolUse`)、Antigravity(ファイル編集ツールの`PostToolUse`と次の`PreInvocation`)で動くフック。バイナリは共通の`~/.agents/hooks/ja-style`(Windowsは`.exe`)に置く。足した行のうち日本語を含む行を、`home/.agent-instructions.md`の｢日本語の表記｣の規則で検査し、違反の`ファイル:行`と直し方をエージェントに返す(Claude Codeはstderr+exit 2、Codexは`additionalContext`、Antigravityは一時ファイル経由で次の`PreInvocation`の`systemMessage`)。
+`home/.hooks-src/ja-style/`は、Claude Code(`Edit`/`Write`の`PostToolUse`)、Codex(`apply_patch`の`PostToolUse`)、Antigravity(ファイル編集ツールの`PostToolUse`と次の`PreInvocation`)で動くフック。バイナリは共通の`~/.agents/hooks/ja-style`(Windowsは`.exe`)に置く。足した行のうち日本語を含む行を、`home/.agent-instructions.md`の｢日本語の表記｣の規則で検査し、違反の`ファイル:行`と直し方をエージェントに返す(Claude Codeはstderr+exit 2、Codexは`additionalContext`、Antigravityは一時ファイル経由で次の`PreInvocation`の`systemMessage`)。CodexとAntigravityでは、編集した行を1つに特定できないとき、候補の行に共通する違反を行番号なしで返す。
 
 | 検査すること | 例 |
 |---|---|

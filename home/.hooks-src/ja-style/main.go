@@ -216,6 +216,28 @@ func checkLines(path string, lines []string, targets []int) []string {
 	return reports
 }
 
+func checkAmbiguousLines(path string, lines []string, inFence []bool, candidates, added []int, text []string) []string {
+	var reports []string
+	for _, offset := range added {
+		fragment := text[offset]
+		problems := lineProblems(fragment)
+		for _, start := range candidates {
+			if inFence[start+offset+1] {
+				problems = nil
+				break
+			}
+			actualProblems := lineProblems(lines[start+offset])
+			problems = slices.DeleteFunc(problems, func(problem string) bool {
+				return !slices.Contains(actualProblems, problem)
+			})
+		}
+		if len(problems) > 0 {
+			reports = append(reports, formatReportLine(path, 0, fragment, problems))
+		}
+	}
+	return reports
+}
+
 func textLines(text string) []string {
 	if text == "" {
 		return nil
@@ -404,15 +426,7 @@ func reportCodexPatch(call toolCall) []string {
 						if fences == nil {
 							fences = fenceMask(path, lines)
 						}
-						for _, offset := range chunk.added {
-							if slices.ContainsFunc(starts, func(candidate int) bool { return fences[candidate+offset+1] }) {
-								continue
-							}
-							line := chunk.lines[offset]
-							if problems := lineProblems(line); len(problems) > 0 {
-								reports = append(reports, formatReportLine(path, 0, line, problems))
-							}
-						}
+						reports = append(reports, checkAmbiguousLines(path, lines, fences, starts, chunk.added, chunk.lines)...)
 						first = start + len(chunk.lines)
 						continue
 					}
@@ -520,6 +534,8 @@ func reportAntigravityPostTool(call toolCall) []string {
 	}
 	sort.SliceStable(chunks, func(i, j int) bool { return chunks[i].StartLine < chunks[j].StartLine })
 	var targets []int
+	var reports []string
+	var fences []bool
 	shift := 0
 	for _, chunk := range chunks {
 		before := textLines(chunk.TargetContent)
@@ -537,19 +553,28 @@ func reportAntigravityPostTool(call toolCall) []string {
 			rangeGrowth = delta
 		}
 		starts := replacementStarts(lines, after, first, last, rangeGrowth)
-		if len(starts) > 1 && !args.AllowMultiple {
+		if args.AllowMultiple {
+			shift += max(1, len(starts)) * delta
+		} else {
+			shift += delta
+		}
+		starts = slices.Compact(starts)
+		offsets := addedOffsets(before, after)
+		if len(starts) > 1 {
+			if fences == nil {
+				fences = fenceMask(path, lines)
+			}
+			reports = append(reports, checkAmbiguousLines(path, lines, fences, starts, offsets, after)...)
 			continue
 		}
-		offsets := addedOffsets(before, after)
 		for _, start := range starts {
 			for _, offset := range offsets {
 				targets = append(targets, start+offset+1)
 			}
 		}
-		shift += max(1, len(starts)) * delta
 	}
 	slices.Sort(targets)
-	return checkLines(path, lines, slices.Compact(targets))
+	return append(reports, checkLines(path, lines, slices.Compact(targets))...)
 }
 
 func replacementStarts(lines, replacement []string, first, last, rangeGrowth int) []int {

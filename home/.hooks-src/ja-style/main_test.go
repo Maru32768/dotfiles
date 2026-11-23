@@ -371,7 +371,7 @@ func TestAntigravityReplacementChecksOnlyChangedLinesInRange(t *testing.T) {
 	}
 }
 
-func TestAntigravityReportsInlineAndMultipleGrowingReplacements(t *testing.T) {
+func TestAntigravityDoesNotGuessLineNumbersForRepeatedReplacement(t *testing.T) {
 	dir := t.TempDir()
 	originalQueue := agyQueueDir
 	agyQueueDir = dir
@@ -391,8 +391,61 @@ func TestAntigravityReportsInlineAndMultipleGrowingReplacements(t *testing.T) {
 		t.Fatalf("PostToolUse: code %d, stderr %q", code, stderr)
 	}
 	got, _, code := runHookAll(t, map[string]any{"conversationId": "conv-multiple", "invocationNum": 1})
-	if code != 0 || !strings.Contains(got, "a.md:1:") || !strings.Contains(got, "a.md:4:") {
+	if code != 0 || !strings.Contains(got, "a.md: ") ||
+		strings.Contains(got, "a.md:1:") || strings.Contains(got, "a.md:4:") {
 		t.Fatalf("PreInvocation: code %d, output %s", code, got)
+	}
+}
+
+func TestAntigravityInlineReplacementWithTwoMatchesOnOneLine(t *testing.T) {
+	path := write(t, "a.md", "「表示」と「表示」\n")
+	dir := t.TempDir()
+	originalQueue := agyQueueDir
+	agyQueueDir = dir
+	t.Cleanup(func() { agyQueueDir = originalQueue })
+	_, stderr, code := runHookAll(t, map[string]any{
+		"conversationId": "conv-inline",
+		"toolCall": map[string]any{
+			"name": "replace_file_content",
+			"args": map[string]any{
+				"TargetFile": path, "StartLine": 1, "EndLine": 1,
+				"TargetContent": "TODO", "ReplacementContent": "「表示」",
+			},
+		},
+	})
+	if code != 0 || stderr != "" {
+		t.Fatalf("PostToolUse: code %d, stderr %q", code, stderr)
+	}
+	got, _, code := runHookAll(t, map[string]any{"conversationId": "conv-inline", "invocationNum": 1})
+	if code != 0 || strings.Count(got, "a.md:1:") != 1 {
+		t.Fatalf("PreInvocation: code %d, output %s", code, got)
+	}
+}
+
+func TestAntigravityLaterChunkUsesShiftFromAmbiguousReplacement(t *testing.T) {
+	path := write(t, "a.md", "「表示」\n追記\n境目\n「表示」\n追記\n変更した （行）\n")
+	input, err := json.Marshal(map[string]any{
+		"toolCall": map[string]any{
+			"name": "multi_replace_file_content",
+			"args": map[string]any{
+				"TargetFile": path,
+				"ReplacementChunks": []map[string]any{
+					{"StartLine": 1, "EndLine": 4, "TargetContent": "TODO", "ReplacementContent": "「表示」\n追記"},
+					{"StartLine": 5, "EndLine": 5, "TargetContent": "前の行", "ReplacementContent": "変更した （行）"},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var call toolCall
+	if err := json.Unmarshal(input, &call); err != nil {
+		t.Fatal(err)
+	}
+	got := strings.Join(reportAntigravityPostTool(call), "\n")
+	if !strings.Contains(got, "a.md:6:") || strings.Contains(got, "a.md:1:") || strings.Contains(got, "a.md:4:") {
+		t.Fatalf("reports: %s", got)
 	}
 }
 
