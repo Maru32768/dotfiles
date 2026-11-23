@@ -247,6 +247,36 @@ func matchingStarts(lines, text []string, first, last int) []int {
 	return starts
 }
 
+func codexContextEqual(actual, expected string) bool {
+	return strings.TrimSpace(actual) == strings.TrimSpace(expected)
+}
+
+func matchingPatchStart(lines, wanted []string, added []int, first int) int {
+	if exact := matchingStarts(lines, wanted, first, len(lines)); len(exact) == 1 {
+		return exact[0]
+	} else if len(exact) > 1 {
+		return -1
+	}
+	start := -1
+	for i := first; i+len(wanted) <= len(lines); i++ {
+		matches := true
+		for j, line := range wanted {
+			actual := lines[i+j]
+			if line != actual && (slices.Contains(added, j) || !codexContextEqual(actual, line)) {
+				matches = false
+				break
+			}
+		}
+		if matches {
+			if start >= 0 {
+				return -1
+			}
+			start = i
+		}
+	}
+	return start
+}
+
 func report(call toolCall) ([]string, error) {
 	var response struct {
 		Type            string `json:"type"`
@@ -335,6 +365,11 @@ func reportCodexPatch(call toolCall) []string {
 				if chunk.anchor != "" {
 					anchor := slices.Index(lines[first:], chunk.anchor)
 					if anchor < 0 {
+						anchor = slices.IndexFunc(lines[first:], func(line string) bool {
+							return codexContextEqual(line, chunk.anchor)
+						})
+					}
+					if anchor < 0 {
 						break
 					}
 					first += anchor + 1
@@ -346,18 +381,25 @@ func reportCodexPatch(call toolCall) []string {
 				case chunk.oldLines == 0:
 					start = appendAt
 					appendAt += len(chunk.lines)
-				case chunk.atEnd && len(chunk.lines) <= len(lines) && slices.Equal(lines[len(lines)-len(chunk.lines):], chunk.lines):
-					start = len(lines) - len(chunk.lines)
 				default:
-					starts := matchingStarts(lines, chunk.lines, first, len(lines))
-					if len(starts) != 1 {
+					searchFrom := first
+					if chunk.atEnd && len(chunk.lines) <= len(lines)-first {
+						searchFrom = len(lines) - len(chunk.lines)
+					}
+					start = matchingPatchStart(lines, chunk.lines, chunk.added, searchFrom)
+					if start < 0 && searchFrom != first {
+						start = matchingPatchStart(lines, chunk.lines, chunk.added, first)
+					}
+					if start < 0 {
 						// 同じ文脈が複数あると、編集後のファイルから置換位置を確定できない。
 						continue
 					}
-					start = starts[0]
 				}
 				end := start + len(chunk.lines)
-				if start < first || end > len(lines) || !slices.Equal(lines[start:end], chunk.lines) {
+				if start < first || end > len(lines) {
+					continue
+				}
+				if (create || chunk.oldLines == 0) && !slices.Equal(lines[start:end], chunk.lines) {
 					continue
 				}
 				for _, offset := range chunk.added {
