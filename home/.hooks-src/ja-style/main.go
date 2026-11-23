@@ -234,30 +234,12 @@ func editedFileLines(cwd, path string) []string {
 	return textLines(string(data))
 }
 
-func matchingStarts(lines, text []string, first, last int) []int {
-	if len(text) == 0 {
-		return nil
-	}
-	var starts []int
-	for i := first; i+len(text) <= min(last, len(lines)); i++ {
-		if slices.Equal(lines[i:i+len(text)], text) {
-			starts = append(starts, i)
-		}
-	}
-	return starts
-}
-
 func codexContextEqual(actual, expected string) bool {
 	return strings.TrimSpace(actual) == strings.TrimSpace(expected)
 }
 
-func matchingPatchStart(lines, wanted []string, added []int, first int) int {
-	if exact := matchingStarts(lines, wanted, first, len(lines)); len(exact) == 1 {
-		return exact[0]
-	} else if len(exact) > 1 {
-		return -1
-	}
-	start := -1
+func matchingPatchStarts(lines, wanted []string, added []int, first int) []int {
+	var starts []int
 	for i := first; i+len(wanted) <= len(lines); i++ {
 		matches := true
 		for j, line := range wanted {
@@ -268,13 +250,10 @@ func matchingPatchStart(lines, wanted []string, added []int, first int) int {
 			}
 		}
 		if matches {
-			if start >= 0 {
-				return -1
-			}
-			start = i
+			starts = append(starts, i)
 		}
 	}
-	return start
+	return starts
 }
 
 func report(call toolCall) ([]string, error) {
@@ -349,6 +328,7 @@ func reportCodexPatch(call toolCall) []string {
 		flush := func() {
 			lines := editedFileLines(call.Cwd, path)
 			var targets []int
+			var fences []bool
 			first := 0
 			appendAt := len(lines)
 			if !create {
@@ -386,12 +366,28 @@ func reportCodexPatch(call toolCall) []string {
 					if chunk.atEnd && len(chunk.lines) <= len(lines)-first {
 						searchFrom = len(lines) - len(chunk.lines)
 					}
-					start = matchingPatchStart(lines, chunk.lines, chunk.added, searchFrom)
-					if start < 0 && searchFrom != first {
-						start = matchingPatchStart(lines, chunk.lines, chunk.added, first)
+					starts := matchingPatchStarts(lines, chunk.lines, chunk.added, searchFrom)
+					if len(starts) == 0 && searchFrom != first {
+						starts = matchingPatchStarts(lines, chunk.lines, chunk.added, first)
 					}
-					if start < 0 {
-						// 同じ文脈が複数あると、編集後のファイルから置換位置を確定できない。
+					if len(starts) == 0 {
+						continue
+					}
+					start = starts[0]
+					if len(starts) > 1 {
+						if fences == nil {
+							fences = fenceMask(path, lines)
+						}
+						for _, offset := range chunk.added {
+							if slices.ContainsFunc(starts, func(candidate int) bool { return fences[candidate+offset+1] }) {
+								continue
+							}
+							line := chunk.lines[offset]
+							if problems := lineProblems(line); len(problems) > 0 {
+								reports = append(reports, formatReportLine(path, 0, line, problems))
+							}
+						}
+						first = start + len(chunk.lines)
 						continue
 					}
 				}

@@ -431,3 +431,16 @@ func TestCodexPatchAcceptsWhitespaceEquivalentContext(t *testing.T) {
 		t.Fatalf("PostToolUse: code %d, output %s, stderr %q", code, got, stderr)
 	}
 }
+
+func TestCodexPatchWithIndistinguishableLinesOmitsLineNumber(t *testing.T) {
+	path := write(t, "a.md", "新しい （行）\n\n新しい （行）\n")
+	patch := "*** Begin Patch\n*** Update File: a.md\n@@\n-前の行\n+新しい （行）\n*** End Patch\n"
+	got, stderr, code := runHookAll(t, map[string]any{
+		"cwd": filepath.Dir(path), "tool_name": "apply_patch", "tool_input": map[string]any{"command": patch},
+		"tool_response": "Exit code: 0\nSuccess. Updated the following files:\nM a.md",
+	})
+	if code != 0 || stderr != "" || !strings.Contains(got, "a.md: ") ||
+		strings.Contains(got, "a.md:1:") || strings.Contains(got, "a.md:3:") {
+		t.Fatalf("PostToolUse: code %d, output %s, stderr %q", code, got, stderr)
+	}
+}
