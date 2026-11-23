@@ -510,7 +510,11 @@ func reportAntigravityPostTool(call toolCall) []string {
 		if chunk.EndLine > 0 {
 			last = chunk.EndLine + shift + delta
 		}
-		starts := matchingStarts(lines, after, first, last)
+		rangeGrowth := 0
+		if args.AllowMultiple && chunk.EndLine > 0 {
+			rangeGrowth = delta
+		}
+		starts := replacementStarts(lines, after, first, last, rangeGrowth)
 		if len(starts) > 1 && !args.AllowMultiple {
 			continue
 		}
@@ -522,7 +526,31 @@ func reportAntigravityPostTool(call toolCall) []string {
 		}
 		shift += max(1, len(starts)) * delta
 	}
-	return checkLines(path, lines, targets)
+	slices.Sort(targets)
+	return checkLines(path, lines, slices.Compact(targets))
+}
+
+func replacementStarts(lines, replacement []string, first, last, rangeGrowth int) []int {
+	text := strings.Join(replacement, "\n")
+	if text == "" || first >= len(lines) {
+		return nil
+	}
+	pending := strings.Join(lines[first:], "\n")
+	var starts []int
+	for {
+		at := strings.Index(pending, text)
+		if at < 0 {
+			return starts
+		}
+		line := first + strings.Count(pending[:at], "\n")
+		if line+len(replacement) > last {
+			return starts
+		}
+		starts = append(starts, line)
+		last += rangeGrowth
+		first = line + len(replacement) - 1
+		pending = pending[at+len(text):]
+	}
 }
 
 func addedOffsets(before, after []string) []int {

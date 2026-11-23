@@ -371,6 +371,31 @@ func TestAntigravityReplacementChecksOnlyChangedLinesInRange(t *testing.T) {
 	}
 }
 
+func TestAntigravityReportsInlineAndMultipleGrowingReplacements(t *testing.T) {
+	dir := t.TempDir()
+	originalQueue := agyQueueDir
+	agyQueueDir = dir
+	t.Cleanup(func() { agyQueueDir = originalQueue })
+	path := write(t, "a.md", "前置き新しい （行）\n続き。\n対象外\n新しい （行）\n続き\n")
+	_, stderr, code := runHookAll(t, map[string]any{
+		"conversationId": "conv-multiple",
+		"toolCall": map[string]any{
+			"name": "replace_file_content",
+			"args": map[string]any{
+				"TargetFile": path, "StartLine": 1, "EndLine": 3, "AllowMultiple": true,
+				"TargetContent": "置換前", "ReplacementContent": "新しい （行）\n続き",
+			},
+		},
+	})
+	if code != 0 || stderr != "" {
+		t.Fatalf("PostToolUse: code %d, stderr %q", code, stderr)
+	}
+	got, _, code := runHookAll(t, map[string]any{"conversationId": "conv-multiple", "invocationNum": 1})
+	if code != 0 || !strings.Contains(got, "a.md:1:") || !strings.Contains(got, "a.md:4:") {
+		t.Fatalf("PreInvocation: code %d, output %s", code, got)
+	}
+}
+
 func TestCodexPatchUsesContextToLocateDuplicateLine(t *testing.T) {
 	path := write(t, "a.md", "新しい （行）\n\n対象の節\n新しい （行）\n最後の行\n")
 	patch := "*** Begin Patch\n*** Update File: a.md\n@@ 対象の節\n-前の行\n+新しい （行）\n*** End Patch\n"
