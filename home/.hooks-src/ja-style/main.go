@@ -15,6 +15,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"slices"
+	"sort"
 	"strings"
 )
 
@@ -105,7 +107,10 @@ func addedLines(patch []hunk) []int {
 }
 
 type replacementChunk struct {
+	TargetContent      string `json:"TargetContent"`
 	ReplacementContent string `json:"ReplacementContent"`
+	StartLine          int    `json:"StartLine"`
+	EndLine            int    `json:"EndLine"`
 }
 
 type toolCall struct {
@@ -129,14 +134,16 @@ type toolCall struct {
 	ToolCall       *struct {
 		Name string `json:"name"`
 		Args struct {
-			Path               string             `json:"Path"`
-			TargetFile         string             `json:"TargetFile"`
-			FilePath           string             `json:"file_path"`
-			Content            string             `json:"Content"`
-			CodeContent        string             `json:"CodeContent"`
-			Replacement        string             `json:"Replacement"`
-			ReplacementContent string             `json:"ReplacementContent"`
-			ReplacementChunks  []replacementChunk `json:"ReplacementChunks"`
+			replacementChunk
+			Path              string             `json:"Path"`
+			TargetFile        string             `json:"TargetFile"`
+			FilePath          string             `json:"file_path"`
+			Content           string             `json:"Content"`
+			CodeContent       string             `json:"CodeContent"`
+			Target            string             `json:"Target"`
+			Replacement       string             `json:"Replacement"`
+			AllowMultiple     bool               `json:"AllowMultiple"`
+			ReplacementChunks []replacementChunk `json:"ReplacementChunks"`
 		} `json:"args"`
 	} `json:"toolCall"`
 }
@@ -208,32 +215,36 @@ func checkLines(path string, lines []string, targets []int) []string {
 	return reports
 }
 
-func checkMatchingLines(displayPath, diskPath string, addedTexts []string) []string {
-	if len(addedTexts) == 0 {
+func textLines(text string) []string {
+	if text == "" {
 		return nil
 	}
-	counts := make(map[string]int, len(addedTexts))
-	for _, s := range addedTexts {
-		counts[s]++
+	return strings.Split(strings.TrimSuffix(strings.ReplaceAll(text, "\r\n", "\n"), "\n"), "\n")
+}
+
+func editedFileLines(cwd, path string) []string {
+	disk := nativePath(path, runtime.GOOS)
+	if cwd != "" && !filepath.IsAbs(disk) {
+		disk = filepath.Join(nativePath(cwd, runtime.GOOS), disk)
 	}
-	if data, err := os.ReadFile(diskPath); err == nil {
-		lines := strings.Split(strings.ReplaceAll(string(data), "\r\n", "\n"), "\n")
-		var targets []int
-		for i, l := range lines {
-			if counts[l] > 0 {
-				targets = append(targets, i+1)
-				counts[l]--
-			}
+	data, err := os.ReadFile(disk)
+	if err != nil {
+		return nil
+	}
+	return textLines(string(data))
+}
+
+func matchingStarts(lines, text []string, first, last int) []int {
+	if len(text) == 0 {
+		return nil
+	}
+	var starts []int
+	for i := first; i+len(text) <= min(last, len(lines)); i++ {
+		if slices.Equal(lines[i:i+len(text)], text) {
+			starts = append(starts, i)
 		}
-		return checkLines(displayPath, lines, targets)
 	}
-	var reports []string
-	for _, l := range addedTexts {
-		if problems := lineProblems(l); len(problems) > 0 {
-			reports = append(reports, formatReportLine(displayPath, 0, l, problems))
-		}
-	}
-	return reports
+	return starts
 }
 
 func report(call toolCall) ([]string, error) {
@@ -288,43 +299,105 @@ func extractPatchTexts(call toolCall) []string {
 }
 
 func reportCodexPatch(call toolCall) []string {
-	type fileAdds struct {
-		path  string
-		lines []string
+	var result string
+	if json.Unmarshal(call.ToolResponse, &result) == nil && strings.HasPrefix(result, "Exit code: ") &&
+		!strings.HasPrefix(result, "Exit code: 0\n") {
+		return nil
 	}
-	var files []*fileAdds
-	byPath := map[string]*fileAdds{}
-	for _, text := range extractPatchTexts(call) {
-		var cur *fileAdds
-		for _, raw := range strings.Split(text, "\n") {
-			line := strings.TrimRight(raw, "\r")
-			if m := patchFileHeader.FindStringSubmatch(line); m != nil {
-				p := strings.TrimSpace(m[1])
-				if cur = byPath[p]; cur == nil {
-					cur = &fileAdds{path: p}
-					byPath[p] = cur
-					files = append(files, cur)
-				}
-				continue
-			}
-			if strings.HasPrefix(line, "*** ") {
-				if strings.HasPrefix(line, "*** Delete File:") || strings.HasPrefix(line, "*** End Patch") {
-					cur = nil
-				}
-				continue
-			}
-			if cur != nil && strings.HasPrefix(line, "+") && !strings.HasPrefix(line, "+++") {
-				cur.lines = append(cur.lines, line[1:])
-			}
-		}
+	type patchChunk struct {
+		anchor   string
+		lines    []string
+		added    []int
+		oldLines int
+		atEnd    bool
 	}
 	var reports []string
-	for _, f := range files {
-		disk := nativePath(f.path, runtime.GOOS)
-		if call.Cwd != "" && !filepath.IsAbs(disk) {
-			disk = filepath.Join(nativePath(call.Cwd, runtime.GOOS), disk)
+	for _, text := range extractPatchTexts(call) {
+		var path string
+		var create bool
+		var chunks []patchChunk
+		flush := func() {
+			lines := editedFileLines(call.Cwd, path)
+			var targets []int
+			first := 0
+			for _, chunk := range chunks {
+				if len(chunk.lines) == 0 && chunk.anchor == "" {
+					continue
+				}
+				if chunk.anchor != "" {
+					anchor := slices.Index(lines[first:], chunk.anchor)
+					if anchor < 0 {
+						break
+					}
+					first += anchor + 1
+				}
+				start := first
+				switch {
+				case create:
+					start = 0
+				case chunk.oldLines == 0:
+					start = len(lines) - len(chunk.lines)
+				case chunk.atEnd && len(chunk.lines) <= len(lines) && slices.Equal(lines[len(lines)-len(chunk.lines):], chunk.lines):
+					start = len(lines) - len(chunk.lines)
+				default:
+					starts := matchingStarts(lines, chunk.lines, first, len(lines))
+					if len(starts) != 1 {
+						// 同じ文脈が複数あると、編集後のファイルから置換位置を確定できない。
+						continue
+					}
+					start = starts[0]
+				}
+				end := start + len(chunk.lines)
+				if start < first || end > len(lines) || !slices.Equal(lines[start:end], chunk.lines) {
+					continue
+				}
+				for _, offset := range chunk.added {
+					targets = append(targets, start+offset+1)
+				}
+				first = end
+			}
+			reports = append(reports, checkLines(path, lines, targets)...)
 		}
-		reports = append(reports, checkMatchingLines(f.path, disk, f.lines)...)
+		for _, line := range textLines(text) {
+			switch {
+			case strings.HasPrefix(line, "*** Move to: "):
+				path = strings.TrimSpace(strings.TrimPrefix(line, "*** Move to: "))
+			case patchFileHeader.MatchString(line):
+				if path != "" {
+					flush()
+				}
+				path = strings.TrimSpace(patchFileHeader.FindStringSubmatch(line)[1])
+				create = strings.HasPrefix(line, "*** Add File: ")
+				chunks = []patchChunk{{}}
+			case strings.HasPrefix(line, "*** Delete File:"), line == "*** End Patch":
+				if path != "" {
+					flush()
+					path = ""
+				}
+			case path != "" && strings.HasPrefix(line, "@@"):
+				chunks = append(chunks, patchChunk{anchor: strings.TrimPrefix(strings.TrimPrefix(line, "@@"), " ")})
+			case path != "":
+				chunk := &chunks[len(chunks)-1]
+				switch {
+				case line == "*** End of File":
+					chunk.atEnd = true
+				case strings.HasPrefix(line, "+"):
+					chunk.added = append(chunk.added, len(chunk.lines))
+					chunk.lines = append(chunk.lines, line[1:])
+				case strings.HasPrefix(line, " "):
+					chunk.lines = append(chunk.lines, line[1:])
+					chunk.oldLines++
+				case line == "" && !create:
+					chunk.lines = append(chunk.lines, "")
+					chunk.oldLines++
+				case strings.HasPrefix(line, "-"):
+					chunk.oldLines++
+				}
+			}
+		}
+		if path != "" {
+			flush()
+		}
 	}
 	return reports
 }
@@ -355,26 +428,89 @@ func reportAntigravityPostTool(call toolCall) []string {
 	if path == "" {
 		return nil
 	}
-	disk := nativePath(path, runtime.GOOS)
-	if call.Cwd != "" && !filepath.IsAbs(disk) {
-		disk = filepath.Join(nativePath(call.Cwd, runtime.GOOS), disk)
+	lines := editedFileLines(call.Cwd, path)
+	if firstNonEmpty(args.CodeContent, args.Content) != "" {
+		targets := make([]int, len(lines))
+		for i := range targets {
+			targets[i] = i + 1
+		}
+		return checkLines(path, lines, targets)
 	}
-	var texts []string
-	for _, s := range []string{args.Replacement, args.ReplacementContent, args.Content, args.CodeContent} {
-		if s != "" {
-			texts = append(texts, s)
+	chunks := args.ReplacementChunks
+	if len(chunks) == 0 {
+		chunk := args.replacementChunk
+		chunk.TargetContent = firstNonEmpty(chunk.TargetContent, args.Target)
+		chunk.ReplacementContent = firstNonEmpty(chunk.ReplacementContent, args.Replacement)
+		chunks = []replacementChunk{chunk}
+	}
+	sort.SliceStable(chunks, func(i, j int) bool { return chunks[i].StartLine < chunks[j].StartLine })
+	var targets []int
+	shift := 0
+	for _, chunk := range chunks {
+		before := textLines(chunk.TargetContent)
+		after := textLines(chunk.ReplacementContent)
+		delta := len(after) - len(before)
+		first, last := 0, len(lines)
+		if chunk.StartLine > 0 {
+			first = max(0, chunk.StartLine-1+shift)
+		}
+		if chunk.EndLine > 0 {
+			last = chunk.EndLine + shift + delta
+		}
+		starts := matchingStarts(lines, after, first, last)
+		if len(starts) > 1 && !args.AllowMultiple {
+			continue
+		}
+		offsets := addedOffsets(before, after)
+		for _, start := range starts {
+			for _, offset := range offsets {
+				targets = append(targets, start+offset+1)
+			}
+		}
+		shift += max(1, len(starts)) * delta
+	}
+	return checkLines(path, lines, targets)
+}
+
+func addedOffsets(before, after []string) []int {
+	first := 0
+	for first < min(len(before), len(after)) && before[first] == after[first] {
+		first++
+	}
+	before, after = before[first:], after[first:]
+	for len(before) > 0 && len(after) > 0 && before[len(before)-1] == after[len(after)-1] {
+		before, after = before[:len(before)-1], after[:len(after)-1]
+	}
+	// 置換範囲に残った文脈行を除く。大きな置換でフックがタイムアウトするのを避ける。
+	const maxCells = 1 << 20
+	if len(after) > 0 && len(before) > maxCells/len(after) {
+		return nil
+	}
+	width := len(after) + 1
+	lcs := make([]int, (len(before)+1)*width)
+	for i := len(before) - 1; i >= 0; i-- {
+		for j := len(after) - 1; j >= 0; j-- {
+			if before[i] == after[j] {
+				lcs[i*width+j] = 1 + lcs[(i+1)*width+j+1]
+			} else {
+				lcs[i*width+j] = max(lcs[(i+1)*width+j], lcs[i*width+j+1])
+			}
 		}
 	}
-	for _, ch := range args.ReplacementChunks {
-		if ch.ReplacementContent != "" {
-			texts = append(texts, ch.ReplacementContent)
+	var added []int
+	for i, j := 0, 0; j < len(after); {
+		switch {
+		case i < len(before) && before[i] == after[j]:
+			i++
+			j++
+		case i < len(before) && lcs[(i+1)*width+j] >= lcs[i*width+j+1]:
+			i++
+		default:
+			added = append(added, first+j)
+			j++
 		}
 	}
-	var added []string
-	for _, t := range texts {
-		added = append(added, strings.Split(strings.ReplaceAll(t, "\r\n", "\n"), "\n")...)
-	}
-	return checkMatchingLines(path, disk, added)
+	return added
 }
 
 func runAntigravity(call toolCall, stdout io.Writer) int {

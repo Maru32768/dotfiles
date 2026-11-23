@@ -294,11 +294,13 @@ func TestAntigravityPostToolUseQueuesForPreInvocation(t *testing.T) {
 		"hookEventName":  "PostToolUse",
 		"conversationId": "conv-1",
 		"toolCall": map[string]any{
-			"name": "edit_file",
+			"name": "replace_file_content",
 			"args": map[string]any{
-				"Path":        path,
-				"Target":      "旧",
-				"Replacement": "新しい （行）",
+				"TargetFile":         path,
+				"TargetContent":      "前の行",
+				"ReplacementContent": "新しい （行）",
+				"StartLine":          2,
+				"EndLine":            2,
 			},
 		},
 	})
@@ -340,5 +342,43 @@ func TestAntigravityPostToolUseQueuesForPreInvocation(t *testing.T) {
 	})
 	if code != 0 || strings.TrimSpace(stdout) != "{}" {
 		t.Errorf("second PreInvocation: code %d, stdout %q", code, stdout)
+	}
+}
+
+func TestAntigravityReplacementChecksOnlyChangedLinesInRange(t *testing.T) {
+	dir := t.TempDir()
+	originalQueue := agyQueueDir
+	agyQueueDir = dir
+	t.Cleanup(func() { agyQueueDir = originalQueue })
+	path := write(t, "a.md", "新しい （行）\n\n既存の （文）\n新しい （行）\n")
+	_, stderr, code := runHookAll(t, map[string]any{
+		"conversationId": "conv-edit",
+		"toolCall": map[string]any{
+			"name": "replace_file_content",
+			"args": map[string]any{
+				"TargetFile": path, "StartLine": 3, "EndLine": 4,
+				"TargetContent": "既存の （文）\n前の行", "ReplacementContent": "既存の （文）\n新しい （行）",
+			},
+		},
+	})
+	if code != 0 || stderr != "" {
+		t.Fatalf("PostToolUse: code %d, stderr %q", code, stderr)
+	}
+	got, _, code := runHookAll(t, map[string]any{"conversationId": "conv-edit", "invocationNum": 1})
+	if code != 0 || !strings.Contains(got, "a.md:4:") ||
+		strings.Contains(got, "a.md:1:") || strings.Contains(got, "a.md:3:") {
+		t.Fatalf("PreInvocation: code %d, output %s", code, got)
+	}
+}
+
+func TestCodexPatchUsesContextToLocateDuplicateLine(t *testing.T) {
+	path := write(t, "a.md", "新しい （行）\n\n対象の節\n新しい （行）\n最後の行\n")
+	patch := "*** Begin Patch\n*** Update File: a.md\n@@ 対象の節\n-前の行\n+新しい （行）\n*** End Patch\n"
+	got, stderr, code := runHookAll(t, map[string]any{
+		"cwd": filepath.Dir(path), "tool_name": "apply_patch", "tool_input": map[string]any{"command": patch},
+		"tool_response": "Exit code: 0\nSuccess. Updated the following files:\nM a.md",
+	})
+	if code != 0 || stderr != "" || !strings.Contains(got, "a.md:4:") || strings.Contains(got, "a.md:1:") {
+		t.Fatalf("PostToolUse: code %d, output %s, stderr %q", code, got, stderr)
 	}
 }
