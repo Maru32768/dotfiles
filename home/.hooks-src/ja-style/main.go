@@ -275,8 +275,8 @@ func normalizeCodexContext(line string) string {
 	}, strings.TrimSpace(line))
 }
 
-func codexAnchor(lines []string, anchor string, possiblyAdded map[string]struct{}) int {
-	// 後続チャンクが足した見出しは元のファイルでは照合できないため、別の候補も残す。
+func codexAnchor(lines []string, anchor string, laterAdditions map[string]int) int {
+	// 後続の追加だけでは説明できない一致があれば、その段階の照合が元のファイルでも成立する。
 	firstPossible := len(lines)
 	for _, normalize := range []func(string) string{
 		func(line string) string { return line },
@@ -285,15 +285,19 @@ func codexAnchor(lines []string, anchor string, possiblyAdded map[string]struct{
 		normalizeCodexContext,
 	} {
 		wanted := normalize(anchor)
+		firstMatch := len(lines)
+		matches := make(map[string]int)
 		for i, line := range lines {
 			if normalize(line) != wanted {
 				continue
 			}
-			if _, added := possiblyAdded[line]; !added {
-				return min(i, firstPossible)
+			firstMatch = min(i, firstMatch)
+			matches[line]++
+			if matches[line] > laterAdditions[line] {
+				return min(firstMatch, firstPossible)
 			}
-			firstPossible = min(i, firstPossible)
 		}
+		firstPossible = min(firstMatch, firstPossible)
 	}
 	if firstPossible < len(lines) {
 		return firstPossible
@@ -394,25 +398,31 @@ func reportCodexPatch(call toolCall) []string {
 			var fences []bool
 			first := 0
 			appendAt := len(lines)
-			possiblyAdded := make(map[string]struct{})
+			laterAdditions := make(map[string]int)
 			if !create {
 				for _, chunk := range chunks {
 					if chunk.oldLines == 0 {
 						appendAt -= len(chunk.lines)
+						continue
 					}
 					for _, offset := range chunk.added {
-						possiblyAdded[chunk.lines[offset]] = struct{}{}
+						laterAdditions[chunk.lines[offset]]++
 					}
 				}
 			}
 			originalRegion := lines[:max(0, appendAt)]
 			for _, chunk := range chunks {
+				if chunk.oldLines > 0 {
+					for _, offset := range chunk.added {
+						laterAdditions[chunk.lines[offset]]--
+					}
+				}
 				if len(chunk.lines) == 0 && chunk.anchor == "" {
 					continue
 				}
 				searchStart := first
 				if chunk.anchor != "" {
-					anchor := codexAnchor(originalRegion[first:], chunk.anchor, possiblyAdded)
+					anchor := codexAnchor(originalRegion[first:], chunk.anchor, laterAdditions)
 					if anchor < 0 && chunk.oldLines > 0 {
 						continue
 					}

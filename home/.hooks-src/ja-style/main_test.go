@@ -564,11 +564,27 @@ func TestCodexPatchIgnoresHeadingIntroducedByLaterChunk(t *testing.T) {
 }
 
 func TestCodexPatchPrefersUnchangedExactHeadingToIndentedExample(t *testing.T) {
-	path := write(t, "a.md", "```md\n  対象の節\n新しい （行）\n```\n対象の節\n新しい （行）\n")
-	patch := "*** Begin Patch\n*** Update File: a.md\n@@ 対象の節\n-前の行\n+新しい （行）\n*** End Patch\n"
-	got, stderr, code := runCodexPatch(t, filepath.Dir(path), patch)
-	if code != 0 || stderr != "" || !strings.Contains(got, "a.md:6:") || strings.Contains(got, "a.md:3:") {
-		t.Fatalf("PostToolUse: code %d, output %s, stderr %q", code, got, stderr)
+	const example = "```md\n  対象の節\n新しい （行）\n"
+	const prose = "```\n対象の節\n新しい （行）\n"
+	const update = "*** Begin Patch\n*** Update File: a.md\n@@ 対象の節\n-前の行\n+新しい （行）\n"
+	cases := []struct {
+		name       string
+		file, tail string
+		want       string
+	}{
+		{"unchanged", example + prose, "", "a.md:6:"},
+		{"append", example + prose + "対象の節\n", "@@\n+対象の節\n", "a.md:6:"},
+		{"same chunk", example + "対象の節\n" + prose + "対象の節\n", "+対象の節\n", "a.md:7:"},
+		{"later replacement", example + prose + "境目\n対象の節\n", "@@ 境目\n-別の見出し\n+対象の節\n", "a.md:6:"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			path := write(t, "a.md", tc.file)
+			got, stderr, code := runCodexPatch(t, filepath.Dir(path), update+tc.tail+"*** End Patch\n")
+			if code != 0 || stderr != "" || !strings.Contains(got, tc.want) || strings.Contains(got, "a.md:3:") {
+				t.Fatalf("PostToolUse: code %d, output %s, stderr %q", code, got, stderr)
+			}
+		})
 	}
 }
 
