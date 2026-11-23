@@ -18,7 +18,6 @@ import (
 	"slices"
 	"sort"
 	"strings"
-	"unicode"
 )
 
 const (
@@ -276,18 +275,9 @@ func normalizeCodexContext(line string) string {
 }
 
 func codexAnchor(lines []string, anchor string) int {
-	for _, normalize := range []func(string) string{
-		func(line string) string { return line },
-		func(line string) string { return strings.TrimRightFunc(line, unicode.IsSpace) },
-		strings.TrimSpace,
-		normalizeCodexContext,
-	} {
-		wanted := normalize(anchor)
-		if i := slices.IndexFunc(lines, func(line string) bool { return normalize(line) == wanted }); i >= 0 {
-			return i
-		}
-	}
-	return -1
+	// 適用後のファイルには後続チャンクが足した見出しもあるため、完全一致を優先すると先の編集を飛ばしうる。
+	wanted := normalizeCodexContext(anchor)
+	return slices.IndexFunc(lines, func(line string) bool { return normalizeCodexContext(line) == wanted })
 }
 
 func matchingPatchStarts(lines, wanted []string, added []int, first int) []int {
@@ -395,14 +385,17 @@ func reportCodexPatch(call toolCall) []string {
 				if len(chunk.lines) == 0 && chunk.anchor == "" {
 					continue
 				}
+				searchStart := first
 				if chunk.anchor != "" {
 					anchor := codexAnchor(originalRegion[first:], chunk.anchor)
-					if anchor < 0 {
-						break
+					if anchor < 0 && chunk.oldLines > 0 {
+						continue
 					}
-					first += anchor + 1
+					if anchor >= 0 {
+						searchStart += anchor + 1
+					}
 				}
-				start := first
+				start := searchStart
 				switch {
 				case create:
 					start = 0
@@ -411,13 +404,13 @@ func reportCodexPatch(call toolCall) []string {
 					appendAt += len(chunk.lines)
 				default:
 					locate := func() []int {
-						if chunk.atEnd && len(chunk.lines) <= len(originalRegion)-first {
+						if chunk.atEnd && len(chunk.lines) <= len(originalRegion)-searchStart {
 							eof := len(originalRegion) - len(chunk.lines)
 							if starts := matchingPatchStarts(originalRegion, chunk.lines, chunk.added, eof); len(starts) > 0 {
 								return starts
 							}
 						}
-						return matchingPatchStarts(originalRegion, chunk.lines, chunk.added, first)
+						return matchingPatchStarts(originalRegion, chunk.lines, chunk.added, searchStart)
 					}
 					starts := locate()
 					last := len(chunk.lines) - 1
@@ -440,7 +433,7 @@ func reportCodexPatch(call toolCall) []string {
 					}
 				}
 				end := start + len(chunk.lines)
-				if start < first || end > len(lines) {
+				if start < searchStart || end > len(lines) {
 					continue
 				}
 				if (create || chunk.oldLines == 0) && !slices.Equal(lines[start:end], chunk.lines) {
@@ -451,6 +444,8 @@ func reportCodexPatch(call toolCall) []string {
 				}
 				if chunk.oldLines > 0 {
 					first = end
+				} else {
+					first = searchStart
 				}
 			}
 			reports = append(reports, checkLines(path, lines, targets)...)
