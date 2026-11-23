@@ -215,9 +215,9 @@ func TestCodexApplyPatch(t *testing.T) {
 			}
 			if !decidePayload(t, map[string]any{
 				"tool_name":  "apply_patch",
-				"tool_input": map[string]any{"input": patch},
+				"tool_input": map[string]any{"command": patch},
 			}) {
-				t.Errorf("apply_patch input should deny (%s): %s", header, path)
+				t.Errorf("apply_patch command should deny (%s): %s", header, path)
 			}
 		}
 	}

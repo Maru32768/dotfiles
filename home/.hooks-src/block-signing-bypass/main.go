@@ -114,11 +114,10 @@ type hookInput struct {
 
 func extractPatchTexts(input hookInput) []string {
 	var texts []string
-	if input.ToolInput.Input != "" {
-		texts = append(texts, input.ToolInput.Input)
-	}
-	if input.ToolInput.Patch != "" {
-		texts = append(texts, input.ToolInput.Patch)
+	for _, text := range []string{input.ToolInput.Command, input.ToolInput.Input, input.ToolInput.Patch} {
+		if text != "" {
+			texts = append(texts, text)
+		}
 	}
 	if len(input.ToolInput.Cmd) > 0 {
 		var s string
