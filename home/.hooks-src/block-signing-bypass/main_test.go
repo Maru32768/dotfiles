@@ -165,7 +165,7 @@ func decideAntigravity(t *testing.T, toolName, field, value string) bool {
 	if err := json.Unmarshal(stdout.Bytes(), &output); err != nil {
 		t.Fatalf("invalid Antigravity output %q: %v", stdout.String(), err)
 	}
-	if output["decision"] == "ask" && output["reason"] == "" {
+	if output["decision"] == "allow" && output["reason"] == "" {
 		return false
 	}
 	if output["decision"] != "deny" || output["reason"] == "" {

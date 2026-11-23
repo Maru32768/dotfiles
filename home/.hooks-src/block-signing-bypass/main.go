@@ -161,9 +161,8 @@ func run(stdin io.Reader, stdout io.Writer) error {
 			problem = fileProblem(firstNonEmpty(call.ToolCall.Args.Path, call.ToolCall.Args.TargetFile, call.ToolCall.Args.FilePath))
 		}
 		if problem == "" {
-			// Antigravity の PreToolUse は decision を必須とし、空オブジェクト "{}" は拒否扱いになる。
-			// "allow" は確認プロンプトを飛ばすため、通常の権限判定(Always Allow を含む)へ委ねる "ask" を返す。
-			_, err := io.WriteString(stdout, "{\"decision\":\"ask\"}\n")
+			// Antigravityではauto_approveが確認を省略し、allowは既定の権限判定に委ねる。
+			_, err := io.WriteString(stdout, "{\"decision\":\"allow\"}\n")
 			return err
 		}
 		return json.NewEncoder(stdout).Encode(map[string]string{

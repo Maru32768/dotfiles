@@ -102,7 +102,7 @@ Check 'hook denies an Antigravity bypass' {
     (Invoke-Hook '{"toolCall":{"name":"run_command","args":{"CommandLine":"git commit --no-gpg-sign"}}}') -match '"decision":"deny"'
 }
 Check 'hook allows a normal Antigravity command' {
-    (Invoke-Hook '{"toolCall":{"name":"run_command","args":{"CommandLine":"git status"}}}') -eq '{"decision":"ask"}'
+    (Invoke-Hook '{"toolCall":{"name":"run_command","args":{"CommandLine":"git status"}}}') -eq '{"decision":"allow"}'
 }
 Check 'block-antigravity hook denies agy' {
     ('{"tool_name":"Bash","tool_input":{"command":"agy -p hi"}}' | & $GitBash -c $agyBlockCommand) -match 'deny'
