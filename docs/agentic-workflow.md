@@ -29,7 +29,7 @@
 
 外の研究のうち根拠に使えたもの、使えなかったもの、調べた実装は次のとおり。
 
-- 使えた根拠: エージェントが書いたテストは、通っても欠陥を見つけないことが多い(TestSuiteBench、arXiv 2610.13065)。テストを書き換えて通す不正は、テストを読み取り専用にすると止まる。テストを特別扱いする不正は止まらない(ImpossibleBench、arXiv 2510.20270)。同じモデルの独立した再レビューを合算すると、1回だけより悪くなる(arXiv 2603.16244。単著の1件)。並列に書くエージェントは成功率を下げる(CooperBench、arXiv 2601.13295)。
+- 使えた根拠: エージェントが書いたテストは、通っても欠陥を見つけないことが多い(TestSuiteBench、arXiv 2610.13065)。テストを書き換えて通す不正は、テストを読み取り専用にすると止まる。テストを特別扱いする不正は止まらない(ImpossibleBench、arXiv 2510.20270)。同じモデルの独立した再レビューを合算すると、1回だけより悪くなる(arXiv 2603.16244。単著の1件)。並列に書くエージェントは成功率を下げる(CooperBench、arXiv 2601.13295)。見えるテストはどのモデルも満点になり、隠したテストとの差は、コードが10倍になるごとに28ポイント開く(SpecBench、arXiv 2605.21384)。エージェントは自分の仕事を甘く採点する([Anthropicの記事](https://www.anthropic.com/engineering/harness-design-long-running-apps)、2026-03)。
 - 使えなかった根拠: 別のモデルの補完性(arXiv 2607.21656)は、弱い下書きを見直す効果と区別できなかった。SkillsBench(arXiv 2602.12670)の領域別の数字は、版が上がって変わっていた。最新の版(v4)からは、短く絞ったSkillが効き、網羅的なSkillはほぼ効かず、モデルに作らせたSkillは害になる、という向きだけを借りた。
 - 調べた実装(2026-11-13のコミット): obra/superpowers `22f0b463`、EveryInc/compound-engineering-plugin `41216b7e`、garrytan/gstack `4414f4cc`、citypaul/.dotfiles `cd4028d5`、mattpocock/skills `5863806d`、github/spec-kit `2ee2b1e8`、github/gh-stack `bd0a3250`、Fission-AI/OpenSpec `d12c2817`、anthropics/claude-plugins-official `f75f5b25`、anthropics/skills `2c5958ec`。どれも基盤にはせず、次の考え方だけを借りた。台帳と再開の規約(superpowers)、証拠を作業ツリーの指紋に結びつけること(gstack)、深さを結果の重さで決めること(compound-engineering、gstack)、要求とPRの境界を分けて考えること(citypaul)。
 
