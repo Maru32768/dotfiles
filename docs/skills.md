@@ -96,7 +96,7 @@ chezmoi apply
 `skills.toml`から項目を消して、反映する。置いてあるスキルは、chezmoiの管理から外れるだけで消えないので、環境ごとに手で消す。
 
 ```bash
-rm -r ~/.claude/skills/<名前> ~/.agents/skills/<名前>
+rm -rf ~/.claude/skills/<名前> ~/.agents/skills/<名前>
 ```
 
 ## 更新する
