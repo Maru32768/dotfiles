@@ -328,7 +328,7 @@ func wordText(src string, word *syntax.Word) string {
 				}
 			}
 		default:
-			b.WriteString(src[part.Pos().Offset():part.End().Offset()])
+			b.WriteString(strings.ReplaceAll(src[part.Pos().Offset():part.End().Offset()], "\\\n", ""))
 		}
 	}
 	return b.String()

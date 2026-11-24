@@ -67,6 +67,7 @@ var deniedCommands = []string{
 	"`agy -p hi`\necho \"x",
 	"cat <<EOF\n`agy -p hi`\n",
 	"cat <<EOF; echo x\n$(agy -p hi)\nEOF",
+	"ag\\\ny -p hi",
 	"env -S '-i' agy -p hi",
 	"env -S '-u FOO' agy -p hi",
 	"env --split-string=-i agy",
