@@ -92,6 +92,16 @@ else
   fail "共通の自作スキルとhome/dot_claude/skills/のincludeテンプレートが食い違っている:$skill_mirror_errors"
 fi
 
+# 節の名前がずれると、ship-taskの足した行が別の節に入り、節ごとに数えた結果が黙って空になる
+ledger_section='着地後に見つかった欠陥'
+if grep -qF "｢${ledger_section}｣に1行足す" home/dot_agents/skills/ship-task/SKILL.md &&
+  grep -qxF "# ${ledger_section}" home/dot_agents/skills/review-loop/references/ledger.md &&
+  grep -qF "\`sec\`を\`${ledger_section}\`にすると" docs/agentic-workflow.md; then
+  pass "着地後の欠陥の節の名前が、ship-task、台帳の型、数え方の説明で同じ"
+else
+  fail "着地後の欠陥の節の名前が、ship-task、台帳の型、数え方の説明で食い違っている"
+fi
+
 # research の管理設定は agent のものと、Web のツール、Bash の通信先と書き込み先、隠す環境変数だけが違う。
 # agent に足した拒否ルールなどを research に足し忘れないように
 shared_settings='del(.sandbox.network.allowedDomains, .sandbox.filesystem.allowWrite, .sandbox.credentials.envVars)

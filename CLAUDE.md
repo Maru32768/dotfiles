@@ -28,7 +28,7 @@ bash tests/doctor.sh                    # 今の環境の確認
 chezmoi diff && chezmoi apply           # ホームへの反映
 ```
 
-`container.sh` は作業ツリーの内容を使うので、コミット前に試せる。Windows 側の検査 (`tests/ci/windows.ps1`、`tests/ci/op-run-test.ps1`、`tests/ci/lab-run-test.ps1`) は CI の windows ジョブで動く。macの作り方はCIのmacosジョブが確かめる。CI は `docs/**` と `**.md` だけの変更では動かない(`home/`の下の`.md`と`docs/gpg.md`は動く)。
+`container.sh` は作業ツリーの内容を使うので、コミット前に試せる。Windows 側の検査 (`tests/ci/windows.ps1`、`tests/ci/op-run-test.ps1`、`tests/ci/lab-run-test.ps1`) は CI の windows ジョブで動く。macの作り方はCIのmacosジョブが確かめる。CI は `docs/**` と `**.md` だけの変更では動かない(`home/`の下の`.md`、`docs/gpg.md`、`docs/agentic-workflow.md`は動く)。
 
 ## 構造の要点
 
