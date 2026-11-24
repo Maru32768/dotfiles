@@ -125,6 +125,9 @@ for _ in 1 2; do
   g checkout -q -- app.sh
 done
 check "落ちた実行がツリーを変えていても、戻して通れば知らせる" 'e "$clog" check debris 2>&1 >/dev/null | grep -q "debris failed on this worktree before it passed"'
+out=$(e "$clog" run noisy -- sh -c 'echo z >> app.sh; echo out; exit 7' 2> /dev/null)
+equals "ツリーを変えたコマンドも、stdoutと終了コードをそのまま返す" "$? $out" "7 out"
+g checkout -q -- app.sh
 # 実行の後に指紋が取れなくなるコマンド。コミットの無い入れ子のリポジトリがあると、git addが落ちる
 e "$clog" run nofp -- git init -q nested 2> /dev/null
 rm -rf "$repo/nested"
