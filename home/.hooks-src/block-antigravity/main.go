@@ -19,12 +19,14 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 )
 
+const looseSeparators = ";&|()`\n"
+
 var (
 	envAssignPattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*=`)
 	pythonNameRegex  = regexp.MustCompile(`^(?:python(?:\d+(?:\.\d+)*)?|py|uv|uvx|pipx)$`)
 	sdkRefPattern    = regexp.MustCompile(`(?i)\bgoogle[._-]antigravity\b`)
 	redirPrefixRegex = regexp.MustCompile(`^(?:\d+|&)?(?:>>?|<<?|[<>]&).*`)
-	looseToken       = regexp.MustCompile(`(?:"[^"]*"?|'[^']*'?|[^\s"';&|()]+)+|[;&|()\n]`)
+	looseToken       = regexp.MustCompile(`(?:"[^"]*"?|'[^']*'?|[^\s"';&|()\x60]+)+|[;&|()\x60\n]`)
 	quoteMarks       = strings.NewReplacer(`"`, "", `'`, "")
 	dblQuoteEscape   = strings.NewReplacer(`\"`, `"`, `\\`, `\`, `\$`, `$`, "\\`", "`", "\\\n", "")
 )
@@ -262,36 +264,51 @@ func skipSimpleFlags(args []string, takesArg map[string]bool) []string {
 
 // 入れ子の文字列(`bash -c`の引数など)は親より必ず短いので、再帰は深さを限らなくても終わる。
 func commandProblem(command string) string {
-	file, err := syntax.NewParser().Parse(strings.NewReader(command), "")
-	if err != nil {
-		// PowerShellやcmdの中身はbashとして読めない(`& 'C:\Program Files\agy.exe'`)。拒否すると
-		// それらを全部止め、通すと見逃すので、クォートの組と区切り記号と空白だけを見て分ける。
-		// `2>&1`の`&`で切らないように、リダイレクトの`&`を先に落とす。
-		var args []string
-		for _, tok := range looseToken.FindAllString(strings.NewReplacer(">&", ">", "&>", ">").Replace(command), -1) {
-			if len(tok) > 1 || !strings.Contains(";&|()\n", tok) {
-				args = append(args, quoteMarks.Replace(tok))
-				continue
-			}
-			if problem := checkSimpleCommand(args); problem != "" {
-				return problem
-			}
-			args = nil
+	// bashは構文エラーの手前までに読み終えた文を実行するので、それらは構文木で調べる。
+	// mvdanの反復は途中でbreakするとpanicすることがあるので、最後まで回す。
+	// heredocの中身は後から文に入るので、読み終えてから調べる。
+	var stmts []*syntax.Stmt
+	var err error
+	for stmt, stmtErr := range syntax.NewParser().StmtsSeq(strings.NewReader(command)) {
+		if stmtErr != nil {
+			err = stmtErr
+			continue
 		}
-		return checkSimpleCommand(args)
+		stmts = append(stmts, stmt)
 	}
 	var problem string
-	syntax.Walk(file, func(node syntax.Node) bool {
-		if call, ok := node.(*syntax.CallExpr); ok && problem == "" {
-			args := make([]string, len(call.Args))
-			for i, word := range call.Args {
-				args[i] = wordText(command, word)
+	end := 0
+	for _, stmt := range stmts {
+		syntax.Walk(stmt, func(node syntax.Node) bool {
+			if call, ok := node.(*syntax.CallExpr); ok && problem == "" {
+				args := make([]string, len(call.Args))
+				for i, word := range call.Args {
+					args[i] = wordText(command, word)
+				}
+				problem = checkSimpleCommand(args)
 			}
-			problem = checkSimpleCommand(args)
+			return problem == ""
+		})
+		end = int(stmt.End().Offset())
+	}
+	if err == nil || problem != "" {
+		return problem
+	}
+	// 残りは、PowerShellやcmdの中身(`& 'C:\Program Files\agy.exe'`)か、壊れたbash。拒否すると
+	// PowerShellなどを全部止め、通すと見逃すので、クォートの組と区切り記号と空白だけを見て分ける。
+	// `2>&1`の`&`で切らないように、リダイレクトの`&`を先に落とす。
+	var args []string
+	for _, tok := range looseToken.FindAllString(strings.NewReplacer(">&", ">", "&>", ">").Replace(command[end:]), -1) {
+		if len(tok) > 1 || !strings.Contains(looseSeparators, tok) {
+			args = append(args, quoteMarks.Replace(tok))
+			continue
 		}
-		return problem == ""
-	})
-	return problem
+		if problem := checkSimpleCommand(args); problem != "" {
+			return problem
+		}
+		args = nil
+	}
+	return checkSimpleCommand(args)
 }
 
 // wordTextは、クォートを外した語を返す。クォートの外のバックスラッシュは、
