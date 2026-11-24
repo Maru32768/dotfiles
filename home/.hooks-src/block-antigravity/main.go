@@ -72,7 +72,8 @@ func checkSimpleCommand(args []string) string {
 		}
 
 		switch base {
-		case "nohup", "time", "setsid":
+		// bashの`time -- cmd`では、`time`は構文の一部で、`--`から始まる語が残る。
+		case "nohup", "time", "setsid", "--":
 			args = skipSimpleFlags(rest, nil)
 			continue
 		case "command":
