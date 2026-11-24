@@ -16,7 +16,8 @@
 # run     Runs the command, records its exit code with the fingerprint from before it ran, and exits with that code.
 #         When the worktree is different after the command (it rewrote files, or something else switched the tree
 #         under it), the fingerprint is recorded as <before>><after>, which no worktree has, so check reports STALE
-#         even after the tree is put back.
+#         even after the tree is put back. When the fingerprint cannot be computed after the command, <after> is
+#         the word unknown.
 # check   Prints OK, MISSING, FAILED or STALE for the latest run of each label. Exits 0 only when all are OK.
 #         An OK label whose same command failed earlier on the same fingerprint also gets a warning on stderr:
 #         nothing changed between the failure and the pass, so the pass alone does not say what was wrong.
@@ -108,7 +109,7 @@ run_cmd() {
   rc=$?
   after=$(fingerprint) || after=unknown
   if [ "$after" != "$before" ]; then
-    printf 'evidence.sh: the worktree changed while %s ran; check will report it STALE until it runs again\n' "$label" >&2
+    printf 'evidence.sh: the worktree changed while %s ran, or its fingerprint cannot be computed now; check will report it STALE until it runs again\n' "$label" >&2
     before="$before>$after"
   fi
   record run "$label" "$rc" "$before"
