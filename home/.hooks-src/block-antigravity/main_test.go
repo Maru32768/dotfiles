@@ -69,6 +69,8 @@ var deniedCommands = []string{
 	`pwsh -c "& 'C:\Program Files\agy.exe' -p hi"`,
 	`pwsh -c "& 'C:\Program Files (x86)\Antigravity\agy.exe'"`,
 	`cmd /c "agy" -p "unterminated`,
+	`bash -c "\"agy\" -p hi"`,
+	"bash -c \"echo \\`agy\\`\"",
 }
 
 var allowedCommands = []string{
@@ -105,6 +107,8 @@ var allowedCommands = []string{
 	"env -u",
 	"echo hi # agy -p hi",
 	`echo 'unterminated agy`,
+	"cmd /c >",
+	"mise run test -- agy",
 	`pwsh -c "Get-ChildItem | Where-Object { $_.Name -match 'agy' }"`,
 }
 
