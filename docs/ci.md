@@ -11,7 +11,7 @@
 
 定期実行は、固定していないもの (apt、インストーラー、Vim プラグイン) の破損に気づくためにある。
 
-CIは`docs/**`と`**.md`だけの変更では動かない。ただし、`home/`の下の`.md`(Claudeへの指示やスキル)は`render.sh`が、`docs/gpg.md`の鍵のフィンガープリントは`invariants.sh`が確かめるので、それだけの変更でも動く。
+CIは`docs/**`と`**.md`だけの変更では動かない。ただし、`home/`の下の`.md`(Claudeへの指示やスキル)は`render.sh`が、`docs/gpg.md`の鍵のフィンガープリントと、`docs/agentic-workflow.md`の台帳の節の名前は`invariants.sh`が確かめるので、それだけの変更でも動く。
 
 `.github/workflows/update-skills.yml`は、スキルとプラグインのマーケットプレイスについて、固定したコミットを上げるPRを週1回作る(`docs/skills.md`)。書き込みの権限を持つので、CIのワークフローには混ぜない。
 
