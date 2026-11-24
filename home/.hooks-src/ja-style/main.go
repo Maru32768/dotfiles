@@ -8,6 +8,8 @@
 package main
 
 import (
+	"bytes"
+	"cmp"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -16,7 +18,6 @@ import (
 	"regexp"
 	"runtime"
 	"slices"
-	"sort"
 	"strings"
 	"unicode"
 )
@@ -536,15 +537,6 @@ func reportCodexPatch(call toolCall) []string {
 	return reports
 }
 
-func firstNonEmpty(values ...string) string {
-	for _, v := range values {
-		if v != "" {
-			return v
-		}
-	}
-	return ""
-}
-
 func agyQueuePath(conversationID string) string {
 	id := safeID.ReplaceAllString(conversationID, "_")
 	if id == "" {
@@ -558,12 +550,12 @@ func reportAntigravityPostTool(call toolCall) []string {
 		return nil
 	}
 	args := call.ToolCall.Args
-	path := firstNonEmpty(args.Path, args.TargetFile, args.FilePath)
+	path := cmp.Or(args.Path, args.TargetFile, args.FilePath)
 	if path == "" {
 		return nil
 	}
 	lines := editedFileLines(call.Cwd, path)
-	if firstNonEmpty(args.CodeContent, args.Content) != "" {
+	if cmp.Or(args.CodeContent, args.Content) != "" {
 		targets := make([]int, len(lines))
 		for i := range targets {
 			targets[i] = i + 1
@@ -573,11 +565,11 @@ func reportAntigravityPostTool(call toolCall) []string {
 	chunks := args.ReplacementChunks
 	if len(chunks) == 0 {
 		chunk := args.replacementChunk
-		chunk.TargetContent = firstNonEmpty(chunk.TargetContent, args.Target)
-		chunk.ReplacementContent = firstNonEmpty(chunk.ReplacementContent, args.Replacement)
+		chunk.TargetContent = cmp.Or(chunk.TargetContent, args.Target)
+		chunk.ReplacementContent = cmp.Or(chunk.ReplacementContent, args.Replacement)
 		chunks = []replacementChunk{chunk}
 	}
-	sort.SliceStable(chunks, func(i, j int) bool { return chunks[i].StartLine < chunks[j].StartLine })
+	slices.SortStableFunc(chunks, func(a, b replacementChunk) int { return cmp.Compare(a.StartLine, b.StartLine) })
 	var targets []int
 	var reports []string
 	var fences []bool
@@ -700,7 +692,7 @@ func runAntigravity(call toolCall, stdout io.Writer) int {
 	queueFile := agyQueuePath(call.ConversationID)
 	if call.isAntigravityPreInvocation() {
 		data, err := os.ReadFile(queueFile)
-		if err != nil || len(bytesTrimSpace(data)) == 0 {
+		if err != nil || len(bytes.TrimSpace(data)) == 0 {
 			_, _ = io.WriteString(stdout, "{}\n")
 			return 0
 		}
@@ -731,10 +723,6 @@ func runAntigravity(call toolCall, stdout io.Writer) int {
 	}
 	_, _ = io.WriteString(stdout, "{}\n")
 	return 0
-}
-
-func bytesTrimSpace(b []byte) []byte {
-	return []byte(strings.TrimSpace(string(b)))
 }
 
 func (call toolCall) isAntigravityPreInvocation() bool {

@@ -10,6 +10,7 @@
 package main
 
 import (
+	"cmp"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -133,15 +134,6 @@ func extractPatchTexts(input hookInput) []string {
 	return texts
 }
 
-func firstNonEmpty(values ...string) string {
-	for _, v := range values {
-		if v != "" {
-			return v
-		}
-	}
-	return ""
-}
-
 func denyReason(problem string) string {
 	return "Blocked: " + problem + ". Commit signing must not be bypassed. " +
 		"Report the signing error to the user and let them sign or decide."
@@ -156,9 +148,9 @@ func run(stdin io.Reader, stdout io.Writer) error {
 	if call.ToolCall != nil && call.ToolCall.Name != "" {
 		var problem string
 		if call.ToolCall.Name == "run_command" {
-			problem = commandProblem(firstNonEmpty(call.ToolCall.Args.CommandLine, call.ToolCall.Args.Command))
+			problem = commandProblem(cmp.Or(call.ToolCall.Args.CommandLine, call.ToolCall.Args.Command))
 		} else {
-			problem = fileProblem(firstNonEmpty(call.ToolCall.Args.Path, call.ToolCall.Args.TargetFile, call.ToolCall.Args.FilePath))
+			problem = fileProblem(cmp.Or(call.ToolCall.Args.Path, call.ToolCall.Args.TargetFile, call.ToolCall.Args.FilePath))
 		}
 		if problem == "" {
 			// Antigravityではauto_approveが確認を省略し、allowは既定の権限判定に委ねる。
