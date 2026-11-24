@@ -179,6 +179,7 @@ cd home/.hooks-src/block-signing-bypass && go test ./...
 
 - 呼び出し方向の方針: AntigravityからClaude Code･Codexを呼ぶこと、Claude CodeからCodexを呼ぶこと、CodexからClaude Codeを呼ぶことは許可する。Antigravityの`hooks.json`には登録しない。
 - コマンド位置にある実行対象(ラッパー、`bash -c`/`cmd /c`/`pwsh -Command`、コマンド置換`$(...)`の中も含む)と、Python/uv経由の`google.antigravity` SDK起動を止める。コミットメッセージや`grep`等の引数に`antigravity`や`agy`が含まれるだけのコマンドや、`command -v agy`は通す。
+- コマンドは`mvdan.cc/sh`でbashとして解析するので、`if`や関数、ループの中のコマンドも調べる。bashとして読めないコマンド(PowerShellやcmdの中身など)は、クォートを見ずに区切り記号と空白で分けて調べる。
 
 テストは`cd home/.hooks-src/block-antigravity && go test ./...`で動かす。
 

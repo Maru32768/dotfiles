@@ -14,6 +14,8 @@ import (
 	"os"
 	"regexp"
 	"strings"
+
+	"mvdan.cc/sh/v3/syntax"
 )
 
 const maxRecursionDepth = 8
@@ -22,364 +24,8 @@ var (
 	envAssignPattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*=`)
 	pythonNameRegex  = regexp.MustCompile(`^(?:python(?:\d+(?:\.\d+)*)?|py|uv|uvx|pipx)$`)
 	sdkRefPattern    = regexp.MustCompile(`(?i)\bgoogle[._-]antigravity\b`)
-	redirPrefixRegex = regexp.MustCompile(`^(?:\d+|&)?(?:>>?|<<?|[<>]&).*`)
+	dblQuoteEscape   = strings.NewReplacer(`\"`, `"`, `\\`, `\`, `\$`, `$`, "\\`", "`", "\\\n", "")
 )
-
-type parsedLine struct {
-	commands [][]string
-	embedded []string
-}
-
-type heredoc struct {
-	delimiter string
-	quoted    bool
-	stripTabs bool
-}
-
-func readHeredocDelimiter(input string) (heredoc, int) {
-	var doc heredoc
-	if !strings.HasPrefix(input, "<<") || strings.HasPrefix(input, "<<<") {
-		return doc, 0
-	}
-	i := 2
-	if i < len(input) && input[i] == '-' {
-		doc.stripTabs = true
-		i++
-	}
-	for i < len(input) && (input[i] == ' ' || input[i] == '\t') {
-		i++
-	}
-	start := i
-	var word strings.Builder
-	var quote byte
-	for ; i < len(input); i++ {
-		ch := input[i]
-		switch {
-		case quote == 0 && strings.ContainsRune(" \t\r\n;&|<>()", rune(ch)):
-			doc.delimiter = word.String()
-			if i == start {
-				return doc, 0
-			}
-			return doc, i
-		case quote == 0 && (ch == '\'' || ch == '"'):
-			quote = ch
-			doc.quoted = true
-		case quote == ch:
-			quote = 0
-		case ch == '\\' && quote != '\'' && i+1 < len(input):
-			next := input[i+1]
-			if quote == 0 || strings.ContainsRune("\"\\$\x60\n", rune(next)) {
-				i++
-				if next != '\n' {
-					word.WriteByte(next)
-					doc.quoted = true
-				}
-			} else {
-				word.WriteByte(ch)
-			}
-		default:
-			word.WriteByte(ch)
-		}
-	}
-	if i == start || quote != 0 {
-		return doc, 0
-	}
-	doc.delimiter = word.String()
-	return doc, i
-}
-
-func readHeredocs(input string, start int, pending []heredoc) (int, []string) {
-	var embedded []string
-	for _, doc := range pending {
-		bodyStart := start
-		for {
-			end := strings.IndexByte(input[start:], '\n')
-			if end < 0 {
-				end = len(input)
-			} else {
-				end += start
-			}
-			line := strings.TrimSuffix(input[start:end], "\r")
-			if doc.stripTabs {
-				line = strings.TrimLeft(line, "\t")
-			}
-			if line == doc.delimiter {
-				if !doc.quoted {
-					embedded = append(embedded, heredocSubstitutions(input[bodyStart:start])...)
-				}
-				start = min(end+1, len(input))
-				break
-			}
-			if end == len(input) {
-				return 0, nil
-			}
-			start = end + 1
-		}
-	}
-	return start, embedded
-}
-
-func heredocSubstitutions(body string) []string {
-	var embedded []string
-	for i := 0; i < len(body); i++ {
-		switch {
-		case body[i] == '\\':
-			i++
-		case strings.HasPrefix(body[i:], "$("):
-			sub, end := extractParenSub(body, i+2)
-			embedded = append(embedded, sub)
-			i = end - 1
-		case body[i] == 0x60:
-			sub, end := extractBacktickSub(body, i+1)
-			embedded = append(embedded, sub)
-			i = end - 1
-		}
-	}
-	return embedded
-}
-
-// parseCommands はシェルコマンド列をクォートを考慮して単純コマンド単位に分解し、
-// $(...) や `...` のコマンド置換の中身も再帰検査用に抜き出す。
-func parseCommands(input string) parsedLine {
-	var res parsedLine
-	var curCmd []string
-	var curTok strings.Builder
-	hasTok := false
-	var pending []heredoc
-
-	flushTok := func() {
-		if hasTok {
-			curCmd = append(curCmd, curTok.String())
-			curTok.Reset()
-			hasTok = false
-		}
-	}
-	flushCmd := func() {
-		flushTok()
-		if len(curCmd) > 0 {
-			res.commands = append(res.commands, curCmd)
-			curCmd = nil
-		}
-	}
-
-	inSingle := false
-	inDouble := false
-	n := len(input)
-
-	for i := 0; i < n; i++ {
-		ch := input[i]
-
-		if inSingle {
-			if ch == '\'' {
-				inSingle = false
-			} else {
-				curTok.WriteByte(ch)
-			}
-			continue
-		}
-
-		if inDouble {
-			if ch == '\\' && i+1 < n {
-				next := input[i+1]
-				if next == '"' || next == '\\' || next == '$' || next == '`' || next == '\n' {
-					curTok.WriteByte(next)
-					i++
-					continue
-				}
-			}
-			if ch == '"' {
-				inDouble = false
-				continue
-			}
-			if ch == '$' && i+1 < n && input[i+1] == '(' {
-				sub, end := extractParenSub(input, i+2)
-				res.embedded = append(res.embedded, sub)
-				curTok.WriteString(input[i:end])
-				i = end - 1
-				continue
-			}
-			if ch == '`' {
-				sub, end := extractBacktickSub(input, i+1)
-				res.embedded = append(res.embedded, sub)
-				curTok.WriteString(input[i:end])
-				i = end - 1
-				continue
-			}
-			curTok.WriteByte(ch)
-			continue
-		}
-
-		switch ch {
-		case ' ', '\t', '\r':
-			flushTok()
-		case '\n':
-			flushCmd()
-			if len(pending) > 0 {
-				if end, embedded := readHeredocs(input, i+1, pending); end > 0 {
-					res.embedded = append(res.embedded, embedded...)
-					i = end - 1
-				}
-				pending = nil
-			}
-		case ';', '(', ')':
-			flushCmd()
-		case '<':
-			if i == 0 || input[i-1] != '<' {
-				if doc, next := readHeredocDelimiter(input[i:]); next > 0 {
-					pending = append(pending, doc)
-					curTok.WriteString("<<" + doc.delimiter)
-					hasTok = true
-					i += next - 1
-					continue
-				}
-			}
-			hasTok = true
-			curTok.WriteByte(ch)
-		case '|', '&':
-			// リダイレクトの一部 (2>&1, &>, |&) はトークンとして残す
-			if ch == '&' && hasTok && strings.HasSuffix(curTok.String(), ">") {
-				curTok.WriteByte(ch)
-				continue
-			}
-			if ch == '&' && !hasTok && i+1 < n && input[i+1] == '>' {
-				hasTok = true
-				curTok.WriteString("&>")
-				i++
-				continue
-			}
-			if i+1 < n && input[i+1] == ch {
-				i++
-			}
-			flushCmd()
-		case '#':
-			if !hasTok {
-				// コメント行の末尾まで飛ばす
-				for i < n && input[i] != '\n' {
-					i++
-				}
-				i--
-			} else {
-				curTok.WriteByte(ch)
-			}
-		case '\'':
-			inSingle = true
-			hasTok = true
-		case '"':
-			inDouble = true
-			hasTok = true
-		case '\\':
-			if i+1 < n {
-				if input[i+1] == '\n' {
-					i++
-					continue
-				}
-				// Windows パスのバックスラッシュはそのまま保持し、空白や記号のエスケープだけ外す
-				next := input[i+1]
-				if next == ' ' || next == '\t' || next == '"' || next == '\'' || next == ';' || next == '|' || next == '&' || next == '\\' {
-					hasTok = true
-					curTok.WriteByte(next)
-					i++
-					continue
-				}
-			}
-			hasTok = true
-			curTok.WriteByte(ch)
-		case '$':
-			if i+1 < n && input[i+1] == '(' {
-				sub, end := extractParenSub(input, i+2)
-				res.embedded = append(res.embedded, sub)
-				hasTok = true
-				curTok.WriteString(input[i:end])
-				i = end - 1
-				continue
-			}
-			hasTok = true
-			curTok.WriteByte(ch)
-		case '`':
-			sub, end := extractBacktickSub(input, i+1)
-			res.embedded = append(res.embedded, sub)
-			hasTok = true
-			curTok.WriteString(input[i:end])
-			i = end - 1
-		default:
-			hasTok = true
-			curTok.WriteByte(ch)
-		}
-	}
-	flushCmd()
-	return res
-}
-
-func extractParenSub(s string, start int) (string, int) {
-	depth := 1
-	inSingle := false
-	inDouble := false
-	var pending []heredoc
-	for i := start; i < len(s); i++ {
-		ch := s[i]
-		if inSingle {
-			if ch == '\'' {
-				inSingle = false
-			}
-			continue
-		}
-		if inDouble {
-			if ch == '\\' && i+1 < len(s) {
-				i++
-				continue
-			}
-			if ch == '"' {
-				inDouble = false
-			}
-			continue
-		}
-		switch ch {
-		case '\\':
-			if i+1 < len(s) {
-				i++
-			}
-		case '\'':
-			inSingle = true
-		case '"':
-			inDouble = true
-		case '<':
-			if i == start || s[i-1] != '<' {
-				if doc, next := readHeredocDelimiter(s[i:]); next > 0 {
-					pending = append(pending, doc)
-					i += next - 1
-				}
-			}
-		case '\n':
-			if len(pending) > 0 {
-				if end, _ := readHeredocs(s, i+1, pending); end > 0 {
-					i = end - 1
-				}
-				pending = nil
-			}
-		case '(':
-			depth++
-		case ')':
-			depth--
-			if depth == 0 {
-				return s[start:i], i + 1
-			}
-		}
-	}
-	return s[start:], len(s)
-}
-
-func extractBacktickSub(s string, start int) (string, int) {
-	for i := start; i < len(s); i++ {
-		if s[i] == '\\' && i+1 < len(s) {
-			i++
-			continue
-		}
-		if s[i] == '`' {
-			return s[start:i], i + 1
-		}
-	}
-	return s[start:], len(s)
-}
 
 func normalizeCmdName(raw string) string {
 	s := strings.TrimSpace(raw)
@@ -402,27 +48,12 @@ func isAntigravityTarget(raw string) bool {
 	return base == "agy" || base == "antigravity" || base == "antigravity-cli"
 }
 
-// stripLeadingNoise はコマンド先頭にある環境変数代入やリダイレクトを除く。
-func stripLeadingNoise(args []string) []string {
+func stripEnvAssigns(args []string) []string {
 	i := 0
-	for i < len(args) {
-		tok := args[i]
-		if envAssignPattern.MatchString(tok) {
-			i++
-			continue
-		}
-		if redirPrefixRegex.MatchString(tok) {
-			// 単独の `>` / `>>` / `2>` などは次のトークン (ファイル名) も飛ばす
-			if tok == ">" || tok == ">>" || tok == "<" || tok == "&>" || tok == "1>" || tok == "2>" || tok == "2>>" {
-				i += 2
-			} else {
-				i++
-			}
-			continue
-		}
-		break
+	for i < len(args) && envAssignPattern.MatchString(args[i]) {
+		i++
 	}
-	return args[min(i, len(args)):]
+	return args[i:]
 }
 
 func checkSimpleCommand(args []string, depth int) string {
@@ -430,7 +61,7 @@ func checkSimpleCommand(args []string, depth int) string {
 		return ""
 	}
 	for {
-		args = stripLeadingNoise(args)
+		args = stripEnvAssigns(args)
 		if len(args) == 0 {
 			return ""
 		}
@@ -440,12 +71,6 @@ func checkSimpleCommand(args []string, depth int) string {
 
 		if isAntigravityTarget(raw) {
 			return "invoking Antigravity (" + raw + ")"
-		}
-
-		// PowerShell の呼び出し演算子 `&`
-		if raw == "&" {
-			args = rest
-			continue
 		}
 
 		switch base {
@@ -653,18 +278,56 @@ func commandProblemDepth(command string, depth int) string {
 	if depth > maxRecursionDepth {
 		return ""
 	}
-	parsed := parseCommands(command)
-	for _, cmd := range parsed.commands {
-		if problem := checkSimpleCommand(cmd, depth); problem != "" {
-			return problem
+	file, err := syntax.NewParser().Parse(strings.NewReader(command), "")
+	if err != nil {
+		// PowerShellやcmdの中身はbashとして読めない(`& C:\...\agy.exe`)。拒否すると
+		// それらを全部止め、通すと見逃すので、クォートを見ずに区切り記号と空白で分けて調べる。
+		for _, part := range strings.FieldsFunc(command, func(r rune) bool { return strings.ContainsRune(";&|()\n", r) }) {
+			args := strings.Fields(part)
+			for i := range args {
+				args[i] = strings.Trim(args[i], `"'`)
+			}
+			if problem := checkSimpleCommand(args, depth); problem != "" {
+				return problem
+			}
+		}
+		return ""
+	}
+	var problem string
+	syntax.Walk(file, func(node syntax.Node) bool {
+		if call, ok := node.(*syntax.CallExpr); ok && problem == "" {
+			args := make([]string, len(call.Args))
+			for i, word := range call.Args {
+				args[i] = wordText(command, word)
+			}
+			problem = checkSimpleCommand(args, depth)
+		}
+		return problem == ""
+	})
+	return problem
+}
+
+// wordTextは、クォートを外した語を返す。クォートの外のバックスラッシュは、
+// Windowsのパス(C:\Users\...)を壊さないように残す。
+func wordText(src string, word *syntax.Word) string {
+	var b strings.Builder
+	for _, part := range word.Parts {
+		switch part := part.(type) {
+		case *syntax.SglQuoted:
+			b.WriteString(part.Value)
+		case *syntax.DblQuoted:
+			for _, inner := range part.Parts {
+				if lit, ok := inner.(*syntax.Lit); ok {
+					b.WriteString(dblQuoteEscape.Replace(lit.Value))
+				} else {
+					b.WriteString(src[inner.Pos().Offset():inner.End().Offset()])
+				}
+			}
+		default:
+			b.WriteString(src[part.Pos().Offset():part.End().Offset()])
 		}
 	}
-	for _, sub := range parsed.embedded {
-		if problem := commandProblemDepth(sub, depth+1); problem != "" {
-			return problem
-		}
-	}
-	return ""
+	return b.String()
 }
 
 func commandProblem(command string) string {

@@ -51,6 +51,10 @@ var deniedCommands = []string{
 	"python -m google.antigravity",
 	"uv run --with google-antigravity script.py",
 	"uvx google-antigravity",
+	"if true; then agy -p hi; fi",
+	"run() { agy -p hi; }; run",
+	"while read -r line; do antigravity \"$line\"; done < list",
+	`agy -p "unterminated`,
 }
 
 var allowedCommands = []string{
@@ -85,6 +89,8 @@ var allowedCommands = []string{
 	"cat <",
 	"cat >",
 	"env -u",
+	"echo hi # agy -p hi",
+	`echo 'unterminated agy`,
 }
 
 func decide(t *testing.T, toolName, command string) bool {
