@@ -109,7 +109,7 @@ equals "行の無いラベルはMISSINGで1。後のラベルがOKでも1" "$(e 
 OK lint
 rc=1"
 e "$clog" run unit -- false
-equals "最新の行が失敗ならFAILEDで1" "$(e "$clog" check unit; echo "rc=$?")" "FAILED unit
+equals "最新の行が失敗ならFAILEDで1。通っていないので、何も知らせない" "$(e "$clog" check unit 2>&1; echo "rc=$?")" "FAILED unit
 rc=1"
 e "$clog" run unit -- true
 equals "失敗の後に、別のコマンドで成功すれば、最新の行が勝ってOK。何も知らせない" "$(e "$clog" check unit 2>&1; echo "rc=$?")" "OK unit
