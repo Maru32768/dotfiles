@@ -15,21 +15,16 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"unicode"
 
 	"mvdan.cc/sh/v3/syntax"
 )
-
-const looseSeparators = ";&|()`\n"
 
 var (
 	envAssignPattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*=`)
 	pythonNameRegex  = regexp.MustCompile(`^(?:python(?:\d+(?:\.\d+)*)?|py|uv|uvx|pipx)$`)
 	sdkRefPattern    = regexp.MustCompile(`(?i)\bgoogle[._-]antigravity\b`)
-	redirPrefixRegex = regexp.MustCompile(`^(?:\d+|&)?(?:>>?|<<?|[<>]&).*`)
-	// 行頭の#はコメント。"…"の中の`"はPowerShellのエスケープで、クォートを閉じない。
-	looseToken     = regexp.MustCompile(`#[^\n]*|(?:"(?:[^"\x60]|\x60(?s:.))*"?|'[^']*'?|[^\s"';&|()\x60]+)+|[;&|()\x60\n]`)
-	quoteMarks     = strings.NewReplacer(`"`, "", `'`, "")
-	dblQuoteEscape = strings.NewReplacer(`\"`, `"`, `\\`, `\`, `\$`, `$`, "\\`", "`", "\\\n", "")
+	dblQuoteEscape   = strings.NewReplacer(`\"`, `"`, `\\`, `\`, `\$`, `$`, "\\`", "`", "\\\n", "")
 )
 
 func normalizeCmdName(raw string) string {
@@ -53,33 +48,17 @@ func isAntigravityTarget(raw string) bool {
 	return base == "agy" || base == "antigravity" || base == "antigravity-cli"
 }
 
-// stripLeadingNoise はコマンド先頭にある環境変数代入やリダイレクトを除く。
-// 構文木の引数にリダイレクトは入らないが、bashとして読めずに空白で分けた入力には残る。
-func stripLeadingNoise(args []string) []string {
+func stripEnvAssigns(args []string) []string {
 	i := 0
-	for i < len(args) {
-		tok := args[i]
-		if envAssignPattern.MatchString(tok) {
-			i++
-			continue
-		}
-		if redirPrefixRegex.MatchString(tok) {
-			// 単独の `>` / `>>` / `2>` などは次のトークン (ファイル名) も飛ばす
-			if tok == ">" || tok == ">>" || tok == "<" || tok == "&>" || tok == "1>" || tok == "2>" || tok == "2>>" {
-				i += 2
-			} else {
-				i++
-			}
-			continue
-		}
-		break
+	for i < len(args) && envAssignPattern.MatchString(args[i]) {
+		i++
 	}
-	return args[min(i, len(args)):]
+	return args[i:]
 }
 
 func checkSimpleCommand(args []string) string {
 	for {
-		args = stripLeadingNoise(args)
+		args = stripEnvAssigns(args)
 		if len(args) == 0 {
 			return ""
 		}
@@ -295,24 +274,20 @@ func commandProblem(command string) string {
 	if err == nil || problem != "" {
 		return problem
 	}
-	// 残りは、PowerShellやcmdの中身(`& 'C:\Program Files\agy.exe'`)か、壊れたbash。拒否すると
-	// PowerShellなどを全部止め、通すと見逃すので、クォートの組と区切り記号と空白だけを見て分ける。
-	// `2>&1`の`&`で切らないように、リダイレクトの`&`を先に落とす。
-	var args []string
-	for _, tok := range looseToken.FindAllString(strings.NewReplacer(">&", ">", "&>", ">").Replace(command[end:]), -1) {
-		if strings.HasPrefix(tok, "#") {
-			continue
-		}
-		if len(tok) > 1 || !strings.Contains(looseSeparators, tok) {
-			args = append(args, quoteMarks.Replace(tok))
-			continue
-		}
-		if problem := checkSimpleCommand(args); problem != "" {
-			return problem
-		}
-		args = nil
+	// 残りは、PowerShellやcmdの中身(`& 'C:\Program Files\agy.exe'`)か、bashとして読めない部分。
+	// 3つの言語の字句を正しく読めないので、クォートも位置も見ずに、名前が1語でもあれば拒否する。
+	rest := command[end:]
+	if sdkRefPattern.MatchString(rest) {
+		return "running the Antigravity SDK"
 	}
-	return checkSimpleCommand(args)
+	for _, word := range strings.FieldsFunc(rest, func(r rune) bool {
+		return unicode.IsSpace(r) || strings.ContainsRune("\"'`;&|(){}[]<>=,$#@", r)
+	}) {
+		if isAntigravityTarget(word) {
+			return "invoking Antigravity (" + word + ")"
+		}
+	}
+	return ""
 }
 
 // wordTextは、クォートを外した語を返す。クォートの外のバックスラッシュは、

@@ -76,6 +76,18 @@ var deniedCommands = []string{
 	`pwsh -c "& C:\'Program Files'\agy.exe"`,
 	"env agy -S x",
 	"env agy --split-string=x",
+	`foreach ($f in $files) { Write-Host "v: $(agy -p $f)" }`,
+	`if ($true) { $v = "$(agy --version)" }`,
+	"cat <<EOF\n\"$(agy -p hi)\"",
+	`< in time echo "$(agy)"`,
+	">/dev/null time echo \"a\\`\"; agy -p hi",
+	`>/dev/null time echo "a\"b"; agy -p hi`,
+	"foreach ($u in $x) { Invoke-WebRequest https://example.com/doc#top; agy -p hi }",
+	"foreach ($f in $x) {# don't touch\n  agy -p hi\n}",
+	"<#\nit's a block comment\n#>\nagy -p hi",
+	"& { agy -p hi }",
+	`cmd /c "if exist x (echo #1) & agy"`,
+	"if true; then agy -p hi; cat <<EOF; fi\nbody",
 	"foreach ($f in $files) {  # don't touch\n  Write-Host $f\n}\nagy -p hi",
 	"foreach ($f in $files) {\n  Write-Host $f\n}\n# it's done\nagy -p hi",
 	"Write-Host \"a`\"b\"\nagy -p hi",
@@ -88,6 +100,11 @@ var deniedCommands = []string{
 	`cmd /c "agy" -p "unterminated`,
 	`bash -c "\"agy\" -p hi"`,
 	"bash -c \"echo \\`agy\\`\"",
+	// bashとして読めない入力は、引数に名前があるだけでも拒否する(docs/claude.md)。
+	`echo 'unterminated agy`,
+	`foreach ($f in $files) { git commit -m "docs; agy usage" }`,
+	`foreach ($f in Get-ChildItem) { Select-String -Path $f -Pattern "agy|antigravity" }`,
+	"foreach ($f in $files) {\n  Write-Host $f\n}\n# step 1; agy later\nWrite-Host done",
 }
 
 var allowedCommands = []string{
@@ -123,11 +140,7 @@ var allowedCommands = []string{
 	"cat >",
 	"env -u",
 	"echo hi # agy -p hi",
-	`echo 'unterminated agy`,
 	"cmd /c >",
-	`foreach ($f in $files) { git commit -m "docs; agy usage" }`,
-	`foreach ($f in Get-ChildItem) { Select-String -Path $f -Pattern "agy|antigravity" }`,
-	"foreach ($f in $files) {\n  Write-Host $f\n}\n# step 1; agy later\nWrite-Host done",
 	"mise run test -- agy",
 	`pwsh -c "Get-ChildItem | Where-Object { $_.Name -match 'agy' }"`,
 }
