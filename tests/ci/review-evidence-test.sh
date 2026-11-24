@@ -129,6 +129,13 @@ for _ in 1 2; do
   g checkout -q -- app.sh
 done
 check "落ちた実行がツリーを変えていても、戻して通れば知らせる" 'e "$clog" check debris 2>&1 >/dev/null | grep -q "debris failed on this worktree before it passed"'
+# 落ちた実行がツリーを変え、変わったままのツリーで通る。落ちたときとツリーが違うので、通った説明がつく
+for _ in 1 2; do
+  e "$clog" run moved -- sh -c '[ -e "$0" ] || { : > "$0"; echo z >> app.sh; exit 1; }' "$work/moved" 2> /dev/null
+done
+equals "別のツリーで始まって落ちた実行は、今のツリーで終わっていても、知らせない" "$(e "$clog" check moved 2>&1; echo "rc=$?")" "OK moved
+rc=0"
+g checkout -q -- app.sh
 # 今のツリーで落ち、別のツリー(未追跡のファイルがある)で通ってから、今のツリーに戻す
 e "$clog" run back -- test -e marker
 : > "$repo/marker"
@@ -145,7 +152,7 @@ rm -rf "$repo/nested"
 equals "実行の後の指紋が取れなかった記録は、ツリーを戻してもSTALEで1" "$(e "$clog" check nofp; echo "rc=$?")" "STALE nofp
 rc=1"
 check "コマンドがファイルを書き換えると、runがstderrで知らせる" 'e "$clog" run edit -- sh -c "echo z >> app.sh" 2>&1 >/dev/null | grep -q "the worktree changed while edit ran"'
-equals "コマンドがファイルを書き換えると、実行の前の指紋と比べてSTALEで1" "$(e "$clog" check edit; echo "rc=$?")" "STALE edit
+equals "コマンドがファイルを書き換えると、STALEで1" "$(e "$clog" check edit; echo "rc=$?")" "STALE edit
 rc=1"
 g checkout -q -- app.sh
 equals "実行の途中で変わったツリーは、中身を戻してもSTALEで1" "$(e "$clog" check edit; echo "rc=$?")" "STALE edit
