@@ -62,10 +62,12 @@ guard_file() {
 }
 
 # Starts from a copy of the real index so tracked files that match .gitignore stay in, and the stat cache keeps it fast.
+# The copy keeps the index's mtime: git rereads a file whose mtime is not older than the index, and a newer index
+# would make it trust the stat cache for a same-size edit made in the second the real index was written.
 fingerprint() {
   local tmp rc
   tmp=$(mktemp -d) || return
-  [ ! -f "$index" ] || cp "$index" "$tmp/index"
+  [ ! -f "$index" ] || cp -p "$index" "$tmp/index"
   GIT_INDEX_FILE="$tmp/index" git -C "$top" -c advice.addEmbeddedRepo=false add -A &&
     GIT_INDEX_FILE="$tmp/index" git -C "$top" write-tree
   rc=$?

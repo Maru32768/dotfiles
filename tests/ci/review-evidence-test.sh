@@ -150,6 +150,19 @@ rc=1"
 g checkout -q -- app.sh
 equals "実行の途中で変わったツリーは、中身を戻してもSTALEで1" "$(e "$clog" check edit; echo "rc=$?")" "STALE edit
 rc=1"
+# indexと同じ秒に、同じ大きさで書き換えたファイル。時刻を揃えてその秒を作る。ctimeは揃えられないので、gitに見させない
+racy="$work/racy"
+git init -q "$racy"
+git -C "$racy" config core.trustctime false
+printf 'aaaa\n' > "$racy/f.txt"
+touch -t 202001010000 "$racy/f.txt"
+git -C "$racy" add f.txt
+touch -r "$racy/f.txt" "$racy/.git/index"
+(cd "$racy" && bash "$ev" "$work/racy.tsv" run t -- true)
+printf 'bbbb\n' > "$racy/f.txt"
+touch -r "$racy/.git/index" "$racy/f.txt"
+equals "indexと同じ秒に同じ大きさで書き換えたファイルも、STALEで1" "$(cd "$racy" && bash "$ev" "$work/racy.tsv" check t; echo "rc=$?")" "STALE t
+rc=1"
 nlog="$work/number.tsv"
 e "$nlog" run 01 -- true
 equals "数値に見えるラベルも、文字列として比べる" "$(e "$nlog" check 01 1 1.0; echo "rc=$?")" "OK 01
