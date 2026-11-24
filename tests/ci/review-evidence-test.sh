@@ -445,11 +445,12 @@ check "linked worktreeの変更は、元の作業ツリーの指紋を変えな�
 
 # --- 差分を丸ごと戻す変異(references/mutation.md) ---
 # 文書のコマンドを読んで、そのまま回す。baseは分岐の後に進んでいる(wtのブランチが掛け算を変える)。
-# 変更は、既存のファイルへの追記と、新しいファイル
+# 変更は、既存のファイルへの追記と、新しいファイル(テキストとバイナリ)
 sed 's/\$1 \* \$2/$1 + $2/' "$repo/app.sh" > "$work/wt/app.sh"
 git -C "$work/wt" commit -q -am moved
 printf 'sub() { echo $(($1 - $2)); }\n' >> "$repo/app.sh"
 printf 'neg() { echo $((-$1)); }\n' > "$repo/extra.sh"
+printf '\0\1\2' > "$repo/blob.bin"
 printf '[ "$(sub 5 3)" = 2 ]\n' >> "$repo/test.sh"
 g add -A && g commit -q -m feature
 recipe=$(grep -m 1 '^git diff .*<base>' "$root/home/dot_agents/skills/review-loop/references/mutation.md")
