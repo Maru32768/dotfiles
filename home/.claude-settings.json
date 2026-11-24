@@ -6,7 +6,6 @@
     "claude-security@claude-plugins-official": true,
     "pstack@pstack-claude": true,
     "mattpocock-skills@mattpocock": true,
-    "humanizer@humanizer": true,
     "ronny@mcode-stack": true
   },
   "extraKnownMarketplaces": {
@@ -28,12 +27,6 @@
       "source": {
         "source": "git",
         "url": "https://github.com/mattpocock/skills.git"
-      }
-    },
-    "humanizer": {
-      "source": {
-        "source": "git",
-        "url": "https://github.com/blader/humanizer.git"
       }
     },
     "mcode-stack": {
