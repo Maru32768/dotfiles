@@ -118,6 +118,8 @@ e "$clog" run edit -- sh -c 'echo z >> app.sh'
 equals "コマンドがファイルを書き換えると、実行の前の指紋と比べてSTALEで1" "$(e "$clog" check edit; echo "rc=$?")" "STALE edit
 rc=1"
 g checkout -q -- app.sh
+equals "実行の途中で変わったツリーは、中身を戻してもSTALEで1" "$(e "$clog" check edit; echo "rc=$?")" "STALE edit
+rc=1"
 nlog="$work/number.tsv"
 e "$nlog" run 01 -- true
 equals "数値に見えるラベルも、文字列として比べる" "$(e "$nlog" check 01 1 1.0; echo "rc=$?")" "OK 01

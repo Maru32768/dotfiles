@@ -14,6 +14,9 @@
 # the commit they have checked out counts), and changes to files marked skip-worktree or assume-unchanged.
 #
 # run     Runs the command, records its exit code with the fingerprint from before it ran, and exits with that code.
+#         When the worktree is different after the command (it rewrote files, or something else switched the tree
+#         under it), the fingerprint is recorded as <before>><after>, which no worktree has, so check reports STALE
+#         even after the tree is put back.
 # check   Prints OK, MISSING, FAILED or STALE for the latest run of each label. Exits 0 only when all are OK.
 # table   Prints the latest runs on the current fingerprint as a Markdown table. Exits 1 when there are none.
 # mutate  Needs a clean worktree. Runs the command unmutated (the baseline), applies the patch, runs $MUTATE_BUILD
@@ -90,7 +93,7 @@ parse_command() {
 }
 
 run_cmd() {
-  local label=$1 before rc
+  local label=$1 before after rc
   valid_label "$label"
   [ "$label" != baseline ] || die "the label baseline is kept for mutate"
   shift
@@ -101,6 +104,11 @@ run_cmd() {
   before=$(fingerprint) || die "cannot compute the fingerprint"
   (command -- "${command[@]}")
   rc=$?
+  after=$(fingerprint) || after=unknown
+  if [ "$after" != "$before" ]; then
+    printf 'evidence.sh: the worktree changed while %s ran; check will report it STALE until it runs again\n' "$label" >&2
+    before="$before>$after"
+  fi
   record run "$label" "$rc" "$before"
   exit "$rc"
 }
