@@ -437,16 +437,26 @@ rc=1"
 check "linked worktreeの変更は、元の作業ツリーの指紋を変えない" same
 
 # --- 差分を丸ごと戻す変異(references/mutation.md) ---
-# 変更は、既存のファイルへの追記と、新しいファイル。戻すパッチは、テストを除いた差分を逆向きに取る
-base=$(g rev-parse HEAD)
+# 文書のコマンドを読んで、そのまま回す。baseは分岐の後に進んでいる(wtのブランチが掛け算を変える)。
+# 変更は、既存のファイルへの追記と、新しいファイル
+sed 's/\$1 \* \$2/$1 + $2/' "$repo/app.sh" > "$work/wt/app.sh"
+git -C "$work/wt" commit -q -am moved
 printf 'sub() { echo $(($1 - $2)); }\n' >> "$repo/app.sh"
 printf 'neg() { echo $((-$1)); }\n' > "$repo/extra.sh"
 printf '[ "$(sub 5 3)" = 2 ]\n' >> "$repo/test.sh"
 g add -A && g commit -q -m feature
-g diff --binary HEAD "$base" -- . ':(exclude)test.sh' > "$work/revert.patch"
+recipe=$(grep -m 1 '^git diff .*<base>' "$root/home/dot_agents/skills/review-loop/references/mutation.md")
+recipe=${recipe%% > *}
+recipe=${recipe//<base>/wt}
+recipe=${recipe//<テストのパス>/test.sh}
+(cd "$repo/sub" && eval "$recipe") > "$work/revert.patch"
+check "文書のコマンドが、サブディレクトリからでも、空でないパッチを作る" '[ -s "$work/revert.patch" ]'
 mutate revert > /dev/null 2>&1
 rc=$?
 equals "変更を確かめるコマンドは、差分を戻すとKilledで0" "$rc $(last 2-4 "$mlog")" "0 mutate	revert.patch	Killed"
+e "$mlog" mutate "$work/revert.patch" -- sh -c '. ./app.sh && [ "$(mul 2 3)" = 6 ]' > /dev/null 2>&1
+rc=$?
+equals "baseの側で進んだ変更は戻さないので、それを確かめるコマンドはSurvivedで1" "$rc $(last 2-4 "$mlog")" "1 mutate	revert.patch	Survived"
 check "差分を戻した後、作業ツリーがきれい" '[ -z "$(g status --porcelain)" ]'
 
 if [ "$failures" -gt 0 ]; then
