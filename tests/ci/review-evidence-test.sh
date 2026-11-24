@@ -115,7 +115,11 @@ e "$clog" run unit -- true
 equals "失敗の後に、別のコマンドで成功すれば、最新の行が勝ってOK。何も知らせない" "$(e "$clog" check unit 2>&1; echo "rc=$?")" "OK unit
 rc=0"
 # 1回目だけ落ちるコマンドを、同じ引数で2回回す
-for _ in 1 2; do e "$clog" run flaky -- sh -c '[ -e "$0" ] || { : > "$0"; exit 1; }' "$work/once"; done
+flaky=(sh -c '[ -e "$0" ] || { : > "$0"; exit 1; }' "$work/once")
+for _ in 1 2; do e "$clog" run flaky -- "${flaky[@]}"; done
+e "$clog" run twin -- "${flaky[@]}"
+equals "別のラベルで落ちた同じコマンドは、知らせない" "$(e "$clog" check twin 2>&1; echo "rc=$?")" "OK twin
+rc=0"
 equals "同じツリーで同じコマンドが落ちてから通っても、OKで0" "$(e "$clog" check flaky 2>/dev/null; echo "rc=$?")" "OK flaky
 rc=0"
 check "同じツリーで同じコマンドが落ちてから通ると、原因を書くよう知らせる" 'e "$clog" check flaky 2>&1 >/dev/null | grep -q "flaky failed on this worktree before it passed"'
