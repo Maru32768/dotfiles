@@ -283,7 +283,7 @@ func commandProblem(command string) string {
 		return "running the Antigravity SDK"
 	}
 	for _, word := range strings.FieldsFunc(rest, func(r rune) bool {
-		return unicode.IsSpace(r) || strings.ContainsRune("\"'`;&|(){}[]<>=,$#@", r)
+		return unicode.IsSpace(r) || strings.ContainsRune("\"'`;&|(){}[]<>=,$#@\\", r)
 	}) {
 		if isAntigravityTarget(word) {
 			return "invoking Antigravity (" + word + ")"

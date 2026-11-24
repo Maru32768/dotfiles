@@ -106,6 +106,8 @@ var deniedCommands = []string{
 	`bash -c agy\ -p\ hi`,
 	"time -- agy -p hi",
 	"time -p -- agy",
+	"for x (a b) agy\\\n  -p hi",
+	"< /dev/null time agy\\\n -p hi",
 	"foreach ($f in $files) {  # don't touch\n  Write-Host $f\n}\nagy -p hi",
 	"foreach ($f in $files) {\n  Write-Host $f\n}\n# it's done\nagy -p hi",
 	"Write-Host \"a`\"b\"\nagy -p hi",
