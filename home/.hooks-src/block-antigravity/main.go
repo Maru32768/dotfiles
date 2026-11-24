@@ -265,7 +265,7 @@ func skipSimpleFlags(args []string, takesArg map[string]bool) []string {
 
 // 入れ子の文字列(`bash -c`の引数など)は親より必ず短いので、再帰は深さを限らなくても終わる。
 func commandProblem(command string) string {
-	// bashは構文エラーの手前までに読み終えた文を実行するので、それらは構文木で調べる。
+	// bashは構文エラーのある行より前の行を実行するので、読み終えた文は構文木で調べる。
 	// mvdanの反復は途中でbreakするとpanicすることがあるので、最後まで回す。
 	// heredocの中身は後から文に入るので、読み終えてから調べる。
 	var stmts []*syntax.Stmt
