@@ -119,7 +119,13 @@ for _ in 1 2; do e "$clog" run flaky -- sh -c '[ -e "$0" ] || { : > "$0"; exit 1
 equals "同じツリーで同じコマンドが落ちてから通っても、OKで0" "$(e "$clog" check flaky 2>/dev/null; echo "rc=$?")" "OK flaky
 rc=0"
 check "同じツリーで同じコマンドが落ちてから通ると、原因を書くよう知らせる" 'e "$clog" check flaky 2>&1 >/dev/null | grep -q "flaky failed on this worktree before it passed"'
-e "$clog" run edit -- sh -c 'echo z >> app.sh'
+# 落ちるときにファイルを書き換えるコマンド。書き換えを戻して回し直すと通る
+for _ in 1 2; do
+  e "$clog" run debris -- sh -c '[ -e "$0" ] || { : > "$0"; echo z >> app.sh; exit 1; }' "$work/debris" 2> /dev/null
+  g checkout -q -- app.sh
+done
+check "落ちた実行がツリーを変えていても、戻して通れば知らせる" 'e "$clog" check debris 2>&1 >/dev/null | grep -q "debris failed on this worktree before it passed"'
+e "$clog" run edit -- sh -c 'echo z >> app.sh' 2> /dev/null
 equals "コマンドがファイルを書き換えると、実行の前の指紋と比べてSTALEで1" "$(e "$clog" check edit; echo "rc=$?")" "STALE edit
 rc=1"
 g checkout -q -- app.sh

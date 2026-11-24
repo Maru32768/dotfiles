@@ -115,10 +115,12 @@ run_cmd() {
   exit "$rc"
 }
 
-# Whether a run of label $1 with command $3 failed on fingerprint $2.
+# Whether a run of label $1 with command $3 failed after it started on fingerprint $2. A failing run that rewrote
+# files is recorded as <$2>><after>; it still counts once the files are put back and the next run passes.
 failed_on() {
-  L=$1 FP=$2 C=$3 awk -F'\t' '$2 == "run" && ($3 "") == (ENVIRON["L"] "") && ($5 "") == (ENVIRON["FP"] "") &&
-    ($6 "") == (ENVIRON["C"] "") && ($4 "") != "0" { f = 1 } END { exit !f }' "$src"
+  L=$1 FP=$2 C=$3 awk -F'\t' '$2 == "run" && ($3 "") == (ENVIRON["L"] "") && ($6 "") == (ENVIRON["C"] "") &&
+    ($4 "") != "0" && (($5 "") == (ENVIRON["FP"] "") || index($5, ENVIRON["FP"] ">") == 1) { f = 1 }
+    END { exit !f }' "$src"
 }
 
 check_cmd() {
