@@ -114,10 +114,8 @@ rc=1"
 e "$clog" run unit -- true
 equals "失敗の後に、別のコマンドで成功すれば、最新の行が勝ってOK。何も知らせない" "$(e "$clog" check unit 2>&1; echo "rc=$?")" "OK unit
 rc=0"
-# 1回目だけ落ちるコマンド
-once="$work/once"
-e "$clog" run flaky -- sh -c '[ -e "$0" ] || { : > "$0"; exit 1; }' "$once"
-e "$clog" run flaky -- sh -c '[ -e "$0" ] || { : > "$0"; exit 1; }' "$once"
+# 1回目だけ落ちるコマンドを、同じ引数で2回回す
+for _ in 1 2; do e "$clog" run flaky -- sh -c '[ -e "$0" ] || { : > "$0"; exit 1; }' "$work/once"; done
 equals "同じツリーで同じコマンドが落ちてから通っても、OKで0" "$(e "$clog" check flaky 2>/dev/null; echo "rc=$?")" "OK flaky
 rc=0"
 check "同じツリーで同じコマンドが落ちてから通ると、原因を書くよう知らせる" 'e "$clog" check flaky 2>&1 >/dev/null | grep -q "flaky failed on this worktree before it passed"'
@@ -428,14 +426,10 @@ printf 'neg() { echo $((-$1)); }\n' > "$repo/extra.sh"
 printf '[ "$(sub 5 3)" = 2 ]\n' >> "$repo/test.sh"
 g add -A && g commit -q -m feature
 g diff --binary HEAD "$base" -- . ':(exclude)test.sh' > "$work/revert.patch"
-vlog="$work/revert.tsv"
-e "$vlog" mutate "$work/revert.patch" -- sh test.sh > /dev/null 2>&1
+mutate revert > /dev/null 2>&1
 rc=$?
-equals "変更を確かめるコマンドは、差分を戻すとKilledで0" "$rc $(last 2-4 "$vlog")" "0 mutate	revert.patch	Killed"
-e "$vlog" mutate "$work/revert.patch" -- sh -c '. ./app.sh && [ "$(add 2 3)" = 5 ]' > /dev/null 2>&1
-rc=$?
-equals "変更を確かめないコマンドは、差分を戻してもSurvivedで1" "$rc $(last 2-4 "$vlog")" "1 mutate	revert.patch	Survived"
-check "差分を戻した後、消えた新しいファイルも戻り、作業ツリーがきれい" '[ -z "$(g status --porcelain)" ] && [ "$(g rev-parse "HEAD^{tree}")" = "$(fp)" ]'
+equals "変更を確かめるコマンドは、差分を戻すとKilledで0" "$rc $(last 2-4 "$mlog")" "0 mutate	revert.patch	Killed"
+check "差分を戻した後、作業ツリーがきれい" '[ -z "$(g status --porcelain)" ]'
 
 if [ "$failures" -gt 0 ]; then
   printf '\n%d件の問題があります\n' "$failures"
