@@ -63,6 +63,9 @@ var deniedCommands = []string{
 	"env -u FOO -S 'agy -p hi'",
 	"env --split-string='agy -p' hi",
 	"mise x node -- agy -p hi",
+	"env -S '-i' agy -p hi",
+	"env -S '-u FOO' agy -p hi",
+	"env --split-string=-i agy",
 }
 
 var allowedCommands = []string{

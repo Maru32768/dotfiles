@@ -113,12 +113,13 @@ func checkSimpleCommand(args []string) string {
 			rem := skipSimpleFlags(rest, map[string]bool{
 				"-u": true, "--unset": true, "-C": true, "--chdir": true, "-S": true, "--split-string": true,
 			})
+			// -Sで分けた語は、envのオプションとして読み直される(`env -S '-i' agy`)。
 			for i, f := range rest[:len(rest)-len(rem)] {
 				if f == "-S" || f == "--split-string" {
-					return commandProblem(strings.Join(rest[i+1:], " "))
+					return commandProblem("env " + strings.Join(rest[i+1:], " "))
 				}
 				if split, ok := strings.CutPrefix(f, "--split-string="); ok {
-					return commandProblem(strings.Join(append([]string{split}, rest[i+1:]...), " "))
+					return commandProblem("env " + strings.Join(append([]string{split}, rest[i+1:]...), " "))
 				}
 			}
 			args = rem
