@@ -9,7 +9,7 @@ description: 実装済みの差分を片づけてから、correctnessとテス�
 
 優先順位は、重要な欠陥の検出、誤検知による有害な修正の回避、費用の順。指摘が0件でも、正しさの証明ではない。何を見て、何を実行で確かめ、何を未検証で残したかを分けて報告する。
 
-モデル: ラウンドのレビュアーと1のサブエージェントはOpus(Agentツールに`model: "opus"`)。別レビューはFable(`model: "fable"`)とCodex(`gpt-6-astra`)。effortは指定しない。
+モデル: ラウンドのレビュアーと1のサブエージェントはOpus(Agentツールに`model: "opus"`)。呼んだスキルがサブエージェントのモデルを決めていれば(imos-humanizerのSonnetなど)、そちらに従う。別レビューはFable(`model: "fable"`)とCodex(`gpt-6-astra`)。effortは指定しない。
 
 ## 流れと停止条件
 
