@@ -64,15 +64,15 @@
 - [StrykerJS: Configuration / Incremental](https://stryker-mutator.io/docs/stryker-js/incremental/) — per-test coverage、差分実行、キャッシュの制限。**テスト依存の選択がいつでも完全であるとは限らない。**
 - [Anthropic: Finding bugs with Claude and property-based testing (2026-01)](https://www.anthropic.com/research/property-based-testing) — 性質の抽出と自動生成テストによる検証。生成した性質が仕様と一致するかは別途確認が要る。
 - [TestSuiteBench (2026-10)](https://arxiv.org/abs/2610.13065) — LLM生成テストの実行成功とmutation検出能力の差。
-- [How effective are traditional test criteria at detecting bugs in large language models generated code? (2026-09)](https://arxiv.org/abs/2609.09315) — LLMが書いたテストは、欠陥を約33%で踏むが、検出は1〜2%。期待値を仕様から作り直すと、最もよい場合で1%から28.6%に上がる。mutationを満たすテストは、カバレッジを満たすテストをわずかに上回るだけ。**関数の水準の課題と、小さいモデルでの結果。**
-- [On the Risks of using LLM-Generated Tests for Regression Testing (2026-10)](https://arxiv.org/abs/2610.11835) — 145件のPRで、生成した回帰テストの8〜17%が、欠陥のある振る舞いを期待値にしていた。欠陥を見つけるテストは2.4〜4.8%。
-- [On the risk of coding before testing (2026-07)](https://arxiv.org/abs/2607.05139) — 欠陥のあるコードを見てから作ったテストは欠陥の14%を、見ずに作ったテストは25%を検出した。
-- [Validation Evidence in LLM Repair Agents (2026-07)](https://arxiv.org/abs/2607.28871) — 修正のエージェントで、通った検証の46.0%は、直す前と後のコードを区別しない。**区別を促す介入の効果(7.8ポイント)は、著者が先に決めた意味のある大きさ(10ポイント)に届いていない。**
-- [Meta: Just-in-Time Catching Test Generation (2026-01)](https://arxiv.org/abs/2601.22832) — 差分そのものを変異とみなして、親のコミットと区別するテストを作る。技術者に報告した41件のうち、本物は8件。
-- [Test Coverage Analysis of Agentic Pull Requests (2026-07)](https://arxiv.org/abs/2607.18057) — エージェントのPR 4,882件で、エラー処理(tryとcatch)の変更は、Javaの86.0%、Pythonの81.0%がテストに実行されない。
-- [PROBE (2026-10)](https://arxiv.org/abs/2610.35987) — エージェントの指摘のうち、対応すべき入力の扱いの欠落は8%。メンテナが直した欠陥では18%。**リポジトリ全体から欠陥を探す課題で、差分のレビューではない。**
-- [Maintaining Benchmarks Against Increasingly Capable Agents (2026-09)](https://arxiv.org/abs/2609.34262) — 通った実行3,810件から、検査をすり抜けて通したものを数えた。検査の側を直すと、すり抜けは届かなくなった。**モデルの間の比較は、条件を揃えていない。**
-- [The Range Shrinks, the Threat Remains (2026-11のv4)](https://arxiv.org/abs/2605.17062) — 2026年のモデル5つで、挙げたパッケージ名の3.6〜5.0%が実在しない。**査読の無い、1人の著者の再現。**
-- [ENISA: Technical Advisory on AI-assisted software development、draft v0.4 (2026-09)](https://www.enisa.europa.eu/sites/default/files/2026-09/ENISA%20Technical%20Advisory-AI-assisted-software-development-draft.pdf) — 依存の追加、ロックファイルの変更、CI/CDの変更は、受け入れる前にレビューか承認を求める。**草案。**
-- [Anthropic: 評価環境がインターネットに届いていた3件の調査 (2026-07)](https://www.anthropic.com/news/investigating-incidents-cybersecurity-evals) — 外に出られないはずの評価環境が、設定の誤りで外に届いていた。
-- [claude.dev: How the Claude Code team thinks about verification (2026-11)](https://claude.dev/blog/how-the-claude-code-team-thinks-about-verification/) — 不安定なテストを、skip、sleep、再試行で済ませない。**運用の紹介で、効果の測定は無い。**
+- [How effective are traditional test criteria at detecting bugs in large language models generated code? (2026-09)](https://arxiv.org/abs/2609.09315) — LLMが書いたテストが欠陥を踏む割合と検出する割合、期待値を仕様から作り直した効果、mutationとカバレッジの基準の比較。**関数の水準の課題と、小さいモデルでの結果。**
+- [On the Risks of using LLM-Generated Tests for Regression Testing (2026-10)](https://arxiv.org/abs/2610.11835) — 145件のPRで、生成した回帰テストが欠陥のある振る舞いを期待値にする割合と、欠陥を見つける割合。
+- [On the risk of coding before testing (2026-07)](https://arxiv.org/abs/2607.05139) — 欠陥のあるコードを見てから作ったテストと、見ずに作ったテストの検出率。
+- [Validation Evidence in LLM Repair Agents (2026-07)](https://arxiv.org/abs/2607.28871) — 修正のエージェントで、通った検証が直す前と後のコードを区別するか。**区別を促す介入の効果(7.8ポイント)は、著者が先に決めた意味のある大きさ(10ポイント)に届いていない。**
+- [Meta: Just-in-Time Catching Test Generation (2026-01)](https://arxiv.org/abs/2601.22832) — 差分そのものを変異とみなして、親のコミットと区別するテストを作る。技術者に報告した41件の精度。
+- [Test Coverage Analysis of Agentic Pull Requests (2026-07)](https://arxiv.org/abs/2607.18057) — エージェントのPR 4,882件で、エラー処理(tryとcatch)の変更がテストに実行される割合(JavaとPython)。
+- [PROBE (2026-10)](https://arxiv.org/abs/2610.35987) — エージェントの指摘と、メンテナが直した欠陥に占める、対応すべき入力の扱いの欠落の割合。**リポジトリ全体から欠陥を探す課題で、差分のレビューではない。**
+- [Maintaining Benchmarks Against Increasingly Capable Agents (2026-09)](https://arxiv.org/abs/2609.34262) — 通った実行3,810件から、検査をすり抜けて通したものを数えた。**モデルの間の比較は、条件を揃えていない。**
+- [The Range Shrinks, the Threat Remains (2026-11のv4)](https://arxiv.org/abs/2605.17062) — 2026年のモデル5つで、挙げたパッケージ名が実在するか。**査読の無い、1人の著者の再現。**
+- [ENISA: Technical Advisory on AI-assisted software development、draft v0.4 (2026-09)](https://www.enisa.europa.eu/sites/default/files/2026-09/ENISA%20Technical%20Advisory-AI-assisted-software-development-draft.pdf) — 依存、ロックファイル、CI/CDの変更を受け入れる前の、レビューと承認。**草案。**
+- [Anthropic: 評価環境がインターネットに届いていた3件の調査(2026-07)](https://www.anthropic.com/news/investigating-incidents-cybersecurity-evals) — 外に出られないはずの評価環境が、外に届いた3件の原因。
+- [claude.dev: How the Claude Code team thinks about verification (2026-11)](https://claude.dev/blog/how-the-claude-code-team-thinks-about-verification/) — 不安定なテストの扱いを含む、検証の運用。**運用の紹介で、効果の測定は無い。**
