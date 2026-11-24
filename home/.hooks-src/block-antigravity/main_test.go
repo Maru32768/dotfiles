@@ -81,6 +81,10 @@ var allowedCommands = []string{
 	"cat <<''\nagy --help\n\n",
 	"0<<'EOF' cat\nagy --help\nEOF",
 	"printf '%s\\n' \"$(cat <<'EOF'\n)\nagy --help\nEOF\n)\"",
+	"diff <(jq -S . a.json) <(jq -S . b.json) && echo same",
+	"cat <",
+	"cat >",
+	"env -u",
 }
 
 func decide(t *testing.T, toolName, command string) bool {

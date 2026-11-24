@@ -422,7 +422,7 @@ func stripLeadingNoise(args []string) []string {
 		}
 		break
 	}
-	return args[i:]
+	return args[min(i, len(args)):]
 }
 
 func checkSimpleCommand(args []string, depth int) string {
@@ -506,7 +506,7 @@ func checkSimpleCommand(args []string, depth int) string {
 				}
 				break
 			}
-			args = rest[i:]
+			args = rest[min(i, len(rest)):]
 			continue
 		case "sudo":
 			args = skipSimpleFlags(rest, map[string]bool{
