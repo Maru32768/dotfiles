@@ -144,7 +144,7 @@ e "$clog" run nofp -- git init -q nested 2> /dev/null
 rm -rf "$repo/nested"
 equals "実行の後の指紋が取れなかった記録は、ツリーを戻してもSTALEで1" "$(e "$clog" check nofp; echo "rc=$?")" "STALE nofp
 rc=1"
-e "$clog" run edit -- sh -c 'echo z >> app.sh' 2> /dev/null
+check "コマンドがファイルを書き換えると、runがstderrで知らせる" 'e "$clog" run edit -- sh -c "echo z >> app.sh" 2>&1 >/dev/null | grep -q "the worktree changed while edit ran"'
 equals "コマンドがファイルを書き換えると、実行の前の指紋と比べてSTALEで1" "$(e "$clog" check edit; echo "rc=$?")" "STALE edit
 rc=1"
 g checkout -q -- app.sh
