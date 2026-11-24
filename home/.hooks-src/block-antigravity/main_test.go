@@ -66,6 +66,9 @@ var deniedCommands = []string{
 	"env -S '-i' agy -p hi",
 	"env -S '-u FOO' agy -p hi",
 	"env --split-string=-i agy",
+	`pwsh -c "& 'C:\Program Files\agy.exe' -p hi"`,
+	`pwsh -c "& 'C:\Program Files (x86)\Antigravity\agy.exe'"`,
+	`cmd /c "agy" -p "unterminated`,
 }
 
 var allowedCommands = []string{
@@ -102,6 +105,7 @@ var allowedCommands = []string{
 	"env -u",
 	"echo hi # agy -p hi",
 	`echo 'unterminated agy`,
+	`pwsh -c "Get-ChildItem | Where-Object { $_.Name -match 'agy' }"`,
 }
 
 func decide(t *testing.T, toolName, command string) bool {

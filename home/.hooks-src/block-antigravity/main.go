@@ -24,6 +24,8 @@ var (
 	pythonNameRegex  = regexp.MustCompile(`^(?:python(?:\d+(?:\.\d+)*)?|py|uv|uvx|pipx)$`)
 	sdkRefPattern    = regexp.MustCompile(`(?i)\bgoogle[._-]antigravity\b`)
 	redirPrefixRegex = regexp.MustCompile(`^(?:\d+|&)?(?:>>?|<<?|[<>]&).*`)
+	looseToken       = regexp.MustCompile(`(?:"[^"]*"?|'[^']*'?|[^\s"';&|()]+)+|[;&|()\n]`)
+	quoteMarks       = strings.NewReplacer(`"`, "", `'`, "")
 	dblQuoteEscape   = strings.NewReplacer(`\"`, `"`, `\\`, `\`, `\$`, `$`, "\\`", "`", "\\\n", "")
 )
 
@@ -262,20 +264,21 @@ func skipSimpleFlags(args []string, takesArg map[string]bool) []string {
 func commandProblem(command string) string {
 	file, err := syntax.NewParser().Parse(strings.NewReader(command), "")
 	if err != nil {
-		// PowerShellやcmdの中身はbashとして読めない(`& C:\...\agy.exe`)。拒否すると
-		// それらを全部止め、通すと見逃すので、クォートを見ずに区切り記号と空白で分けて調べる。
+		// PowerShellやcmdの中身はbashとして読めない(`& 'C:\Program Files\agy.exe'`)。拒否すると
+		// それらを全部止め、通すと見逃すので、クォートの組と区切り記号と空白だけを見て分ける。
 		// `2>&1`の`&`で切らないように、リダイレクトの`&`を先に落とす。
-		command = strings.NewReplacer(">&", ">", "&>", ">").Replace(command)
-		for _, part := range strings.FieldsFunc(command, func(r rune) bool { return strings.ContainsRune(";&|()\n", r) }) {
-			args := strings.Fields(part)
-			for i := range args {
-				args[i] = strings.Trim(args[i], `"'`)
+		var args []string
+		for _, tok := range looseToken.FindAllString(strings.NewReplacer(">&", ">", "&>", ">").Replace(command), -1) {
+			if len(tok) > 1 || !strings.Contains(";&|()\n", tok) {
+				args = append(args, quoteMarks.Replace(tok))
+				continue
 			}
 			if problem := checkSimpleCommand(args); problem != "" {
 				return problem
 			}
+			args = nil
 		}
-		return ""
+		return checkSimpleCommand(args)
 	}
 	var problem string
 	syntax.Walk(file, func(node syntax.Node) bool {
