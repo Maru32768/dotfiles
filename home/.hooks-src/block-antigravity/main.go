@@ -24,7 +24,7 @@ var (
 	envAssignPattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*=`)
 	pythonNameRegex  = regexp.MustCompile(`^(?:python(?:\d+(?:\.\d+)*)?|py|uv|uvx|pipx)$`)
 	sdkRefPattern    = regexp.MustCompile(`(?i)\bgoogle[._-]antigravity\b`)
-	litEscape        = regexp.MustCompile(`\\([^\w.\-])`)
+	litEscape        = regexp.MustCompile(`\\([^A-Za-z0-9])`)
 	dblQuoteEscape   = strings.NewReplacer(`\"`, `"`, `\\`, `\`, `\$`, `$`, "\\`", "`", "\\\n", "")
 )
 
@@ -293,7 +293,7 @@ func commandProblem(command string) string {
 }
 
 // wordTextは、クォートを外した語を返す。クォートの外のバックスラッシュは、
-// Windowsのパス(C:\Users\...)を壊さないように、英数字と`.`、`_`、`-`の前では残す。
+// Windowsのパス(C:\Users\...)の名前の前の区切りを残すように、英数字の前では残す。
 func wordText(src string, word *syntax.Word) string {
 	var b strings.Builder
 	for _, part := range word.Parts {
