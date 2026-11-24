@@ -13,12 +13,11 @@ import (
 	"io"
 	"os"
 	"regexp"
+	"slices"
 	"strings"
 
 	"mvdan.cc/sh/v3/syntax"
 )
-
-const maxRecursionDepth = 8
 
 var (
 	envAssignPattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*=`)
@@ -73,10 +72,7 @@ func stripLeadingNoise(args []string) []string {
 	return args[min(i, len(args)):]
 }
 
-func checkSimpleCommand(args []string, depth int) string {
-	if depth > maxRecursionDepth {
-		return ""
-	}
+func checkSimpleCommand(args []string) string {
 	for {
 		args = stripLeadingNoise(args)
 		if len(args) == 0 {
@@ -114,41 +110,18 @@ func checkSimpleCommand(args []string, depth int) string {
 			args = skipSimpleFlags(rest, map[string]bool{"-a": true})
 			continue
 		case "env":
-			i := 0
-			for i < len(rest) {
-				f := rest[i]
-				if f == "--" {
-					i++
-					break
-				}
+			rem := skipSimpleFlags(rest, map[string]bool{
+				"-u": true, "--unset": true, "-C": true, "--chdir": true, "-S": true, "--split-string": true,
+			})
+			for i, f := range rest[:len(rest)-len(rem)] {
 				if f == "-S" || f == "--split-string" {
-					if i+1 < len(rest) {
-						if prob := commandProblemDepth(rest[i+1], depth+1); prob != "" {
-							return prob
-						}
-						i += 2
-						continue
-					}
-					break
+					return commandProblem(strings.Join(rest[i+1:], " "))
 				}
-				if strings.HasPrefix(f, "--split-string=") {
-					if prob := commandProblemDepth(strings.TrimPrefix(f, "--split-string="), depth+1); prob != "" {
-						return prob
-					}
-					i++
-					continue
+				if split, ok := strings.CutPrefix(f, "--split-string="); ok {
+					return commandProblem(strings.Join(append([]string{split}, rest[i+1:]...), " "))
 				}
-				if f == "-u" || f == "--unset" || f == "-C" || f == "--chdir" {
-					i += 2
-					continue
-				}
-				if strings.HasPrefix(f, "-") || envAssignPattern.MatchString(f) {
-					i++
-					continue
-				}
-				break
 			}
-			args = rest[min(i, len(rest)):]
+			args = rem
 			continue
 		case "sudo":
 			args = skipSimpleFlags(rest, map[string]bool{
@@ -175,22 +148,16 @@ func checkSimpleCommand(args []string, depth int) string {
 			})
 			continue
 		case "mise":
-			if len(rest) > 0 && (rest[0] == "exec" || rest[0] == "x") {
-				for i := 1; i < len(rest); i++ {
-					if rest[i] == "--" {
-						args = rest[i+1:]
-						goto nextIter
-					}
-				}
+			if i := slices.Index(rest, "--"); i >= 0 && (rest[0] == "exec" || rest[0] == "x") {
+				args = rest[i+1:]
+				continue
 			}
 			return ""
 		case "op-run":
 			// `op-run <vault> -- <cmd...>` または `op-run <vault> <cmd...>`
-			for i := 0; i < len(rest); i++ {
-				if rest[i] == "--" {
-					args = rest[i+1:]
-					goto nextIter
-				}
+			if i := slices.Index(rest, "--"); i >= 0 {
+				args = rest[i+1:]
+				continue
 			}
 			rem := skipSimpleFlags(rest, nil)
 			if len(rem) > 1 {
@@ -206,7 +173,7 @@ func checkSimpleCommand(args []string, depth int) string {
 				}
 				if f == "-c" || (strings.HasPrefix(f, "-") && !strings.HasPrefix(f, "--") && strings.Contains(f[1:], "c")) {
 					if i+1 < len(rest) {
-						return commandProblemDepth(rest[i+1], depth+1)
+						return commandProblem(rest[i+1])
 					}
 				}
 			}
@@ -216,7 +183,7 @@ func checkSimpleCommand(args []string, depth int) string {
 				fl := strings.ToLower(rest[i])
 				if fl == "/c" || fl == "/k" {
 					if i+1 < len(rest) {
-						return commandProblemDepth(strings.Join(rest[i+1:], " "), depth+1)
+						return commandProblem(strings.Join(rest[i+1:], " "))
 					}
 				}
 			}
@@ -226,7 +193,7 @@ func checkSimpleCommand(args []string, depth int) string {
 				fl := strings.ToLower(rest[i])
 				if fl == "-c" || fl == "-command" {
 					if i+1 < len(rest) {
-						return commandProblemDepth(strings.Join(rest[i+1:], " "), depth+1)
+						return commandProblem(strings.Join(rest[i+1:], " "))
 					}
 				}
 			}
@@ -265,7 +232,6 @@ func checkSimpleCommand(args []string, depth int) string {
 			return ""
 		}
 
-	nextIter:
 	}
 }
 
@@ -279,7 +245,7 @@ func skipSimpleFlags(args []string, takesArg map[string]bool) []string {
 		if !strings.HasPrefix(f, "-") || f == "-" {
 			break
 		}
-		if takesArg != nil && takesArg[f] {
+		if takesArg[f] {
 			i += 2
 			continue
 		}
@@ -291,10 +257,8 @@ func skipSimpleFlags(args []string, takesArg map[string]bool) []string {
 	return args[i:]
 }
 
-func commandProblemDepth(command string, depth int) string {
-	if depth > maxRecursionDepth {
-		return ""
-	}
+// 入れ子の文字列(`bash -c`の引数など)は親より必ず短いので、再帰は深さを限らなくても終わる。
+func commandProblem(command string) string {
 	file, err := syntax.NewParser().Parse(strings.NewReader(command), "")
 	if err != nil {
 		// PowerShellやcmdの中身はbashとして読めない(`& C:\...\agy.exe`)。拒否すると
@@ -306,7 +270,7 @@ func commandProblemDepth(command string, depth int) string {
 			for i := range args {
 				args[i] = strings.Trim(args[i], `"'`)
 			}
-			if problem := checkSimpleCommand(args, depth); problem != "" {
+			if problem := checkSimpleCommand(args); problem != "" {
 				return problem
 			}
 		}
@@ -319,7 +283,7 @@ func commandProblemDepth(command string, depth int) string {
 			for i, word := range call.Args {
 				args[i] = wordText(command, word)
 			}
-			problem = checkSimpleCommand(args, depth)
+			problem = checkSimpleCommand(args)
 		}
 		return problem == ""
 	})
@@ -347,10 +311,6 @@ func wordText(src string, word *syntax.Word) string {
 		}
 	}
 	return b.String()
-}
-
-func commandProblem(command string) string {
-	return commandProblemDepth(command, 0)
 }
 
 type toolCall struct {

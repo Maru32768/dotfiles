@@ -59,6 +59,10 @@ var deniedCommands = []string{
 	"xargs <<'EOF' agy",
 	"< in time agy -p hi",
 	"2>&1 nohup agy -p hi <<EOF",
+	"cmd /c cmd /c cmd /c cmd /c cmd /c cmd /c cmd /c cmd /c cmd /c cmd /c agy",
+	"env -u FOO -S 'agy -p hi'",
+	"env --split-string='agy -p' hi",
+	"mise x node -- agy -p hi",
 }
 
 var allowedCommands = []string{
