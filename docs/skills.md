@@ -58,6 +58,7 @@ bash ~/.agents/skills/imos-humanizer/scripts/fetch-rules.sh --check
 - **コミットで固定する:** スキルはエージェントへの指示なので、知らないうちに中身が変わらないようにする。
 - **中身を複製しない:** 第三者のファイルを公開リポジトリに載せない。
 - **`exact`:** 上流で消えたファイルは手元からも消える。手で足したファイルも次の `chezmoi apply` で消える。
+- **一覧を`skillOverrides`で絞らない:** `skillOverrides`はプラグインのスキルに効かない。スキルの一覧が予算(コンテキストウィンドウの1%)を超えると、Claude Codeは呼ばれていないスキルの説明から落とすので、機械ごとに、よく使うスキルの説明が残る。同じ仕事のスキルが2つあるときは、片方を入れない。
 
 `npx skills add` や `npx skills update` で、ここにあるスキルを入れ直さない。次の `chezmoi apply` で上書きされる。`doctor` では「chezmoi の管理ファイルに差分がない」が失敗する。
 
