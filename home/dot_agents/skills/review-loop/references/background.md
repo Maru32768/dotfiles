@@ -69,10 +69,12 @@
 - [On the risk of coding before testing (2026-07)](https://arxiv.org/abs/2607.05139) — 欠陥のあるコードを見てから作ったテストと、見ずに作ったテストの検出率。
 - [Validation Evidence in LLM Repair Agents (2026-07)](https://arxiv.org/abs/2607.28871) — 修正のエージェントで、通った検証が直す前と後のコードを区別するか。**区別を促す介入の効果(7.8ポイント)は、著者が先に決めた意味のある大きさ(10ポイント)に届いていない。**
 - [Meta: Just-in-Time Catching Test Generation (2026-01)](https://arxiv.org/abs/2601.22832) — 差分そのものを変異とみなして、親のコミットと区別するテストを作る。技術者に報告した41件の精度。
+- [Building to the Test (2026-06)](https://arxiv.org/abs/2606.28430) — 検査用のテストを実行できるようにしたエージェントが、頼まれた成果物を作るか。**1つの課題での18回の実行。**
+- [Beyond Coverage and Mutation (2026-10)](https://arxiv.org/abs/2610.32548) — 4つのLLMが書いたテスト14,320件が、null、負、空の引数と、catchの経路を試す割合。**Javaのベンチマーク。**
 - [Test Coverage Analysis of Agentic Pull Requests (2026-07)](https://arxiv.org/abs/2607.18057) — エージェントのPR 4,882件で、エラー処理(tryとcatch)の変更がテストに実行される割合(JavaとPython)。
 - [PROBE (2026-10)](https://arxiv.org/abs/2610.35987) — エージェントの指摘と、メンテナが直した欠陥に占める、対応すべき入力の扱いの欠落の割合。**リポジトリ全体から欠陥を探す課題で、差分のレビューではない。**
 - [Maintaining Benchmarks Against Increasingly Capable Agents (2026-09)](https://arxiv.org/abs/2609.34262) — 通った実行3,810件から、検査をすり抜けて通したものを数えた。**モデルの間の比較は、条件を揃えていない。**
 - [The Range Shrinks, the Threat Remains (2026-11のv4)](https://arxiv.org/abs/2605.17062) — 2026年のモデル5つで、挙げたパッケージ名が実在するか。**査読の無い、1人の著者の再現。**
-- [ENISA: Technical Advisory on AI-assisted software development、draft v0.4 (2026-09)](https://www.enisa.europa.eu/sites/default/files/2026-09/ENISA%20Technical%20Advisory-AI-assisted-software-development-draft.pdf) — 依存、ロックファイル、CI/CDの変更を受け入れる前の、レビューと承認。**草案。**
+- [ENISA: Technical Advisory on AI-assisted software development、draft v0.4 (2026-09)](https://www.enisa.europa.eu/sites/default/files/2026-09/ENISA%20Technical%20Advisory-AI-assisted-software-development-draft.pdf) — 依存、ロックファイル、CI/CDの変更を受け入れる前の、レビューか承認。**草案。**
 - [Anthropic: 評価環境がインターネットに届いていた3件の調査(2026-07)](https://www.anthropic.com/news/investigating-incidents-cybersecurity-evals) — 外に出られないはずの評価環境が、外に届いた3件の原因。
 - [claude.dev: How the Claude Code team thinks about verification (2026-11)](https://claude.dev/blog/how-the-claude-code-team-thinks-about-verification/) — 不安定なテストの扱いを含む、検証の運用。**運用の紹介で、効果の測定は無い。**
