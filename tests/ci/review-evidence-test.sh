@@ -420,6 +420,23 @@ equals "linked worktreeの変更でSTALEになる" "$(cd "$work/wt" && bash "$ev
 rc=1"
 check "linked worktreeの変更は、元の作業ツリーの指紋を変えない" same
 
+# --- 差分を丸ごと戻す変異(references/mutation.md) ---
+# 変更は、既存のファイルへの追記と、新しいファイル。戻すパッチは、テストを除いた差分を逆向きに取る
+base=$(g rev-parse HEAD)
+printf 'sub() { echo $(($1 - $2)); }\n' >> "$repo/app.sh"
+printf 'neg() { echo $((-$1)); }\n' > "$repo/extra.sh"
+printf '[ "$(sub 5 3)" = 2 ]\n' >> "$repo/test.sh"
+g add -A && g commit -q -m feature
+g diff --binary HEAD "$base" -- . ':(exclude)test.sh' > "$work/revert.patch"
+vlog="$work/revert.tsv"
+e "$vlog" mutate "$work/revert.patch" -- sh test.sh > /dev/null 2>&1
+rc=$?
+equals "変更を確かめるコマンドは、差分を戻すとKilledで0" "$rc $(last 2-4 "$vlog")" "0 mutate	revert.patch	Killed"
+e "$vlog" mutate "$work/revert.patch" -- sh -c '. ./app.sh && [ "$(add 2 3)" = 5 ]' > /dev/null 2>&1
+rc=$?
+equals "変更を確かめないコマンドは、差分を戻してもSurvivedで1" "$rc $(last 2-4 "$vlog")" "1 mutate	revert.patch	Survived"
+check "差分を戻した後、消えた新しいファイルも戻り、作業ツリーがきれい" '[ -z "$(g status --porcelain)" ] && [ "$(g rev-parse "HEAD^{tree}")" = "$(fp)" ]'
+
 if [ "$failures" -gt 0 ]; then
   printf '\n%d件の問題があります\n' "$failures"
   exit 1
