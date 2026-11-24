@@ -26,9 +26,10 @@ var (
 	pythonNameRegex  = regexp.MustCompile(`^(?:python(?:\d+(?:\.\d+)*)?|py|uv|uvx|pipx)$`)
 	sdkRefPattern    = regexp.MustCompile(`(?i)\bgoogle[._-]antigravity\b`)
 	redirPrefixRegex = regexp.MustCompile(`^(?:\d+|&)?(?:>>?|<<?|[<>]&).*`)
-	looseToken       = regexp.MustCompile(`(?:"[^"]*"?|'[^']*'?|[^\s"';&|()\x60]+)+|[;&|()\x60\n]`)
-	quoteMarks       = strings.NewReplacer(`"`, "", `'`, "")
-	dblQuoteEscape   = strings.NewReplacer(`\"`, `"`, `\\`, `\`, `\$`, `$`, "\\`", "`", "\\\n", "")
+	// 行頭の#はコメント。"…"の中の`"はPowerShellのエスケープで、クォートを閉じない。
+	looseToken     = regexp.MustCompile(`#[^\n]*|(?:"(?:[^"\x60]|\x60(?s:.))*"?|'[^']*'?|[^\s"';&|()\x60]+)+|[;&|()\x60\n]`)
+	quoteMarks     = strings.NewReplacer(`"`, "", `'`, "")
+	dblQuoteEscape = strings.NewReplacer(`\"`, `"`, `\\`, `\`, `\$`, `$`, "\\`", "`", "\\\n", "")
 )
 
 func normalizeCmdName(raw string) string {
@@ -299,6 +300,9 @@ func commandProblem(command string) string {
 	// `2>&1`の`&`で切らないように、リダイレクトの`&`を先に落とす。
 	var args []string
 	for _, tok := range looseToken.FindAllString(strings.NewReplacer(">&", ">", "&>", ">").Replace(command[end:]), -1) {
+		if strings.HasPrefix(tok, "#") {
+			continue
+		}
 		if len(tok) > 1 || !strings.Contains(looseSeparators, tok) {
 			args = append(args, quoteMarks.Replace(tok))
 			continue

@@ -76,6 +76,10 @@ var deniedCommands = []string{
 	`pwsh -c "& C:\'Program Files'\agy.exe"`,
 	"env agy -S x",
 	"env agy --split-string=x",
+	"foreach ($f in $files) {  # don't touch\n  Write-Host $f\n}\nagy -p hi",
+	"foreach ($f in $files) {\n  Write-Host $f\n}\n# it's done\nagy -p hi",
+	"Write-Host \"a`\"b\"\nagy -p hi",
+	"$msg = \"it`\"s\"; & agy -p $msg",
 	"env -S '-i' agy -p hi",
 	"env -S '-u FOO' agy -p hi",
 	"env --split-string=-i agy",
@@ -123,6 +127,7 @@ var allowedCommands = []string{
 	"cmd /c >",
 	`foreach ($f in $files) { git commit -m "docs; agy usage" }`,
 	`foreach ($f in Get-ChildItem) { Select-String -Path $f -Pattern "agy|antigravity" }`,
+	"foreach ($f in $files) {\n  Write-Host $f\n}\n# step 1; agy later\nWrite-Host done",
 	"mise run test -- agy",
 	`pwsh -c "Get-ChildItem | Where-Object { $_.Name -match 'agy' }"`,
 }
