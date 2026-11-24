@@ -129,6 +129,13 @@ for _ in 1 2; do
   g checkout -q -- app.sh
 done
 check "落ちた実行がツリーを変えていても、戻して通れば知らせる" 'e "$clog" check debris 2>&1 >/dev/null | grep -q "debris failed on this worktree before it passed"'
+# 今のツリーで落ち、別のツリー(未追跡のファイルがある)で通ってから、今のツリーに戻す
+e "$clog" run back -- test -e marker
+: > "$repo/marker"
+e "$clog" run back -- test -e marker
+rm "$repo/marker"
+equals "別のツリーで通った記録は、落ちたツリーに戻すとSTALEで1。このツリーでは通っていないので、何も知らせない" "$(e "$clog" check back 2>&1; echo "rc=$?")" "STALE back
+rc=1"
 out=$(e "$clog" run noisy -- sh -c 'echo z >> app.sh; echo out; exit 7' 2> /dev/null)
 equals "ツリーを変えたコマンドも、stdoutと終了コードをそのまま返す" "$? $out" "7 out"
 g checkout -q -- app.sh
