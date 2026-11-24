@@ -18,6 +18,8 @@
 #         under it), the fingerprint is recorded as <before>><after>, which no worktree has, so check reports STALE
 #         even after the tree is put back.
 # check   Prints OK, MISSING, FAILED or STALE for the latest run of each label. Exits 0 only when all are OK.
+#         An OK label whose same command failed earlier on the same fingerprint also gets a warning on stderr:
+#         nothing changed between the failure and the pass, so the pass alone does not say what was wrong.
 # table   Prints the latest runs on the current fingerprint as a Markdown table. Exits 1 when there are none.
 # mutate  Needs a clean worktree. Runs the command unmutated (the baseline), applies the patch, runs $MUTATE_BUILD
 #         with bash -c when it is set, runs the command (under `timeout $MUTATE_TIMEOUT` when it is set), reverts with
@@ -113,14 +115,20 @@ run_cmd() {
   exit "$rc"
 }
 
+# Whether a run of label $1 with command $3 failed on fingerprint $2.
+failed_on() {
+  L=$1 FP=$2 C=$3 awk -F'\t' '$2 == "run" && ($3 "") == (ENVIRON["L"] "") && ($5 "") == (ENVIRON["FP"] "") &&
+    ($6 "") == (ENVIRON["C"] "") && ($4 "") != "0" { f = 1 } END { exit !f }' "$src"
+}
+
 check_cmd() {
-  local now label row result fp state status=0
+  local now label row result fp ran state status=0
   for label; do valid_label "$label"; done
   guard_file
   now=$(fingerprint) || die "cannot compute the fingerprint"
   for label; do
     row=$(latest "$label")
-    IFS=$'\t' read -r result fp _ <<< "$row"
+    IFS=$'\t' read -r result fp ran <<< "$row"
     if [ -z "$row" ]; then state=MISSING
     elif [ "$result" != 0 ]; then state=FAILED
     elif [ "$fp" != "$now" ]; then state=STALE
@@ -128,6 +136,9 @@ check_cmd() {
     fi
     printf '%s %s\n' "$state" "$label"
     [ "$state" = OK ] || status=1
+    if [ "$state" = OK ] && failed_on "$label" "$now" "$ran"; then
+      printf 'evidence.sh: %s failed on this worktree before it passed, with the same command; write the cause in the ledger before you count the pass\n' "$label" >&2
+    fi
   done
   exit "$status"
 }

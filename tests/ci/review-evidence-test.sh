@@ -112,8 +112,15 @@ e "$clog" run unit -- false
 equals "最新の行が失敗ならFAILEDで1" "$(e "$clog" check unit; echo "rc=$?")" "FAILED unit
 rc=1"
 e "$clog" run unit -- true
-equals "失敗の後に成功すれば、最新の行が勝ってOK" "$(e "$clog" check unit; echo "rc=$?")" "OK unit
+equals "失敗の後に、別のコマンドで成功すれば、最新の行が勝ってOK。何も知らせない" "$(e "$clog" check unit 2>&1; echo "rc=$?")" "OK unit
 rc=0"
+# 1回目だけ落ちるコマンド
+once="$work/once"
+e "$clog" run flaky -- sh -c '[ -e "$0" ] || { : > "$0"; exit 1; }' "$once"
+e "$clog" run flaky -- sh -c '[ -e "$0" ] || { : > "$0"; exit 1; }' "$once"
+equals "同じツリーで同じコマンドが落ちてから通っても、OKで0" "$(e "$clog" check flaky 2>/dev/null; echo "rc=$?")" "OK flaky
+rc=0"
+check "同じツリーで同じコマンドが落ちてから通ると、原因を書くよう知らせる" 'e "$clog" check flaky 2>&1 >/dev/null | grep -q "flaky failed on this worktree before it passed"'
 e "$clog" run edit -- sh -c 'echo z >> app.sh'
 equals "コマンドがファイルを書き換えると、実行の前の指紋と比べてSTALEで1" "$(e "$clog" check edit; echo "rc=$?")" "STALE edit
 rc=1"
