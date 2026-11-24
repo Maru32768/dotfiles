@@ -3,8 +3,8 @@
 // 呼び出すのを止める。Antigravity には登録しない。
 //
 // ツール呼び出しの JSON を標準入力で受け取り、コマンド位置で Antigravity を
-// 起動する操作を拒否する。git commit メッセージや grep 等の引数に
-// "antigravity" や "agy" が含まれるだけのコマンドは通す。
+// 起動する操作を拒否する。bashとして読めるコマンドなら、git commit メッセージや
+// grep 等の引数に "antigravity" や "agy" が含まれるだけのものは通す。
 package main
 
 import (
