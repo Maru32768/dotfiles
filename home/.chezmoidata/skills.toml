@@ -10,11 +10,6 @@
 #   exclude  取り出さないファイル(スキルのディレクトリからの相対パス、省略可)。
 #            シンボリックリンクは、開発者モードでないWindowsでは作れないので外す
 
-[skills.agentic-browser-testing]
-repo = "petrkindlmann/qa-skills"
-path = "skills/agentic-browser-testing"
-commit = "5087a3461d49da76b1e794d9b0bfbd23f38dc75b"
-
 [skills.clarity]
 repo = "addyosmani/clarity"
 path = ""
@@ -24,11 +19,6 @@ commit = "e27ceeff60368cf6966b4ea00a5b9b36418ee9a0"
 repo = "vercel-labs/agent-skills"
 path = "skills/deploy-to-vercel"
 commit = "5a37a6329fbad3666c3207392a6a7c0110e92efb"
-
-[skills.exploratory-testing]
-repo = "petrkindlmann/qa-skills"
-path = "skills/exploratory-testing"
-commit = "5087a3461d49da76b1e794d9b0bfbd23f38dc75b"
 
 [skills.find-skills]
 repo = "vercel-labs/skills"
