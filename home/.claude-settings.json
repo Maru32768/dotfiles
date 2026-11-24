@@ -12,8 +12,10 @@
     "ponytail": {
       "source": {
         "source": "github",
-        "repo": "DietrichGebert/ponytail"
-      }
+        "repo": "DietrichGebert/ponytail",
+        "ref": "ebd8654c2c627f721eb8f9c0d1bd4090a29f9e10"
+      },
+      "autoUpdate": true
     },
     "pstack-claude": {
       "source": {
@@ -25,15 +27,19 @@
     },
     "mattpocock": {
       "source": {
-        "source": "git",
-        "url": "https://github.com/mattpocock/skills.git"
-      }
+        "source": "github",
+        "repo": "mattpocock/skills",
+        "ref": "abeeaf95660ba9e8b7c753eb38f441ca707a8823"
+      },
+      "autoUpdate": true
     },
     "mcode-stack": {
       "source": {
         "source": "github",
-        "repo": "MiniMax-AI/mcode-stack"
-      }
+        "repo": "MiniMax-AI/mcode-stack",
+        "ref": "0db1b4fb3b6270e173080d87b72c28516b299ddd"
+      },
+      "autoUpdate": true
     }
   },
   "autoUpdatesChannel": "latest",
