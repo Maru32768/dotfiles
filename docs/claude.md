@@ -9,7 +9,7 @@ Windows と WSL で同じ設定を使うため、共通部分を chezmoi で管�
 | `home/.agent-instructions.md` | Claude Code(`~/.claude/CLAUDE.md`)、Codex(`~/.codex/AGENTS.md`)、Antigravity(`~/.gemini/config/AGENTS.md`)で共有するユーザー全体の指示の正本。dotfilesでの設定管理、日本語の表記、タスクの進め方、コードコメント、コミットとレビューの決まり、技術的な知見の記録を提案する決まりを書く。`agent`には置かない |
 | `home/dot_claude/CLAUDE.md.tmpl` | `home/.agent-instructions.md`を展開し、末尾に`@~/.claude/pstack-models.md`を足す |
 | `home/dot_claude/rules/` | 環境で変わる指示(「環境で変わる指示」)。`agent`には置かない |
-| `home/dot_claude/pstack-models.md` | pstackのロールごとのモデルと、セッション開始のフックの切り替え(`session hook`)。`/setup-pstack`が書き、`CLAUDE.md`の`@`行で読み込む。フックは切ってある。実装のタスクは、ユーザー全体の指示がship-taskへ、ship-taskが`pstack:poteto-mode`へ渡すので、フックがセッションの開始のたびに入れる指示は、それと重なる |
+| `home/dot_claude/pstack-models.md` | pstackのロールごとのモデルと、セッション開始のフックの切り替え(`session hook`)。`/setup-pstack`が書き、`CLAUDE.md`の`@`で始まる行が読み込む。フックは切ってある。実装のタスクは、ユーザー全体の指示がship-taskへ、ship-taskが`pstack:poteto-mode`へ渡す。フックは、セッションの開始のたびに、このスキルを使えという指示を入れる。この指示は、同じ仕事を、ship-taskを通さずに頼むことになる |
 | `home/dot_claude/skills/` | 自作のスキルのClaude Code側。共通のスキルは`home/dot_agents/skills/`から`include`で展開し、Claude Code専用(`usage-cap`)だけここに直接置く(`docs/skills.md`) |
 | `home/.hooks-src/block-signing-bypass/` | 署名の回避を止めるフック(Go) |
 | `home/.hooks-src/block-antigravity/` | Claude CodeとCodexからAntigravityを呼ぶのを止めるフック(Go) |
