@@ -21,7 +21,7 @@ bash tests/ci/docs-overview-test.sh     # docs-overviewのview.shのテスト(�
 bash tests/ci/update-skills-test.sh     # update-skills.shのテスト(偽のgitで、スキルとマーケットプレイスの固定を上げる。jqが動かなければmiseで取得する)
 cd home/.hooks-src/block-signing-bypass && go test ./...            # 署名回避防止フックのテスト
 cd home/.hooks-src/block-signing-bypass && go test -run 'TestName' ./...  # 1 つだけ
-cd home/.hooks-src/block-antigravity && go test ./...               # Antigravity呼び出し禁止フックのテスト
+cd home/.hooks-src/block-antigravity && go test ./...               # Antigravity呼び出し禁止フックのテスト(初回はmvdan.cc/shをダウンロードする)
 cd home/.hooks-src/ja-style && go test ./...                        # 日本語の表記のフックのテスト
 bash tests/ci/container.sh main         # ubuntu:26.04 のコンテナで環境を作って確かめる。agent、research、desktop (WSL ではない PC) も可。数分かかり、数 GB をダウンロードする
 bash tests/doctor.sh                    # 今の環境の確認
