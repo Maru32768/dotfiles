@@ -24,6 +24,7 @@ var (
 	envAssignPattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*=`)
 	pythonNameRegex  = regexp.MustCompile(`^(?:python(?:\d+(?:\.\d+)*)?|py|uv|uvx|pipx)$`)
 	sdkRefPattern    = regexp.MustCompile(`(?i)\bgoogle[._-]antigravity\b`)
+	redirPrefixRegex = regexp.MustCompile(`^(?:\d+|&)?(?:>>?|<<?|[<>]&).*`)
 	dblQuoteEscape   = strings.NewReplacer(`\"`, `"`, `\\`, `\`, `\$`, `$`, "\\`", "`", "\\\n", "")
 )
 
@@ -48,12 +49,28 @@ func isAntigravityTarget(raw string) bool {
 	return base == "agy" || base == "antigravity" || base == "antigravity-cli"
 }
 
-func stripEnvAssigns(args []string) []string {
+// stripLeadingNoise はコマンド先頭にある環境変数代入やリダイレクトを除く。
+// 構文木の引数にリダイレクトは入らないが、bashとして読めずに空白で分けた入力には残る。
+func stripLeadingNoise(args []string) []string {
 	i := 0
-	for i < len(args) && envAssignPattern.MatchString(args[i]) {
-		i++
+	for i < len(args) {
+		tok := args[i]
+		if envAssignPattern.MatchString(tok) {
+			i++
+			continue
+		}
+		if redirPrefixRegex.MatchString(tok) {
+			// 単独の `>` / `>>` / `2>` などは次のトークン (ファイル名) も飛ばす
+			if tok == ">" || tok == ">>" || tok == "<" || tok == "&>" || tok == "1>" || tok == "2>" || tok == "2>>" {
+				i += 2
+			} else {
+				i++
+			}
+			continue
+		}
+		break
 	}
-	return args[i:]
+	return args[min(i, len(args)):]
 }
 
 func checkSimpleCommand(args []string, depth int) string {
@@ -61,7 +78,7 @@ func checkSimpleCommand(args []string, depth int) string {
 		return ""
 	}
 	for {
-		args = stripEnvAssigns(args)
+		args = stripLeadingNoise(args)
 		if len(args) == 0 {
 			return ""
 		}
@@ -282,6 +299,8 @@ func commandProblemDepth(command string, depth int) string {
 	if err != nil {
 		// PowerShellやcmdの中身はbashとして読めない(`& C:\...\agy.exe`)。拒否すると
 		// それらを全部止め、通すと見逃すので、クォートを見ずに区切り記号と空白で分けて調べる。
+		// `2>&1`の`&`で切らないように、リダイレクトの`&`を先に落とす。
+		command = strings.NewReplacer(">&", ">", "&>", ">").Replace(command)
 		for _, part := range strings.FieldsFunc(command, func(r rune) bool { return strings.ContainsRune(";&|()\n", r) }) {
 			args := strings.Fields(part)
 			for i := range args {

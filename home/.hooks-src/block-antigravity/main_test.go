@@ -55,6 +55,10 @@ var deniedCommands = []string{
 	"run() { agy -p hi; }; run",
 	"while read -r line; do antigravity \"$line\"; done < list",
 	`agy -p "unterminated`,
+	"<<EOF agy -p hi",
+	"xargs <<'EOF' agy",
+	"< in time agy -p hi",
+	"2>&1 nohup agy -p hi <<EOF",
 }
 
 var allowedCommands = []string{
