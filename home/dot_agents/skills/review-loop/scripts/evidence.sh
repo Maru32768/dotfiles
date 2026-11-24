@@ -109,7 +109,7 @@ run_cmd() {
   rc=$?
   after=$(fingerprint) || after=unknown
   if [ "$after" != "$before" ]; then
-    printf 'evidence.sh: the worktree changed while %s ran, or its fingerprint cannot be computed now; check will report it STALE until it runs again\n' "$label" >&2
+    printf 'evidence.sh: the worktree changed while %s ran, or its fingerprint cannot be computed now; check will not report it OK until it runs again\n' "$label" >&2
     before="$before>$after"
   fi
   record run "$label" "$rc" "$before"
