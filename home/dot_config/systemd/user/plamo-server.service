@@ -1,0 +1,15 @@
+# PLaMo 3 Translate 8B。GPUのあるPCでだけ有効にする(docs/tools.md)
+[Unit]
+Description=PLaMo 3 Translate 8B (llama-server)
+# LANのアドレスで待ち受けるときは、アドレスが付くまで起動に失敗する
+StartLimitIntervalSec=0
+
+[Service]
+Environment=PLAMO_HOST=127.0.0.1
+EnvironmentFile=-%h/.config/plamo-server.env
+ExecStart=%h/.local/bin/mise exec "github:ggml-org/llama.cpp[asset_pattern=llama-*-bin-ubuntu-vulkan-x64.tar.gz]@b12317" -- llama-server -hf pfnet/plamo-3-translate-8b-GGUF:Q4_K_M -c 16384 -np 3 -kvu --host ${PLAMO_HOST} --port 8077 --cors-origins localhost --no-cors-credentials --alias plamo-3-translate --no-prefill-assistant
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target

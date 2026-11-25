@@ -47,6 +47,10 @@ OneDrive/**
 .config/karabiner
 .config/karabiner/**
 {{ end }}
+{{ if ne (get . "host" | default "") "desktop" }}
+.config/systemd
+.config/systemd/**
+{{ end }}
 {{ if not (get . "work" | default false) }}
 .claude/rules/pr.md
 {{ end }}

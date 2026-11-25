@@ -9,6 +9,7 @@
 | `/etc/wsl.conf` | `root.sh` が書く | 書かない |
 | `~/.config/environment.d/wslg.conf` | 置く (gpg-agent に WSLg の画面を渡す) | 置かない。デスクトップのセッションが `DISPLAY` を systemd に渡す |
 | `.bash_profile` の `MISE_IGNORED_CONFIG_PATHS` | 書く (`/mnt/c` の下の Windows 用の設定を読まない) | 書かない |
+| `plamo-server.service`(`docs/tools.md`) | 置かない | 置く(有効にするのは手で) |
 | GPG の署名鍵 | Windows と同じ鍵を取り込む | PC ごとに作る |
 | `agent`、`research` | 作れる | 作れない (`chezmoi init` が止まる) |
 

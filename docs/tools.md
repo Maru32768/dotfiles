@@ -60,8 +60,28 @@ mise 本体は `MISE_VERSION` と `$MiseVersion` を書き換える。ずれて�
 | CUDA 12.4 | 1863 | 85 | 638 | 35 |
 | Vulkan | 883 | 94 | 263 | 36 |
 
-- 8Bは16kの文脈でVRAMを7.7GB使うので、ほかのアプリがGPUを使っていると足りなくなる
+- 8Bが16kの文脈で使うVRAMは、Windowsで7.7GB、Ubuntuで5.6GiB(デスクトップの画面を含む)。Windowsでは、ほかのアプリがGPUを使っていると足りなくなる
 - CORSは既定ですべてのオリジンを許すので、ブラウザで開いたページから応答を読めないように`--cors-origins localhost`で絞る
+
+### Linuxで常駐させる
+
+WSLではないLinuxのPC(`desktop`)には、8Bを動かすsystemdのユーザーサービス`plamo-server.service`を置く。GPUのあるPCでだけ有効にする。llama.cppのVulkan版とモデルは、初回の起動で取得する。ほかの環境に入れないようにmiseの`config.toml`には書かず、サービスの中で版を指定する。`config.toml`のタグを上げるときは一緒に上げる(`tests/ci/render.sh`が比べる)。`mise.lock`には載らない。
+
+```bash
+systemctl --user enable --now plamo-server
+```
+
+ログインしていないときも動かすには、lingerを有効にする。
+
+```bash
+sudo loginctl enable-linger "$USER"
+```
+
+既定では`127.0.0.1`だけで待ち受ける。ほかのPCから使うときは、`~/.config/plamo-server.env`に`PLAMO_HOST=<このPCのLANのアドレス>`を書いて再起動し、LANのサブネットからの接続をufwで許可する。LANの誰でも使え、認証が無く通信も平文なので、信頼できるLANでだけ開き、LANの外には出さない。
+
+```bash
+sudo ufw allow from <LANのサブネット> to any port 8077 proto tcp
+```
 
 ## Windows
 
