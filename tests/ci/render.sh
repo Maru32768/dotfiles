@@ -294,7 +294,7 @@ check "linux-desktop: plamo-server は既定で 127.0.0.1 だけで待ち受け�
 blocked "linux-main と windows-main と darwin-main: PLaMo のサービスがない" '[ -e "$work/linux-main/home/.config/systemd" ] || [ -e "$work/windows-main/home/.config/systemd" ] || [ -e "$work/darwin-main/home/.config/systemd" ]'
 llama_service="$(grep -oE 'llama\.cpp\[[^]]*\]@b[0-9]+' "$root"/home/dot_config/systemd/user/plamo-server.service | grep -oE 'b[0-9]+$')"
 llama_mise="$(sed -n 's/^"github:ggml-org\/llama.cpp" = { version = "\(b[0-9]*\)".*/\1/p' "$root"/home/dot_config/mise/config.toml)"
-check "llama.cpp の版は、サービスと mise の設定で揃っている" '[ -n "$llama_service" ] && [ "$llama_service" = "$llama_mise" ]'
+equals "llama.cpp の版は、サービスと mise の設定で揃っている" "$llama_service" "${llama_mise:-(読み取れない)}"
 equals "linux-desktop: 実行するスクリプトは linux-main と同じ" "$(scripts_of linux-desktop)" "$(scripts_of linux-main)"
 check "linux-main: Windows 側の mise の設定を読まない" 'grep -q MISE_IGNORED_CONFIG_PATHS "$work/linux-main/home/.bash_profile"'
 blocked "linux-desktop: /mnt/c を前提にしない" 'grep -q MISE_IGNORED_CONFIG_PATHS "$work/linux-desktop/home/.bash_profile"'
