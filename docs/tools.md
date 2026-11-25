@@ -77,7 +77,7 @@ systemctl --user enable --now plamo-server
 sudo loginctl enable-linger "$USER"
 ```
 
-既定では`127.0.0.1`だけで待ち受ける。ほかのPCから使うときは、`~/.config/plamo-server.env`に`PLAMO_HOST=<このPCのLANのアドレス>`を書いて再起動し(`127.0.0.1`では待ち受けなくなる)、LANのサブネットからの接続をufwで許可する。LANの誰でも使え、認証が無く通信も平文なので、信頼できるLANでだけ開き、LANの外には出さない。
+既定では`127.0.0.1`だけで待ち受ける。ほかのPCから使うときは、`~/.config/plamo-server.env`に`PLAMO_HOST=<このPCのLANのアドレス>`を書いて再起動し(`127.0.0.1`では待ち受けなくなる)、LANのサブネットからの接続をufwで許可する。ufwが無効だと接続元を絞れないので、先に`sudo ufw status`で有効なことを確かめる。LANの誰でも使え、認証が無く通信も平文なので、信頼できるLANでだけ開き、LANの外には出さない。
 
 ```bash
 sudo ufw allow from <LANのサブネット> to any port 8077 proto tcp
