@@ -65,7 +65,7 @@ mise 本体は `MISE_VERSION` と `$MiseVersion` を書き換える。ずれて�
 
 ### Linuxで常駐させる
 
-WSLではないLinuxのPC(`desktop`)には、8Bを動かすsystemdのユーザーサービス`plamo-server.service`を置く。GPUのあるPCでだけ有効にする。llama.cppのVulkan版とモデルは、初回の起動で取得する。ほかの環境に入れないようにmiseの`config.toml`には書かず、llama.cppの版はサービスの中で指定する。`config.toml`のタグ(Windows向け)を上げるときは、サービスで指定した版も一緒に上げる(`tests/ci/render.sh`が比べる)。この版は`mise.lock`には載らない。
+WSLではないLinuxのPC(`desktop`)には、8Bを動かすsystemdのユーザーサービス`plamo-server.service`を置く。GPUのあるPCでだけ有効にする。llama.cppのVulkan版とモデルは、初回の起動で取得する。ほかの環境に入れないようにmiseの`config.toml`には書かず、llama.cppの版はサービスの中で指定する。`config.toml`のタグ(Windows向け)を上げるときは、サービスで指定した版も一緒に上げる(`tests/ci/render.sh`が比べる)。この版は`mise.lock`には載らない。サービスを変えて`chezmoi apply`したら、`systemctl --user daemon-reload`と`systemctl --user restart plamo-server`で反映する。
 
 ```bash
 systemctl --user enable --now plamo-server
@@ -77,7 +77,7 @@ systemctl --user enable --now plamo-server
 sudo loginctl enable-linger "$USER"
 ```
 
-既定では`127.0.0.1`だけで待ち受ける。ほかのPCから使うときは、`~/.config/plamo-server.env`に`PLAMO_HOST=<このPCのLANのアドレス>`を書いて再起動し、LANのサブネットからの接続をufwで許可する。LANの誰でも使え、認証が無く通信も平文なので、信頼できるLANでだけ開き、LANの外には出さない。
+既定では`127.0.0.1`だけで待ち受ける。ほかのPCから使うときは、`~/.config/plamo-server.env`に`PLAMO_HOST=<このPCのLANのアドレス>`を書いて再起動し(`127.0.0.1`では待ち受けなくなる)、LANのサブネットからの接続をufwで許可する。LANの誰でも使え、認証が無く通信も平文なので、信頼できるLANでだけ開き、LANの外には出さない。
 
 ```bash
 sudo ufw allow from <LANのサブネット> to any port 8077 proto tcp
