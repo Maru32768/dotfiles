@@ -292,7 +292,9 @@ equals "linux-desktop: 置かれるファイルは linux-main から WSLg の設
   "$({ files_of linux-main | tr ' ' '\n' | grep -vxE '\.config/environment\.d/wslg\.conf|\.local/state/review-loop/repo/branch/ledger\.md'; echo .config/systemd/user/plamo-server.service; } | sort | paste -sd ' ' -)"
 check "linux-desktop: plamo-server は既定で 127.0.0.1 だけで待ち受け、CORS を localhost に絞る" 's="$work/linux-desktop/home/.config/systemd/user/plamo-server.service"; [ "$(grep "^Environment=" "$s")" = "Environment=PLAMO_HOST=127.0.0.1" ] && grep -qF -- "--host \${PLAMO_HOST} --port 8077 --cors-origins localhost --no-cors-credentials" "$s"'
 blocked "linux-main と windows-main と darwin-main: PLaMo のサービスがない" '[ -e "$work/linux-main/home/.config/systemd" ] || [ -e "$work/windows-main/home/.config/systemd" ] || [ -e "$work/darwin-main/home/.config/systemd" ]'
-equals "llama.cpp の版は、サービスと mise の設定で揃っている" "$(grep -oE 'llama\.cpp\[[^]]*\]@b[0-9]+' "$root"/home/dot_config/systemd/user/plamo-server.service | grep -oE 'b[0-9]+$')" "$(sed -n 's/^"github:ggml-org\/llama.cpp" = { version = "\(b[0-9]*\)".*/\1/p' "$root"/home/dot_config/mise/config.toml)"
+llama_service="$(grep -oE 'llama\.cpp\[[^]]*\]@b[0-9]+' "$root"/home/dot_config/systemd/user/plamo-server.service | grep -oE 'b[0-9]+$')"
+llama_mise="$(sed -n 's/^"github:ggml-org\/llama.cpp" = { version = "\(b[0-9]*\)".*/\1/p' "$root"/home/dot_config/mise/config.toml)"
+check "llama.cpp の版は、サービスと mise の設定で揃っている" '[ -n "$llama_service" ] && [ "$llama_service" = "$llama_mise" ]'
 equals "linux-desktop: 実行するスクリプトは linux-main と同じ" "$(scripts_of linux-desktop)" "$(scripts_of linux-main)"
 check "linux-main: Windows 側の mise の設定を読まない" 'grep -q MISE_IGNORED_CONFIG_PATHS "$work/linux-main/home/.bash_profile"'
 blocked "linux-desktop: /mnt/c を前提にしない" 'grep -q MISE_IGNORED_CONFIG_PATHS "$work/linux-desktop/home/.bash_profile"'
