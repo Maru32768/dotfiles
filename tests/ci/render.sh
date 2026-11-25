@@ -290,7 +290,7 @@ equals "windows-main: host と、WSL と同じ鍵" "$(data_of windows-main '.hos
 # linux-main の review-loop の台帳は、上で置いたもの
 equals "linux-desktop: 置かれるファイルは linux-main から WSLg の設定を除き、PLaMo のサービスを足したもの" "$(files_of linux-desktop)" \
   "$({ files_of linux-main | tr ' ' '\n' | grep -vxE '\.config/environment\.d/wslg\.conf|\.local/state/review-loop/repo/branch/ledger\.md'; echo .config/systemd/user/plamo-server.service; } | sort | paste -sd ' ' -)"
-check "linux-desktop: plamo-server は既定で 127.0.0.1 だけで待ち受け、CORS を localhost に絞る" 's="$work/linux-desktop/home/.config/systemd/user/plamo-server.service"; grep -qx "Environment=PLAMO_HOST=127.0.0.1" "$s" && grep -qF -- "--cors-origins localhost --no-cors-credentials" "$s"'
+check "linux-desktop: plamo-server は既定で 127.0.0.1 だけで待ち受け、CORS を localhost に絞る" 's="$work/linux-desktop/home/.config/systemd/user/plamo-server.service"; [ "$(grep "^Environment=" "$s")" = "Environment=PLAMO_HOST=127.0.0.1" ] && grep -qF -- "--host \${PLAMO_HOST} --port 8077 --cors-origins localhost --no-cors-credentials" "$s"'
 blocked "linux-main と windows-main と darwin-main: PLaMo のサービスがない" '[ -e "$work/linux-main/home/.config/systemd" ] || [ -e "$work/windows-main/home/.config/systemd" ] || [ -e "$work/darwin-main/home/.config/systemd" ]'
 equals "llama.cpp の版は、サービスと mise の設定で揃っている" "$(grep -oE 'llama\.cpp\[[^]]*\]@b[0-9]+' "$root"/home/dot_config/systemd/user/plamo-server.service | grep -oE 'b[0-9]+$')" "$(sed -n 's/^"github:ggml-org\/llama.cpp" = { version = "\(b[0-9]*\)".*/\1/p' "$root"/home/dot_config/mise/config.toml)"
 equals "linux-desktop: 実行するスクリプトは linux-main と同じ" "$(scripts_of linux-desktop)" "$(scripts_of linux-main)"
