@@ -65,7 +65,7 @@ mise 本体は `MISE_VERSION` と `$MiseVersion` を書き換える。ずれて�
 
 ### Linuxで常駐させる
 
-WSLではないLinuxのPC(`desktop`)には、8Bを動かすsystemdのユーザーサービス`plamo-server.service`を置く。GPUのあるPCでだけ有効にする。llama.cppのVulkan版とモデルは、初回の起動で取得する。ほかの環境に入れないようにmiseの`config.toml`には書かず、サービスの中で版を指定する。`config.toml`のタグを上げるときは一緒に上げる(`tests/ci/render.sh`が比べる)。`mise.lock`には載らない。
+WSLではないLinuxのPC(`desktop`)には、8Bを動かすsystemdのユーザーサービス`plamo-server.service`を置く。GPUのあるPCでだけ有効にする。llama.cppのVulkan版とモデルは、初回の起動で取得する。ほかの環境に入れないようにmiseの`config.toml`には書かず、llama.cppの版はサービスの中で指定する。`config.toml`のタグ(Windows向け)を上げるときは、サービスで指定した版も一緒に上げる(`tests/ci/render.sh`が比べる)。この版は`mise.lock`には載らない。
 
 ```bash
 systemctl --user enable --now plamo-server
